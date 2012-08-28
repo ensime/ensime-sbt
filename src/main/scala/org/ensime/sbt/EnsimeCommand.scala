@@ -75,7 +75,7 @@ object EnsimeCommand {
       val initX = Project extract state
 
 
-      val projs:List[KeyMap] = initX.structure.allProjects.map{
+      val projs:List[KeyMap] = initX.structure.allProjects.slice(0, 1).map{
 	proj =>
 
 	import Compat._
@@ -153,9 +153,11 @@ object EnsimeCommand {
 	simpleMerge(userDefined, thisModule)
       }.toList
 
-      val result = SExp(Map(
-	  key(":subprojects") -> SExp(projs.map{p => SExp(p)})
-	)).toPPReadableString
+ //      val result = SExp(Map(
+	//   key(":subprojects") -> SExp(projs.map{p => SExp(p)})
+	// )).toPPReadableString
+
+      val result = SExp(projs.head).toPPReadableString
 
       val file = rest.headOption.getOrElse(".ensime")
       IO.write(new JavaFile(file), result)
