@@ -4,7 +4,7 @@ name := "ensime-sbt-cmd"
 
 organization := "com.jglobal"
 
-version := "1.0.0"
+version := "1.0.1"
 
 //pgpSecretRing := file("/Users/aemon/.gnupg/secring.gpg")
 
