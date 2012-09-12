@@ -37,8 +37,8 @@ object EnsimeCommand {
   import CommandSupport.logger
 
   val ensimeCommand = "ensime"
-  val ensimeBrief = (ensimeCommand + " generate",
-    "Write .ensime file to project's root directory.")
+  val ensimeBrief = (ensimeCommand + " generate [project-id]",
+    "Write .ensime file to project's root directory. If project-id is supplied, process only the project with the specified id, otherwise process all projects")
   val ensimeDetailed = ""
 
   type KeyMap = Map[KeywordAtom, SExp]
@@ -70,12 +70,12 @@ object EnsimeCommand {
 	throw new IllegalArgumentException()
       }
 
-      logInfo("Gathering project information...")
+      logInfo("Gathering project information for " + (if (rest.size == 0) "all projects" else "project " + rest.head)) 
 
       val initX = Project extract state
 
 
-      val projs:List[KeyMap] = initX.structure.allProjects.map{
+      val projs:List[KeyMap] = initX.structure.allProjects.filter(project => if (rest.size == 0) true else project.id == rest.head).map{
 	proj =>
 
 	import Compat._
@@ -153,11 +153,15 @@ object EnsimeCommand {
 	simpleMerge(userDefined, thisModule)
       }.toList
 
-      val result = SExp(Map(
-	  key(":subprojects") -> SExp(projs.map{p => SExp(p)})
-	)).toPPReadableString
+    val result = if (rest.isEmpty) {
+    	SExp(Map(
+	   key(":subprojects") -> SExp(projs.map{p => SExp(p)})
+	 )).toPPReadableString
+	  } else {
+	    SExp(projs.head).toPPReadableString
+	  }
 
-      val file = rest.headOption.getOrElse(".ensime")
+      val file = ".ensime"
       IO.write(new JavaFile(file), result)
       logger(state).info("Wrote configuration to " + file)
       state
