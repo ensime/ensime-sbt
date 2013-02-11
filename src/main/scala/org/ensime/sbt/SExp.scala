@@ -1,7 +1,7 @@
 /**
 *  Copyright (c) 2010, Aemon Cannon
 *  All rights reserved.
-*  
+*
 *  Redistribution and use in source and binary forms, with or without
 *  modification, are permitted provided that the following conditions are met:
 *      * Redistributions of source code must retain the above copyright
@@ -12,7 +12,7 @@
 *      * Neither the name of ENSIME nor the
 *        names of its contributors may be used to endorse or promote products
 *        derived from this software without specific prior written permission.
-*  
+*
 *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -25,8 +25,8 @@
 *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-package org.ensime.sbt.util
-import scala.collection.immutable.Map
+package org.ensime.sbt
+package util
 import scala.util.parsing.combinator._
 import scala.util.parsing.input
 
@@ -43,15 +43,28 @@ case class SExpList(items: Iterable[SExp]) extends SExp with Iterable[SExp] {
   override def toString = "(" + items.mkString(" ") + ")"
 
   override def toPPReadableString = {
-    "(" + items.map { _.toPPReadableString }.mkString("\n") + ")"
+    def indent(s: String): String = {
+      val indentation = "  "
+      s.split("\n").map(indentation + _).mkString("\n")
+    }
+    def group(items: List[SExp]): List[String] = items match {
+      case KeywordAtom(kw) :: value :: tl =>
+        val item = indent(kw) + " " + indent(value.toPPReadableString).replaceAll("^\\s+", "") // trimLeft
+        item :: group(tl)
+      case hd :: tl =>
+        indent(hd.toPPReadableString) :: group(tl)
+      case Nil =>
+        Nil
+    }
+    "(\n" + group(items.toList).mkString("\n") + "\n)"
   }
 
   override def toReadableString = {
     "(" + items.map { _.toReadableString }.mkString(" ") + ")"
   }
 
-  def toKeywordMap(): Map[KeywordAtom, SExp] = {
-    var m = Map[KeywordAtom, SExp]()
+  def toKeywordMap(): KeyMap = {
+    var m = KeyMap()
     items.toList.sliding(2, 2).foreach {
       case (key: KeywordAtom) :: (sexp: SExp) :: rest => {
         m += (key -> sexp)
@@ -61,8 +74,8 @@ case class SExpList(items: Iterable[SExp]) extends SExp with Iterable[SExp] {
     m
   }
 
-  def toSymbolMap(): Map[scala.Symbol, Any] = {
-    var m = Map[scala.Symbol, Any]()
+  def toSymbolMap(): SymMap = {
+    var m = SymMap()
     items.sliding(2, 2).foreach {
       case SymbolAtom(key) ::(sexp: SExp) :: rest => {
         m += (Symbol(key) -> sexp.toScala)
@@ -121,10 +134,10 @@ object SExp extends RegexParsers {
 
   import scala.util.matching.Regex
 
-  private lazy val string = regexGroups("""\"((?:[^\"\\]|\\.)*)\"""".r) ^^ { m => 
-    StringAtom(m.group(1).replace("\\\\", "\\")) 
+  private lazy val string = regexGroups("""\"((?:[^\"\\]|\\.)*)\"""".r) ^^ { m =>
+    StringAtom(m.group(1).replace("\\\\", "\\"))
   }
-  private lazy val symbol = regex("[a-zA-Z][a-zA-Z0-9-:]*".r) ^^ { s => 
+  private lazy val symbol = regex("[a-zA-Z][a-zA-Z0-9-:]*".r) ^^ { s =>
     if(s == "nil") NilAtom()
     else if(s == "t") TruthAtom()
     else SymbolAtom(s)
@@ -175,7 +188,7 @@ object SExp extends RegexParsers {
 
   def apply(items: Iterable[SExp]): SExpList = sexp(items)
 
-  def apply(map: Map[KeywordAtom, SExp]): SExpList = {
+  def apply(map: KeyMap): SExpList = {
     val buf = scala.collection.mutable.ListBuffer[SExp]()
     map.map{ pair =>
       buf += pair._1
@@ -261,7 +274,7 @@ object SExp extends RegexParsers {
       val chars = new Array[Char](s.length)
       s.getChars(0, s.length, chars, 0)
       val r = new input.CharArrayReader(chars)
-      SExp.read(r)      
+      SExp.read(r)
     }
     def check(s:String, r:String) {
       assert(readStr(s).toString() == r, "Failed at: " + s)

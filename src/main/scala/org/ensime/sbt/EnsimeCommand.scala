@@ -41,33 +41,16 @@ object EnsimeCommand {
     "Write .ensime file to project's root directory.")
   val ensimeDetailed = ""
 
-  type KeyMap = Map[KeywordAtom, SExp]
-
-  private def simpleMerge(m1:KeyMap, m2:KeyMap):KeyMap = {
-    val keys = Set() ++ m1.keys ++ m2.keys
-    val merged: Map[KeywordAtom, SExp] = keys.map{ key =>
-      (m1.get(key), m2.get(key)) match{
-	case (Some(s1),None) => (key, s1)
-	case (None,Some(s2)) => (key, s2)
-	case (Some(SExpList(items1)),
-	  Some(SExpList(items2))) => (key, SExpList(items1 ++ items2))
-	case (Some(s1:SExp),Some(s2:SExp)) => (key, s2)
-	case _ => (key, NilAtom())
-      }
-    }.toMap
-    merged
-  }
-
   def ensime = Command.args(ensimeCommand, ensimeBrief, ensimeDetailed, "huh?"){
     case (state,"generate"::rest) =>  {
 
       def logInfo(message: String) {
-	logger(state).info(message);
+        logger(state).info(message);
       }
 
       def logErrorAndFail(errorMessage: String): Nothing = {
-	logger(state).error(errorMessage);
-	throw new IllegalArgumentException()
+        logger(state).error(errorMessage);
+        throw new IllegalArgumentException()
       }
 
       logInfo("Gathering project information...")
@@ -76,86 +59,91 @@ object EnsimeCommand {
 
 
       val projs:List[KeyMap] = initX.structure.allProjects.map{
-	proj =>
+        proj =>
 
-	import Compat._
+        import Compat._
 
-	implicit val s = state
+        implicit val s = state
 
-	implicit val show:Show[ScopedKey[_]] = Project.showContextKey(s)
+        implicit val show:Show[ScopedKey[_]] = Project.showContextKey(s)
 
-	implicit val projRef = ProjectRef(s.configuration.baseDirectory, proj.id)
-	logInfo("Processing project: " + projRef + "...")
+        implicit val projRef = ProjectRef(s.configuration.baseDirectory, proj.id)
+        logInfo("Processing project: " + projRef + "...")
 
-	implicit val x = Extracted(initX.structure, initX.session, projRef)
-	implicit val buildStruct = x.structure
-	val session = x.session
+        implicit val x = Extracted(initX.structure, initX.session, projRef)
+        implicit val buildStruct = x.structure
+        val session = x.session
 
-	val name = optSetting(Keys.name)
-	val org = optSetting(organization)
-	val projectVersion = optSetting(version)
-	val buildScalaVersion = optSetting(scalaVersion)
-	val modName = optSetting(moduleName)
+        val name = optSetting(Keys.name)
+        val org = optSetting(organization)
+        val projectVersion = optSetting(version)
+        val buildScalaVersion = optSetting(scalaVersion)
+        val modName = optSetting(moduleName)
 
-	def projectRefModuleName(ref:ProjectRef):Option[String] = {
-	  implicit val x = Extracted(initX.structure, initX.session, ref)
-	  implicit val buildStruct = x.structure
-	  optSetting(moduleName)
-	}
-	val modDeps = {
-	  evaluateTask(projectDependencies).getOrElse(List()).map(_.name) ++
-	  proj.aggregate.flatMap(projectRefModuleName)
-	}
+        def projectRefModuleName(ref:ProjectRef):Option[String] = {
+          implicit val x = Extracted(initX.structure, initX.session, ref)
+          implicit val buildStruct = x.structure
+          optSetting(moduleName)
+        }
+        val modDeps = {
+          evaluateTask(projectDependencies).getOrElse(List()).map(_.name) ++
+          proj.aggregate.flatMap(projectRefModuleName)
+        }
 
-	val compileDeps = (
-       	  taskFiles(unmanagedClasspath in Compile) ++
-       	  taskFiles(managedClasspath in Compile) ++
-       	  taskFiles(internalDependencyClasspath in Compile)
-	)
-	val testDeps = (
-       	  taskFiles(unmanagedClasspath in Test) ++
-       	  taskFiles(managedClasspath in Test) ++
-       	  taskFiles(internalDependencyClasspath in Test) ++
-       	  taskFiles(exportedProducts in Test)
-	)
-	val runtimeDeps = (
-       	  taskFiles(unmanagedClasspath in Runtime) ++
-       	  taskFiles(managedClasspath in Runtime) ++
-       	  taskFiles(internalDependencyClasspath in Runtime) ++
-       	  taskFiles(exportedProducts in Runtime)
-	)
+        val compileDeps = (
+          taskFiles(unmanagedClasspath in Compile) ++
+          taskFiles(managedClasspath in Compile) ++
+          taskFiles(internalDependencyClasspath in Compile)
+        )
+        val testDeps = (
+          taskFiles(unmanagedClasspath in Test) ++
+          taskFiles(managedClasspath in Test) ++
+          taskFiles(internalDependencyClasspath in Test) ++
+          taskFiles(exportedProducts in Test)
+        )
+        val runtimeDeps = (
+          taskFiles(unmanagedClasspath in Runtime) ++
+          taskFiles(managedClasspath in Runtime) ++
+          taskFiles(internalDependencyClasspath in Runtime) ++
+          taskFiles(exportedProducts in Runtime)
+        )
 
-	val sourceRoots =  (
-       	  settingFiles(sourceDirectories in Compile) ++
-       	  settingFiles(sourceDirectories in Test)
-	)
+        val sourceRoots =  (
+          settingFiles(sourceDirectories in Compile) ++
+          settingFiles(sourceDirectories in Test)
+        )
 
-	val target = optSetting(classDirectory in Compile).map(_.getCanonicalPath)
-	val testTarget = optSetting(classDirectory in Test).map(_.getCanonicalPath)
+        val target = optSetting(classDirectory in Compile).map(_.getCanonicalPath)
+        val testTarget = optSetting(classDirectory in Test).map(_.getCanonicalPath)
 
-	val userDefined = optSetting(ensimeConfig).
-	getOrElse(SExpList(List[SExp]())).toKeywordMap
+        val userDefined = optSetting(ensimeConfig).
+        getOrElse(SExpList(List[SExp]())).toKeywordMap
 
-	val thisModule = Map[KeywordAtom,SExp](
-	  key(":name") -> name.map(SExp.apply).getOrElse(NilAtom()),
-	  key(":module-name") -> modName.map(SExp.apply).getOrElse(NilAtom()),
-	  key(":depends-on-modules") -> SExpList(modDeps.map(SExp.apply)),
-	  key(":package") -> org.map(SExp.apply).getOrElse(NilAtom()),
-	  key(":version") -> projectVersion.map(SExp.apply).getOrElse(NilAtom()),
-	  key(":compile-deps") -> SExp(compileDeps.map(SExp.apply)),
-	  key(":runtime-deps") -> SExp(runtimeDeps.map(SExp.apply)),
-	  key(":test-deps") -> SExp(testDeps.map(SExp.apply)),
-	  key(":source-roots") -> SExp(sourceRoots.map(SExp.apply)),
-	  key(":target") -> target.map(SExp.apply).getOrElse(NilAtom()),
-	  key(":test-target") -> testTarget.map(SExp.apply).getOrElse(NilAtom())
-	)
+        val thisModule = KeyMap(
+          key(":name") -> name.map(SExp.apply).getOrElse(NilAtom()),
+          key(":module-name") -> modName.map(SExp.apply).getOrElse(NilAtom()),
+          key(":depends-on-modules") -> SExpList(modDeps.map(SExp.apply)),
+          key(":package") -> org.map(SExp.apply).getOrElse(NilAtom()),
+          key(":version") -> projectVersion.map(SExp.apply).getOrElse(NilAtom()),
+          key(":compile-deps") -> SExp(compileDeps.map(SExp.apply)),
+          key(":runtime-deps") -> SExp(runtimeDeps.map(SExp.apply)),
+          key(":test-deps") -> SExp(testDeps.map(SExp.apply)),
+          key(":source-roots") -> SExp(sourceRoots.map(SExp.apply)),
+          key(":target") -> target.map(SExp.apply).getOrElse(NilAtom()),
+          key(":test-target") -> testTarget.map(SExp.apply).getOrElse(NilAtom())
+        )
 
-	simpleMerge(userDefined, thisModule)
+        userDefined simpleMerge thisModule
       }.toList
 
-      val result = SExp(Map(
-	  key(":subprojects") -> SExp(projs.map{p => SExp(p)})
-	)).toPPReadableString
+      val body = SExp(KeyMap(
+          key(":subprojects") -> SExp(projs.map{p => SExp(p)})
+        )).toPPReadableString
+      val header =
+        ";; If your project contains a lot of files, it is advisable to enable (:disable-source-load-on-startup t)\n" +
+        ";; Otherwise Ensime might incur a massive lag at startup time\n" +
+        ";; See more information about that at http://aemoncannon.github.com/ensime/index.html"
+      val result = header + "\n\n" + body
 
       val file = rest.headOption.getOrElse(".ensime")
       IO.write(new JavaFile(file), result)
