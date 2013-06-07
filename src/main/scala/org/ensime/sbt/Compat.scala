@@ -27,17 +27,15 @@
 package org.ensime.sbt
 import sbt._
 import Keys._
-import CommandSupport.logger
-import Load.BuildStructure
 
 object Compat{
 
   def evaluateTask[T](key: TaskKey[T])(implicit buildStruct:BuildStructure, s:State, projRef:ProjectRef):Option[T] = {
-    logger(s).info(" Evaluating task: " + key.key + "...")
+    s.log.info(" Evaluating task: " + key.key + "...")
     EvaluateTask(buildStruct, key, s, projRef) match {
       case Some((s, Value(result))) => Some(result)
       case _ => {
-        logger(s).error("Task failed: " + key.key)
+        s.log.error("Task failed: " + key.key)
         None
       }
     }
@@ -52,7 +50,7 @@ object Compat{
   }
 
   def optSetting[A](key: SettingKey[A])(implicit x:Extracted, s:State) = {
-    logger(s).info(" Reading setting: " + key.key + "...")
+    s.log.info(" Reading setting: " + key.key + "...")
     x.getOpt(key)
   }
 

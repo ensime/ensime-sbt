@@ -34,7 +34,6 @@ object EnsimeCommand {
   import java.io.{File => JavaFile}
   import sbt._
   import Keys._
-  import CommandSupport.logger
 
   val ensimeCommand = "ensime"
   val ensimeBrief = (ensimeCommand + " generate",
@@ -45,11 +44,11 @@ object EnsimeCommand {
     case (state,"generate"::rest) =>  {
 
       def logInfo(message: String) {
-        logger(state).info(message);
+        state.log.info(message);
       }
 
       def logErrorAndFail(errorMessage: String): Nothing = {
-        logger(state).error(errorMessage);
+        state.log.error(errorMessage);
         throw new IllegalArgumentException()
       }
 
@@ -147,11 +146,11 @@ object EnsimeCommand {
 
       val file = rest.headOption.getOrElse(".ensime")
       IO.write(new JavaFile(file), result)
-      logger(state).info("Wrote configuration to " + file)
+      state.log.info("Wrote configuration to " + file)
       state
     }
     case (state,args) => {
-      logger(state).info(ensimeBrief._1)
+      state.log.info(ensimeBrief._1)
       state
     }
   }
