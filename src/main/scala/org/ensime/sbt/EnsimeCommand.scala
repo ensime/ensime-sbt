@@ -66,7 +66,8 @@ the configuration."""
     val initX = Project extract state
 
 
-    val projs:List[KeyMap] = initX.structure.allProjects.map{
+    val allProjects = initX.structure.allProjects
+    val projs:List[KeyMap] = allProjects.map{
       proj =>
 
       import Compat._
@@ -161,7 +162,8 @@ the configuration."""
     }.toList
 
     val body = SExp(KeyMap(
-        key(":subprojects") -> SExp(projs.map{p => SExp(p)})
+        key(":subprojects") -> SExp(projs.map{p => SExp(p)}),
+        key(":active-subproject") -> allProjects.headOption.map(_.id).map(SExp.apply).getOrElse(NilAtom())
       )).toPPReadableString
     val header =
       ";; If your project contains a lot of files, it is advisable to enable (:disable-source-load-on-startup t)\n" +
