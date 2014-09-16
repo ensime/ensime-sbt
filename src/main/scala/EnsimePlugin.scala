@@ -160,7 +160,7 @@ object EnsimePlugin extends AutoPlugin with CommandSupport {
     val jarDocs = jarDocsFor(Test)
 
     EnsimeModule(
-      name.gimme, mainSources, testSources, mainTarget, testTarget, deps,
+      project.id, mainSources, testSources, mainTarget, testTarget, deps,
       mainJars, runtimeJars, testJars, jarSrcs, jarDocs)
   }
 }
