@@ -165,12 +165,13 @@ object EnsimePlugin extends AutoPlugin with CommandSupport {
       artifact = artifactFilter(classifier = "javadoc")
     )).toSet
 
-    val mainSources = sourcesFor(Compile)
+    val mainSources = sourcesFor(Compile) ++ sourcesFor(Provided) ++ sourcesFor(Optional)
     val testSources = sourcesFor(Test) ++ sourcesFor(IntegrationTest)
     val mainTarget = targetFor(Compile)
     val testTargets = (targetForOpt(Test) ++ targetForOpt(IntegrationTest)).toSet
     val deps = project.dependencies.map(_.project.project).toSet
-    val mainJars = jarsFor(Compile) ++ unmanagedJarsFor(Compile) ++ jarsFor(Provided)
+    val mainJars = jarsFor(Compile) ++ unmanagedJarsFor(Compile) ++ jarsFor(Provided) ++
+      jarsFor(Optional)
     val runtimeJars = jarsFor(Runtime) ++ unmanagedJarsFor(Runtime) -- mainJars
     val testJars = jarsFor(Test) ++ jarsFor(IntegrationTest) ++
       unmanagedJarsFor(Test) ++ unmanagedJarsFor(IntegrationTest) -- mainJars
