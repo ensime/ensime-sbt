@@ -1,11 +1,2 @@
-.#*
-*.*#
-
 target
-project/project
-project/target
-
 .ensime*
-.sbtopts
-
-ensime-sbt-install

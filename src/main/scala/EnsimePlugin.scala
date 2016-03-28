@@ -20,6 +20,8 @@ import scalariform.formatter.preferences._
  */
 object Imports {
   object EnsimeKeys {
+    val compileOnly = InputKey[Unit]("compileOnly", "Compiles a single scala file")
+
     // for gen-ensime
     val name = SettingKey[String](
       "Name of the ENSIME project"
@@ -169,7 +171,12 @@ object EnsimePlugin extends AutoPlugin {
       "org.scala-lang" % "scalap" % scalaVersion.value
     ).map(_ % EnsimeInternal.name intransitive ()),
     libraryDependencies ++= EnsimeKeys.scalaCompilerJarModuleIDs.value
-  )
+  ) ++ inConfig(Compile) {
+      Seq(
+        aggregate in EnsimeKeys.compileOnly := false,
+        EnsimeKeys.compileOnly <<= compileOnlyTask
+      )
+    }
 
   def defaultCompilerFlags(scalaVersion: String): Seq[String] = Seq(
     "-feature",
@@ -187,6 +194,55 @@ object EnsimePlugin extends AutoPlugin {
         case _                       => Nil
       }
     }
+
+  private val noChanges = new xsbti.compile.DependencyChanges {
+    def isEmpty = true
+    def modifiedBinaries = Array()
+    def modifiedClasses = Array()
+  }
+  private object noopCallback extends xsbti.AnalysisCallback {
+    def beginSource(source: File) {}
+    def generatedClass(source: File, module: File, name: String) {}
+    def api(sourceFile: File, source: xsbti.api.SourceAPI) {}
+    def sourceDependency(dependsOn: File, source: File, publicInherited: Boolean) {}
+    def binaryDependency(binary: File, name: String, source: File, publicInherited: Boolean) {}
+    def endSource(sourcePath: File) {}
+    def problem(what: String, pos: xsbti.Position, msg: String, severity: xsbti.Severity, reported: Boolean) {}
+    def nameHashing(): Boolean = true
+    def usedName(sourceFile: File, names: String) {}
+    override def binaryDependency(file: File, s: String, file1: File, dependencyContext: xsbti.DependencyContext): Unit = {}
+    override def sourceDependency(file: File, file1: File, dependencyContext: xsbti.DependencyContext): Unit = {}
+  }
+  // is there a way to create an InputTask without using macros?
+  // https://github.com/sbt/sbt/issues/2417
+  def compileOnlyTask: Def.Initialize[InputTask[Unit]] = Def.inputTask { (argTask: TaskKey[Seq[String]]) =>
+    (
+      argTask,
+      sourceDirectories,
+      dependencyClasspath,
+      classDirectory,
+      scalacOptions,
+      maxErrors,
+      compileInputs in compile,
+      compilers,
+      streams
+    ).map { (args, dirs, cp, out, opts, merrs, in, cs, s) =>
+        args.foreach { arg =>
+          val input: File = file(arg).getCanonicalFile
+          val sourceDirs = dirs.map(_.getCanonicalFile)
+
+          val here = sourceDirs.exists { dir => input.getPath.startsWith(dir.getPath) }
+          if (here && input.exists()) {
+            if (!out.exists()) IO.createDirectory(out)
+            s.log.info(s"Compiling $input")
+            cs.scalac(
+              Seq(input), noChanges, cp.map(_.data), out, opts,
+              noopCallback, merrs, in.incSetup.cache, s.log
+            )
+          }
+        }
+      }
+  }
 
   // it would be good if debugging-off was automatically triggered
   // https://stackoverflow.com/questions/32350617

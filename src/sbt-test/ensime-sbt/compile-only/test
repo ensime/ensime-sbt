@@ -1,0 +1,7 @@
+> a/compile
+$ sleep 1000
+$ touch timestamp
+$ sleep 1000
+> a/compileOnly a/src/main/scala/Foo.scala
+$ newer a/target/scala-2.10/classes/Foo.class timestamp
+$ newer timestamp a/target/scala-2.10/classes/Bar.class
