@@ -118,7 +118,7 @@ object EnsimePlugin extends AutoPlugin {
     EnsimeKeys.disableClassMonitoring := false,
     EnsimeKeys.megaUpdate <<= Keys.state.flatMap { implicit s =>
       val projs = Project.structure(s).allProjectRefs
-      log.info("ENSIME update. Please vote for https://github.com/sbt/sbt/issues/2266")
+      log.info("ENSIME update.")
       for {
         updateReport <- update.forAllProjects(s, projs)
         _ = log.info("ENSIME updateClassifiers. Please vote for https://github.com/sbt/sbt/issues/1930")
