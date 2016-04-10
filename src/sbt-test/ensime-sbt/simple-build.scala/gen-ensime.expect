@@ -5,6 +5,7 @@
  :name "simple-build-scala"
  :java-home "JDK_HOME"
  :java-flags ("-XX:MaxPermSize=256m" "-Xmx2g" "-Xss2m")
+ :java-compiler-args ("-source" "1.6" "-target" "1.6")
  :reference-source-roots ("JDK_HOME/src.zip")
  :scala-version "2.11.7"
  :compiler-args ("-Xlog-reflective-calls" "-feature" "-deprecation" "-Xlint" "-Yinline-warnings" "-Yno-adapted-args" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ywarn-unused-import" "-Ymacro-expand:discard")

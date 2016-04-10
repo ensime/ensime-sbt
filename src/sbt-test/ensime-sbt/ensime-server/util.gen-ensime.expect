@@ -5,6 +5,7 @@
  :name "util"
  :java-home "JDK_HOME"
  :java-flags ("-XX:MaxPermSize=256m" "-Xmx2g" "-Xss2m")
+ :java-compiler-args nil
  :reference-source-roots ("JDK_HOME/src.zip")
  :scala-version "2.11.7"
  :compiler-args ("-encoding" "UTF-8" "-target:jvm-1.6" "-feature" "-deprecation" "-language:postfixOps" "-language:implicitConversions" "-Xlint" "-Yinline-warnings" "-Yno-adapted-args" "-Ywarn-dead-code" "-Xfuture" "-Ywarn-unused-import" "-Ywarn-numeric-widen" "-Ymacro-expand:discard")

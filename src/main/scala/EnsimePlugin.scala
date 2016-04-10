@@ -27,6 +27,7 @@ object Imports {
     val compilerArgs = TaskKey[Seq[String]](
       "Arguments for the presentation compiler, extracted from the compiler flags."
     )
+
     val additionalCompilerArgs = TaskKey[Seq[String]](
       "Additional arguments for the presentation compiler."
     )
@@ -275,6 +276,9 @@ object EnsimePlugin extends AutoPlugin {
           Nil
       }
     } ++ EnsimeKeys.unmanagedSourceArchives.gimme
+
+    val javaCompilerArgs = (javacOptions in Compile).run.toList
+
     val javaFlags = EnsimeKeys.javaFlags.run.toList
 
     val formatting = EnsimeKeys.scalariform.gimmeOpt
@@ -285,7 +289,7 @@ object EnsimePlugin extends AutoPlugin {
       root, cacheDir,
       scalaCompilerJars,
       name, scalaV, compilerArgs,
-      modules, javaH, javaFlags, javaSrc, formatting,
+      modules, javaH, javaFlags, javaCompilerArgs, javaSrc, formatting,
       disableSourceMonitoring, disableClassMonitoring
     )
 
@@ -466,6 +470,8 @@ object EnsimePlugin extends AutoPlugin {
     }
     val javaFlags = EnsimeKeys.javaFlags.run.toList
 
+    val javaCompilerArgs = (javacOptions in Compile).run.toList
+
     val formatting = EnsimeKeys.scalariform.gimmeOpt
 
     val module = EnsimeModule(
@@ -485,7 +491,7 @@ object EnsimePlugin extends AutoPlugin {
       root, cacheDir,
       scalaCompilerJars,
       name, scalaV, compilerArgs,
-      Map(module.name -> module), JdkDir, javaFlags, javaSrc, formatting,
+      Map(module.name -> module), JdkDir, javaFlags, javaCompilerArgs, javaSrc, formatting,
       false, false
     )
 
@@ -539,6 +545,7 @@ case class EnsimeConfig(
   modules: Map[String, EnsimeModule],
   javaHome: File,
   javaFlags: List[String],
+  javaCompilerArgs: List[String],
   javaSrc: List[File],
   formatting: Option[IFormattingPreferences],
   disableSourceMonitoring: Boolean,
@@ -646,6 +653,7 @@ object SExpFormatter {
  :name "${c.name}"
  :java-home ${toSExp(c.javaHome)}
  :java-flags ${ssToSExp(c.javaFlags)}
+ :java-compiler-args ${ssToSExp(c.javaCompilerArgs)}
  :reference-source-roots ${fsToSExp(c.javaSrc)}
  :scala-version ${toSExp(c.scalaVersion)}
  :compiler-args ${ssToSExp(c.compilerArgs)}
