@@ -119,18 +119,11 @@ object EnsimePlugin extends AutoPlugin {
     EnsimeKeys.disableClassMonitoring := false,
     EnsimeKeys.megaUpdate <<= Keys.state.flatMap { implicit s =>
 
-      def checkUpdateMechanism(): Unit = {
-        val extracted = Project.extract(s)
-        val structure = extracted.structure
-
-        val settings = update.definingSettings(s, structure.allProjectRefs)
-        val files = settings.map(_.pos).collect {
-          case fp: FilePosition => fp.path
-        }
-
-        // check if the update task uses sbt's implementation
-        val usesDefault = files.exists(_.contains("sbt.Classpath"))
-        if (usesDefault) {
+      def checkCoursier(): Unit = {
+        val structure = Project.extract(s).structure
+        val plugins = structure.allProjects.flatMap(_.autoPlugins).map(_.getClass.getName)
+        val usesCoursier = plugins.exists(_.contains("CoursierPlugin"))
+        if (!usesCoursier) {
           log.warn(
             "SBT is using ivy to resolve dependencies and is known to be slow. " +
               "Coursier is recommended: http://get-coursier.io"
@@ -142,7 +135,7 @@ object EnsimePlugin extends AutoPlugin {
       log.info("ENSIME update.")
       for {
         updateReport <- update.forAllProjects(s, projs)
-        _ = checkUpdateMechanism()
+        _ = checkCoursier()
         updateClassifiersReport <- updateClassifiers.forAllProjects(s, projs)
       } yield {
         projs.map { p =>
@@ -619,29 +612,6 @@ object CommandSupport {
     def forAllProjects(state: State, projects: Seq[ProjectRef]): Task[Map[ProjectRef, A]] = {
       val tasks = projects.flatMap(p => key.in(p).get(Project.structure(state).data).map(_.map(it => (p, it))))
       std.TaskExtra.joinTasks(tasks).join.map(_.toMap)
-    }
-
-    // the settings that are actually used to implement the task key in given projects
-    def definingSettings(state: State, projects: Seq[ProjectRef]): Seq[Def.Setting[_]] = {
-      import Def.ScopedKey
-
-      val extracted = Project.extract(state)
-      val structure = extracted.structure
-
-      val scopedKeys: Seq[ScopedKey[_]] = projects.flatMap { proj =>
-        val scope = structure.data.definingScope(GlobalScope in proj, key.key)
-        scope.map(s => ScopedKey(s, key.key)).toSeq
-      }
-
-      // computed settings of this build
-      val compiledSettings: Map[ScopedKey[_], Def.Compiled[_]] =
-        Def.compiled(structure.settings)(structure.delegates, structure.scopeLocal, extracted.showKey)
-
-      val compiled: Seq[Def.Compiled[_]] = scopedKeys.flatMap { sk =>
-        compiledSettings.get(sk).toSeq
-      }
-
-      compiled.map(_.settings).flatten
     }
   }
 
