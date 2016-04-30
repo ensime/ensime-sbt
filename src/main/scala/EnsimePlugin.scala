@@ -32,7 +32,7 @@ object Imports {
       "Additional arguments for the presentation compiler."
     )
     val javaFlags = TaskKey[Seq[String]](
-      "Flags to be passed to Java compiler."
+      "Flags to be passed to ENSIME JVM process."
     )
     val scalariform = settingKey[IFormattingPreferences](
       "Scalariform formatting preferences to use in ENSIME."
@@ -131,9 +131,10 @@ object EnsimePlugin extends AutoPlugin {
         // check if the update task uses sbt's implementation
         val usesDefault = files.exists(_.contains("sbt.Classpath"))
         if (usesDefault) {
-          log.info("ENSIME is using the default sbt dependency update mechanism, which might take a long time. " +
-            "It is recommended to use coursier (http://get-coursier.io/) for faster updates. " +
-            "Please also vote for https://github.com/sbt/sbt/issues/1930 to get the speed issue fixed upstream.")
+          log.warning(
+            "SBT is using ivy to resolve dependencies and is known to be slow. " +
+              "Coursier is recommended: http://get-coursier.io"
+          )
         }
       }
 
