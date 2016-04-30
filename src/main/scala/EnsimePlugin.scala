@@ -131,7 +131,7 @@ object EnsimePlugin extends AutoPlugin {
         // check if the update task uses sbt's implementation
         val usesDefault = files.exists(_.contains("sbt.Classpath"))
         if (usesDefault) {
-          log.warning(
+          log.warn(
             "SBT is using ivy to resolve dependencies and is known to be slow. " +
               "Coursier is recommended: http://get-coursier.io"
           )
