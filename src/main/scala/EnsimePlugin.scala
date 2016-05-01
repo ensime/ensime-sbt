@@ -11,6 +11,8 @@ import sbt.IO._
 import sbt.Keys._
 import sbt.complete.Parsers._
 import scala.collection.JavaConverters._
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Promise}
 import scala.util._
 import scalariform.formatter.preferences._
 
@@ -175,7 +177,12 @@ object EnsimePlugin extends AutoPlugin {
     aggregate in EnsimeKeys.compileOnly := false
   ) ++ Seq(Compile, Test).flatMap { config =>
       // WORKAROUND https://github.com/sbt/sbt/issues/2580
-      inConfig(config) { EnsimeKeys.compileOnly <<= compileOnlyTask }
+      inConfig(config) {
+        Seq(
+          EnsimeKeys.compileOnly <<= compileOnlyTask,
+          scalacOptions in EnsimeKeys.compileOnly := scalacOptions.value
+        )
+      }
     }
 
   def defaultCompilerFlags(scalaVersion: String): Seq[String] = Seq(
@@ -200,16 +207,19 @@ object EnsimePlugin extends AutoPlugin {
     def modifiedBinaries = Array()
     def modifiedClasses = Array()
   }
-  private object noopCallback extends xsbti.AnalysisCallback {
-    def beginSource(source: File) {}
-    def generatedClass(source: File, module: File, name: String) {}
-    def api(sourceFile: File, source: xsbti.api.SourceAPI) {}
-    def sourceDependency(dependsOn: File, source: File, publicInherited: Boolean) {}
-    def binaryDependency(binary: File, name: String, source: File, publicInherited: Boolean) {}
-    def endSource(sourcePath: File) {}
-    def problem(what: String, pos: xsbti.Position, msg: String, severity: xsbti.Severity, reported: Boolean) {}
-    def nameHashing(): Boolean = true
-    def usedName(sourceFile: File, names: String) {}
+  private class noopCallback(
+    promise: Promise[Unit],
+    override val nameHashing: Boolean = true
+  ) extends xsbti.AnalysisCallback {
+    def beginSource(source: File): Unit = {}
+    def generatedClass(source: File, module: File, name: String): Unit = promise.trySuccess(())
+    def api(sourceFile: File, source: xsbti.api.SourceAPI): Unit = {}
+    def sourceDependency(dependsOn: File, source: File, publicInherited: Boolean): Unit = {}
+    def binaryDependency(binary: File, name: String, source: File, publicInherited: Boolean): Unit = {}
+    def endSource(sourcePath: File): Unit = {}
+    def problem(what: String, pos: xsbti.Position, msg: String, severity: xsbti.Severity, reported: Boolean): Unit =
+      promise.tryFailure(new IllegalStateException(what))
+    def usedName(sourceFile: File, names: String): Unit = {}
     override def binaryDependency(file: File, s: String, file1: File, dependencyContext: xsbti.DependencyContext): Unit = {}
     override def sourceDependency(file: File, file1: File, dependencyContext: xsbti.DependencyContext): Unit = {}
   }
@@ -223,7 +233,7 @@ object EnsimePlugin extends AutoPlugin {
         sourceDirectories,
         dependencyClasspath,
         classDirectory,
-        scalacOptions,
+        scalacOptions in EnsimeKeys.compileOnly,
         maxErrors,
         compileInputs in compile,
         compilers,
@@ -238,12 +248,21 @@ object EnsimePlugin extends AutoPlugin {
             if (!here || !input.exists())
               throw new IllegalArgumentException(s"$arg not associated to $sourceDirs")
 
+            // there is no reason why we couldn't compileOnly other
+            // languages, but they would require explicit support.
+            // Java shouldn't be too hard if somebody wants it.
+            if (!input.getName.endsWith(".scala"))
+              throw new IllegalArgumentException(s"only .scala files are supported: $arg")
+
             if (!out.exists()) IO.createDirectory(out)
             s.log.info(s"Compiling $input")
+
+            val promise = Promise[Unit]()
             cs.scalac(
               Seq(input), noChanges, cp.map(_.data), out, opts,
-              noopCallback, merrs, in.incSetup.cache, s.log
+              new noopCallback(promise), merrs, in.incSetup.cache, s.log
             )
+            Await.result(promise.future, Duration.Inf)
           }
         }
     }

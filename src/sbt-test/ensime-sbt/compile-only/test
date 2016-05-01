@@ -8,13 +8,18 @@ $ newer a/target/scala-2.10/classes/Foo.class timestamp
 $ newer timestamp a/target/scala-2.10/classes/Bar.class
 
 # failure modes
+$ sleep 1000
 -> compileOnly
 -> compileOnly a/src/test/scala/Foo.scala
 -> compileOnly b/src/main/scala/Foo.scala
+-> compileOnly b/src/main/java/Baz.java
 # aggregation
 -> compileOnly a/src/main/scala/Foo.scala
 -> test:compileOnly b/src/test/scala/FooTest.scala
 
 # works in the Test Configuration
+# for some bizarre reason, we get "Compilation in progress" errors from javac unless we wait for ages here
+$ sleep 5000
+
 > b/test:compileOnly b/src/test/scala/FooTest.scala
 $ exists b/target/scala-2.10/test-classes/FooTest.class
