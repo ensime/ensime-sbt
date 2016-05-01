@@ -4,13 +4,16 @@ package org.ensime.core
 
 import akka.testkit._
 import scala.concurrent.duration._
+import org.ensime.fixture.SharedTestKitFixture
+import org.ensime.util.EnsimeSpec
 
-class BroadcasterSpec extends AkkaFlatSpec {
+class BroadcasterSpec extends EnsimeSpec with SharedTestKitFixture {
   import Broadcaster._
 
   val ping = "ping"
 
-  "Broadcaster" should "send messages to subscribers" in {
+  "Broadcaster" should "send messages to subscribers" in withTestKit { fix =>
+    import fix._
     val broadcaster = TestActorRef[Broadcaster]
     val sub1 = TestProbe()
     val sub2 = TestProbe()
@@ -26,7 +29,8 @@ class BroadcasterSpec extends AkkaFlatSpec {
     sub2.lastSender shouldBe self
   }
 
-  it should "not send messages after unregister" in {
+  it should "not send messages after unregister" in withTestKit { fix =>
+    import fix._
     val broadcaster = TestActorRef[Broadcaster]
     val sub1 = TestProbe()
     val sub2 = TestProbe()
@@ -39,7 +43,8 @@ class BroadcasterSpec extends AkkaFlatSpec {
     sub1.expectNoMsg(3 seconds)
   }
 
-  it should "send persistent messages on registration" in {
+  it should "send persistent messages on registration" in withTestKit { fix =>
+    import fix._
     val broadcaster = TestActorRef[Broadcaster]
     val sub1 = TestProbe()
 

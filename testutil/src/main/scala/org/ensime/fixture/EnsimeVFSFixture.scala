@@ -2,7 +2,7 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.fixture
 
-import org.ensime.indexer.EnsimeVFS
+import org.ensime.vfs._
 import org.scalatest.{ BeforeAndAfterAll, Suite }
 
 trait EnsimeVFSFixture {

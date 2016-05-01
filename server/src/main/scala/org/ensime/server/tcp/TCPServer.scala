@@ -5,7 +5,7 @@ package org.ensime.server.tcp
 import java.io.File
 import java.net.InetSocketAddress
 
-import akka.actor.{ Actor, ActorLogging, ActorRef, Props }
+import akka.actor.{ Actor, ActorLogging, ActorRef }
 import akka.io.{ IO, Tcp }
 import org.ensime.core.Protocol
 import org.ensime.server.{ ShutdownRequest, PortUtil }
@@ -17,7 +17,8 @@ class TCPServer(
     protocol: Protocol,
     project: ActorRef,
     broadcaster: ActorRef,
-    shutdownOnLastDisconnect: Boolean
+    shutdownOnLastDisconnect: Boolean,
+    preferredPort: Option[Int]
 ) extends Actor with ActorLogging {
 
   import Tcp._
@@ -27,14 +28,15 @@ class TCPServer(
 
   var activeConnections = 0
 
-  IO(Tcp) ! Bind(self, new InetSocketAddress("127.0.0.1", 0))
+  IO(Tcp) ! Bind(self, new InetSocketAddress("127.0.0.1", preferredPort.getOrElse(0)))
 
   def receive = {
     case b @ Bound(localAddress) =>
       val boundPort = localAddress.getPort
       log.info(s"Bound server on port $boundPort")
       PortUtil.writePort(cacheDir, boundPort, "port")
-    case CommandFailed(_: Bind) => context stop self
+    case CommandFailed(_: Bind) =>
+      context.parent ! ShutdownRequest(s"TCP protocol failed to bind ($preferredPort)", isError = true)
 
     case ClientConnectionClosed =>
       activeConnections -= 1
@@ -54,15 +56,4 @@ class TCPServer(
       log.info("Client connected - active clients now: " + activeConnections)
       connection ! Register(handler)
   }
-}
-
-object TCPServer {
-  def apply(
-    cacheDir: File,
-    protocol: Protocol,
-    project: ActorRef,
-    broadcaster: ActorRef,
-    shutdownOnLastDisconnect: Boolean
-  ): Props =
-    Props(new TCPServer(cacheDir, protocol, project, broadcaster, shutdownOnLastDisconnect))
 }

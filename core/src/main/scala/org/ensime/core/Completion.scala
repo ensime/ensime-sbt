@@ -43,12 +43,12 @@ import akka.actor.ActorRef
 import akka.pattern.Patterns
 import akka.util.Timeout
 import org.ensime.api._
+import org.ensime.indexer.lucene.SimpleLucene
 
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, Future }
 import scala.reflect.internal.util.{ BatchSourceFile, SourceFile }
-import scala.tools.nsc.io.AbstractFile
 
 trait CompletionControl {
   self: RichPresentationCompiler =>
@@ -77,87 +77,97 @@ trait CompletionControl {
   import CompletionUtil._
 
   def completionsAt(inputP: Position, maxResultsArg: Int, caseSens: Boolean): CompletionInfoList = {
-    val maxResults = if (maxResultsArg == 0) Int.MaxValue else maxResultsArg
+    val origContents = inputP.source.content
+    val point = inputP.endOrCursor
 
-    val preceding = inputP.source.content.slice(
-      Math.max(0, inputP.point - 100), inputP.point
-    )
-
-    val defaultPrefix = IdentRegexp.findFirstMatchIn(preceding) match {
-      case Some(m) => m.group(1)
-      case _ => ""
-    }
-
-    val constructing = ConstructingRegexp.findFirstMatchIn(preceding).isDefined
-
-    val (src, p, patched) = if (defaultPrefix.isEmpty) {
-      // Add a fake prefix if none was provided by the user. Otherwise the
-      // compiler will give us a weird tree.
-      val orig = inputP.source.content
-      val point = inputP.endOrCursor
-
-      // Uses array logic to minimise memory spikes of large Strings
-      val contents = Array.ofDim[Char](orig.length + 1)
-      System.arraycopy(orig, 0, contents, 0, point)
-      contents(point) = 'a'
-      System.arraycopy(orig, point, contents, point + 1, orig.length - point)
-
-      // uses the same VirtualFile as the original
-      val src = new BatchSourceFile(inputP.source.file, contents)
-
-      (src, inputP.withSource(src).withShift(1), true)
+    if (point > origContents.length) {
+      // invalid request - completion point is outside of file
+      // this causes an ArrayOutOfBounds in the array copy below
+      logger.warn("completionsAt request has point outside of file")
+      CompletionInfoList("", List.empty)
     } else {
-      (inputP.source, inputP, false)
-    }
-    askReloadFile(src)
-    val x = new Response[Tree]
-    askTypeAt(p, x)
+      val maxResults = if (maxResultsArg == 0) SimpleLucene.MaxResults else maxResultsArg
 
-    val contextOpt = x.get match {
-      case Left(tree) =>
-        logger.debug("Completing at tree:" + tree.summaryString)
-        tree match {
-          case Apply(fun, _) =>
-            fun match {
-              case Select(qualifier: New, name) =>
-                Some(ScopeContext(src, qualifier.pos.endOrCursor, defaultPrefix, constructing = true))
-              case Select(qual, name) if qual.pos.isDefined && qual.pos.isRange =>
-                val prefix = if (patched) "" else name.decoded
-                Some(MemberContext(src, qual.pos.endOrCursor, prefix, constructing))
-              case _ =>
-                val prefix = if (patched) "" else src.content.slice(fun.pos.startOrCursor, fun.pos.endOrCursor).mkString
-                Some(ScopeContext(src, fun.pos.endOrCursor, prefix, constructing))
-            }
-          case Literal(Constant(_)) => None
-          case New(name) =>
-            Some(ScopeContext(src, name.pos.endOrCursor, defaultPrefix, constructing = true))
-          case Select(qualifier, name) if qualifier.pos.isDefined && qualifier.pos.isRange =>
-            Some(MemberContext(src, qualifier.pos.endOrCursor, defaultPrefix, constructing))
-          case Import(expr, _) =>
-            val topLevel = ImportTopLevelRegexp.findFirstMatchIn(preceding).isDefined
-            if (topLevel) {
-              Some(ScopeContext(src, expr.pos.endOrCursor, defaultPrefix, constructing = false))
-            } else {
-              Some(MemberContext(src, expr.pos.endOrCursor, defaultPrefix, constructing = false))
-            }
-          case other =>
-            Some(ScopeContext(src, p.point, defaultPrefix, constructing))
-        }
-      case _ =>
-        logger.error("Unrecognized completion context.")
-        None
-    }
-    contextOpt match {
-      case Some(context) =>
-        CompletionInfoList(
-          context.prefix,
-          makeAll(context, maxResults, caseSens).sortWith({ (c1, c2) =>
-            c1.relevance > c2.relevance ||
-              (c1.relevance == c2.relevance &&
-                c1.name.length < c2.name.length)
-          }).take(maxResults)
-        )
-      case _ => CompletionInfoList("", Nil)
+      val preceding = inputP.source.content.slice(
+        Math.max(0, inputP.point - 100), inputP.point
+      )
+
+      val defaultPrefix = IdentRegexp.findFirstMatchIn(preceding) match {
+        case Some(m) => m.group(1)
+        case _ => ""
+      }
+
+      val constructing = ConstructingRegexp.findFirstMatchIn(preceding).isDefined
+
+      val (src, p, patched) = if (defaultPrefix.isEmpty) {
+
+        // Add a fake prefix if none was provided by the user. Otherwise the
+        // compiler will give us a weird tree.
+        val orig = origContents
+
+        // Uses array logic to minimise memory spikes of large Strings
+        val contents = Array.ofDim[Char](orig.length + 1)
+        System.arraycopy(orig, 0, contents, 0, point)
+        contents(point) = 'a'
+        System.arraycopy(orig, point, contents, point + 1, orig.length - point)
+
+        // uses the same VirtualFile as the original
+        val src = new BatchSourceFile(inputP.source.file, contents)
+
+        (src, inputP.withSource(src).withShift(1), true)
+      } else {
+        (inputP.source, inputP, false)
+      }
+      askReloadFile(src)
+      val x = new Response[Tree]
+      askTypeAt(p, x)
+
+      val contextOpt = x.get match {
+        case Left(tree) =>
+          logger.debug("Completing at tree:" + tree.summaryString)
+          tree match {
+            case Apply(fun, _) =>
+              fun match {
+                case Select(qualifier: New, name) =>
+                  Some(ScopeContext(src, qualifier.pos.endOrCursor, defaultPrefix, constructing = true))
+                case Select(qual, name) if qual.pos.isDefined && qual.pos.isRange =>
+                  val prefix = if (patched) "" else name.decoded
+                  Some(MemberContext(src, qual.pos.endOrCursor, prefix, constructing))
+                case _ =>
+                  val prefix = if (patched) "" else src.content.slice(fun.pos.startOrCursor, fun.pos.endOrCursor).mkString
+                  Some(ScopeContext(src, fun.pos.endOrCursor, prefix, constructing))
+              }
+            case Literal(Constant(_)) => None
+            case New(name) =>
+              Some(ScopeContext(src, name.pos.endOrCursor, defaultPrefix, constructing = true))
+            case Select(qualifier, name) if qualifier.pos.isDefined && qualifier.pos.isRange =>
+              Some(MemberContext(src, qualifier.pos.endOrCursor, defaultPrefix, constructing))
+            case Import(expr, _) =>
+              val topLevel = ImportTopLevelRegexp.findFirstMatchIn(preceding).isDefined
+              if (topLevel) {
+                Some(ScopeContext(src, expr.pos.endOrCursor, defaultPrefix, constructing = false))
+              } else {
+                Some(MemberContext(src, expr.pos.endOrCursor, defaultPrefix, constructing = false))
+              }
+            case other =>
+              Some(ScopeContext(src, p.point, defaultPrefix, constructing))
+          }
+        case _ =>
+          logger.error("Unrecognized completion context.")
+          None
+      }
+      contextOpt match {
+        case Some(context) =>
+          CompletionInfoList(
+            context.prefix,
+            makeAll(context, maxResults, caseSens).sortWith({ (c1, c2) =>
+              c1.relevance > c2.relevance ||
+                (c1.relevance == c2.relevance &&
+                  c1.name.length < c2.name.length)
+            }).take(maxResults)
+          )
+        case _ => CompletionInfoList("", Nil)
+      }
     }
   }
 
@@ -312,8 +322,9 @@ object Keywords {
     "yield"
   )
 
-  val keywordCompletions = keywords map { CompletionInfo(_, CompletionSignature(List(), "", false), false, 100, None) }
-
+  val keywordCompletions = keywords map {
+    CompletionInfo(_, CompletionSignature(List(), "", hasImplicit = false), false, 100, None)
+  }
 }
 
 trait Completion { self: RichPresentationCompiler =>
@@ -326,9 +337,7 @@ trait Completion { self: RichPresentationCompiler =>
         }
         memberSyms.flatMap { s =>
           val name = if (s.hasPackageFlag) { s.nameString } else { typeShortName(s) }
-          if (name.startsWith(prefix)) {
-            Some(CompletionInfo(name, CompletionSignature(List.empty, "", false), isCallable = false, 50, None))
-          } else None
+          if (name.startsWith(prefix)) Some(CompletionInfo(name, CompletionSignature(List.empty, "", false), isCallable = false, 50, None)) else None
         }.toList.sortBy(ci => (ci.relevance, ci.name))
       case _ => List.empty
     }
@@ -349,9 +358,10 @@ object CompletionUtil {
   def matchesPrefix(m: String, prefix: String,
     matchEntire: Boolean, caseSens: Boolean): Boolean = {
     val prefixUpper = prefix.toUpperCase
-    ((matchEntire && m == prefix) ||
+
+    (matchEntire && m == prefix) ||
       (!matchEntire && caseSens && m.startsWith(prefix)) ||
-      (!matchEntire && !caseSens && m.toUpperCase.startsWith(prefixUpper)))
+      (!matchEntire && !caseSens && m.toUpperCase.startsWith(prefixUpper))
   }
 
   def fetchTypeSearchCompletions(prefix: String, maxResults: Int, indexer: ActorRef): Future[Option[List[CompletionInfo]]] = {

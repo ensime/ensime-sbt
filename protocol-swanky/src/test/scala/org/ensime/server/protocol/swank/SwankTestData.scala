@@ -6,15 +6,15 @@ import org.ensime.api._
 
 object SwankTestData extends EnsimeTestData {
 
-  val typeInfoStr = """(:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1" :type-args nil :members nil :pos nil)"""
+  val typeInfoStr = """(:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1")"""
 
   val typeInspectInfoStr = s"""(:type $typeInfoStr :companion-id 1 :interfaces ((:type """ + typeInfoStr + """ :via-view "DEF")) :info-type typeInspect)"""
 
-  val callCompletionInfoStr = """(:result-type """ + typeInfoStr + """ :param-sections ((:params (("ABC" """ + typeInfoStr + """)) :is-implicit nil)))"""
+  val callCompletionInfoStr = """(:result-type """ + typeInfoStr + """ :param-sections ((:params (("ABC" """ + typeInfoStr + """)))))"""
 
   val symbolDesignationsStr = s"""(:file $symFile :syms ((object 7 9) (trait 11 22)))"""
 
-  val symbolInfoStr = """(:name "name" :local-name "localName" :decl-pos nil :type """ + typeInfoStr + """ :is-callable nil)"""
+  val symbolInfoStr = """(:name "name" :local-name "localName" :type """ + typeInfoStr + """)"""
 
   val implicitInfosStr = s"""((:type conversion :start 5 :end 6 :fun $symbolInfoStr) (:type param :start 7 :end 8 :fun $symbolInfoStr :params ($symbolInfoStr $symbolInfoStr) :fun-is-implicit t))"""
 
@@ -22,11 +22,11 @@ object SwankTestData extends EnsimeTestData {
 
   val rangePos2Str = s"""(:file "$batchSourceFile" :offset 85 :start 80 :end 100)"""
 
-  val packageInfoStr = """(:info-type package :name "name" :full-name "fullName" :members nil)"""
+  val packageInfoStr = """(:info-type package :name "name" :full-name "fullName")"""
 
-  val completionInfoStr = """(:name "name" :type-sig (((("abc" "def") ("hij" "lmn"))) "ABC") :is-callable nil :relevance 90 :to-insert "BAZ")"""
+  val completionInfoStr = """(:name "name" :type-sig (((("abc" "def") ("hij" "lmn"))) "ABC") :relevance 90 :to-insert "BAZ")"""
 
-  val completionInfo2Str = """(:name "name2" :type-sig (((("abc" "def"))) "ABC") :is-callable t :relevance 91 :to-insert nil)"""
+  val completionInfo2Str = """(:name "name2" :type-sig (((("abc" "def"))) "ABC") :is-callable t :relevance 91)"""
 
   val completionInfoListStr = "(" + completionInfoStr + " " + completionInfo2Str + ")"
 
@@ -65,5 +65,5 @@ object SwankTestData extends EnsimeTestData {
 
   val noteListStr = "(:is-full t :notes (" + note1Str + " " + note2Str + "))"
 
-  val entityInfoStr = """(:arrow-type t :name "Arrow1" :result-type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1" :type-args nil :members nil :pos nil) :param-sections ((:params (("ABC" (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1" :type-args nil :members nil :pos nil))) :is-implicit nil)))"""
+  val entityInfoStr = """(:arrow-type t :name "Arrow1" :result-type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1") :param-sections ((:params (("ABC" (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1"))))))"""
 }

@@ -2,16 +2,30 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.fixture
 
+import akka.actor.{ ActorRef, ActorSystem }
 import org.scalatest._
 import akka.testkit._
 
-import akka.pattern.{ AskTimeoutException, Patterns }
 import org.ensime.api._
 import org.ensime.core._
 
-import scala.collection.immutable.ListMap
-import scala.concurrent.Await
 import scala.concurrent.duration._
+
+// WORKAROUND http://stackoverflow.com/questions/13420809
+object LoggingTestProbe {
+  def apply()(implicit system: ActorSystem): TestProbe = {
+    val probe = TestProbe()
+    probe.setAutoPilot(new TestActor.AutoPilot {
+      def run(sender: ActorRef, msg: Any) = {
+        val other = sender.path
+        val me = probe.ref.path
+        system.log.debug(s"AsyncHelper $me received $msg from $other")
+        this
+      }
+    })
+    probe
+  }
+}
 
 object ProjectFixture extends Matchers {
   private[fixture] def startup(
@@ -21,11 +35,15 @@ object ProjectFixture extends Matchers {
   ): (TestActorRef[Project], TestProbe) = {
     import testkit._
 
-    val probe = TestProbe()
+    val probe = LoggingTestProbe()
     probe.ignoreMsg {
       // these are too noisy for tests
       case e: SendBackgroundMessageEvent => true
       case e: DebugOutputEvent => true
+      case e: DebugThreadStartEvent => true
+      case e: DebugThreadDeathEvent => true
+      case e: DebugVmError => true
+      case DebugVMDisconnectEvent => true
       case ClearAllScalaNotesEvent => true
       case ClearAllJavaNotesEvent => true
     }

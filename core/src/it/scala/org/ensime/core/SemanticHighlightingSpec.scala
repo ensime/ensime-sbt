@@ -4,11 +4,11 @@ package org.ensime.core
 
 import org.ensime.fixture._
 import org.ensime.api._
-import org.scalatest._
+import org.ensime.util.EnsimeSpec
 
 import scala.reflect.internal.util.RangePosition
 
-class SemanticHighlightingSpec extends WordSpec with Matchers
+class SemanticHighlightingSpec extends EnsimeSpec
     with IsolatedRichPresentationCompilerFixture
     with RichPresentationCompilerTestUtils
     with ReallyRichPresentationCompilerFixture {
@@ -32,10 +32,9 @@ class SemanticHighlightingSpec extends WordSpec with Matchers
       }
   }
 
-  "SemanticHighlighting" should {
-    "highlight classes" in withPresCompiler { (config, cc) =>
-      val sds = getSymbolDesignations(
-        config, cc, """
+  "SemanticHighlighting" should "highlight classes" in withPresCompiler { (config, cc) =>
+    val sds = getSymbolDesignations(
+      config, cc, """
             package com.example
             class X1[+A] { }
             class X2 { class Y { } }
@@ -47,23 +46,23 @@ class SemanticHighlightingSpec extends WordSpec with Matchers
               def fun(a: Any) = a match { case x: Test => Unit }
             }
           """,
-        List(ClassSymbol)
-      )
-      assert(sds === List(
-        (ClassSymbol, "Int"),
-        (ClassSymbol, "X1[Any]"),
-        (ClassSymbol, "X1[String]"),
-        (ClassSymbol, "X2"),
-        (ClassSymbol, "X2"),
-        (ClassSymbol, "Y"),
-        (ClassSymbol, "Any"),
-        (ClassSymbol, "Test")
-      ))
-    }
+      List(ClassSymbol)
+    )
+    sds should ===(List(
+      (ClassSymbol, "Int"),
+      (ClassSymbol, "X1[Any]"),
+      (ClassSymbol, "X1[String]"),
+      (ClassSymbol, "X2"),
+      (ClassSymbol, "X2"),
+      (ClassSymbol, "Y"),
+      (ClassSymbol, "Any"),
+      (ClassSymbol, "Test")
+    ))
+  }
 
-    "highlight constructors" in withPresCompiler { (config, cc) =>
-      val sds = getSymbolDesignations(
-        config, cc, """
+  it should "highlight constructors" in withPresCompiler { (config, cc) =>
+    val sds = getSymbolDesignations(
+      config, cc, """
             package com.example
             class X1(a: Int = 0) { }
             class X2(a: String) { }
@@ -75,20 +74,19 @@ class SemanticHighlightingSpec extends WordSpec with Matchers
               val e1 = new   X3
             }
           """,
-        List(ConstructorSymbol)
-      )
-      // TODO It would be better if the "new" was consistent.
-      assert(sds === List(
-        (ConstructorSymbol, "X1"),
-        (ConstructorSymbol, "new X1(  )"),
-        (ConstructorSymbol, "X2"),
-        (ConstructorSymbol, "new   X3")
-      ))
-    }
+      List(ConstructorSymbol)
+    )
+    sds should ===(List(
+      (ConstructorSymbol, "X1"),
+      (ConstructorSymbol, "new X1(  )"),
+      (ConstructorSymbol, "X2"),
+      (ConstructorSymbol, "new   X3")
+    ))
+  }
 
-    "highlight function calls" in withPresCompiler { (config, cc) =>
-      val sds = getSymbolDesignations(
-        config, cc, """
+  it should "highlight function calls" in withPresCompiler { (config, cc) =>
+    val sds = getSymbolDesignations(
+      config, cc, """
             package com.example
             class Test {
               def fun(u: Int, v: Int) { u + v }
@@ -98,19 +96,19 @@ class SemanticHighlightingSpec extends WordSpec with Matchers
               def baz { def quux(): Int = { 1 } ; quux() }
             }
           """,
-        List(FunctionCallSymbol)
-      )
-      assert(sds === List(
-        (FunctionCallSymbol, "fun"),
-        (FunctionCallSymbol, "foo"),
-        (FunctionCallSymbol, "substring"),
-        (FunctionCallSymbol, "quux")
-      ))
-    }
+      List(FunctionCallSymbol)
+    )
+    sds should ===(List(
+      (FunctionCallSymbol, "fun"),
+      (FunctionCallSymbol, "foo"),
+      (FunctionCallSymbol, "substring"),
+      (FunctionCallSymbol, "quux")
+    ))
+  }
 
-    "highlight deprecated symbols" in withPresCompiler { (config, cc) =>
-      val sds = getSymbolDesignations(
-        config, cc, """
+  it should "highlight deprecated symbols" in withPresCompiler { (config, cc) =>
+    val sds = getSymbolDesignations(
+      config, cc, """
             package com.example
             class Test {
               @deprecated("bad trait", "1.0")
@@ -136,7 +134,7 @@ class SemanticHighlightingSpec extends WordSpec with Matchers
             class Baz { def boo() = {} }
             class Foo extends Baz {
               def bar(): Unit = {}
-            } 
+            }
             @deprecated("bad", "someday")
             object X {
               new Foo().bar()
@@ -145,45 +143,65 @@ class SemanticHighlightingSpec extends WordSpec with Matchers
             }
             object Z {
               X.Y.goo()
-            }            
-          """,
-        List(DeprecatedSymbol)
-      )
-      assert(sds == List(
-        (DeprecatedSymbol, "BadTrait"),
-        (DeprecatedSymbol, "BadClass"),
-        (DeprecatedSymbol, "BadObject"),
-        (DeprecatedSymbol, "foo"),
-        (DeprecatedSymbol, "badVal"),
-        (DeprecatedSymbol, "badVar"),
-        (DeprecatedSymbol, "Baz"),
-        (DeprecatedSymbol, "boo"),
-        (DeprecatedSymbol, "X"),
-        (DeprecatedSymbol, "Y"),
-        (DeprecatedSymbol, "goo")
-      ))
-    }
+            }
+                  """,
+      List(DeprecatedSymbol)
+    )
+    sds should ===(List(
+      (DeprecatedSymbol, "BadTrait"),
+      (DeprecatedSymbol, "BadClass"),
+      (DeprecatedSymbol, "BadObject"),
+      (DeprecatedSymbol, "foo"),
+      (DeprecatedSymbol, "badVal"),
+      (DeprecatedSymbol, "badVar"),
+      (DeprecatedSymbol, "Baz"),
+      (DeprecatedSymbol, "boo"),
+      (DeprecatedSymbol, "X"),
+      (DeprecatedSymbol, "Y"),
+      (DeprecatedSymbol, "goo")
+    ))
+  }
 
-    "highlight imported names" in withPresCompiler { (config, cc) =>
-      val sds = getSymbolDesignations(
-        config, cc, """
+  it should "support custom deprecated symbol names" in withPresCompiler { (config, cc) =>
+    val sds = getSymbolDesignations(
+      config, cc, """
+            package com.example
+            import scala.annotation.StaticAnnotation
+            class deprecating(val p:String) extends StaticAnnotation {}
+            class Test {
+              @deprecating("AAA")
+              trait BadTrait
+              class BadSubclass extends BadTrait
+            }
+          """,
+      List(DeprecatedSymbol)
+    )
+
+    sds should ===(List(
+      (DeprecatedSymbol, "BadTrait")
+    ))
+  }
+
+  it should "highlight imported names" in withPresCompiler { (config, cc) =>
+    val sds = getSymbolDesignations(
+      config, cc, """
             package com.example
             import scala.reflect.internal.util.RangePosition
             import org.scalatest. { Matchers,
                  FunSpec }
             """,
-        List(ImportedNameSymbol)
-      )
-      assert(sds === List(
-        (ImportedNameSymbol, "RangePosition"),
-        (ImportedNameSymbol, "Matchers"),
-        (ImportedNameSymbol, "FunSpec")
-      ))
-    }
+      List(ImportedNameSymbol)
+    )
+    sds should ===(List(
+      (ImportedNameSymbol, "RangePosition"),
+      (ImportedNameSymbol, "Matchers"),
+      (ImportedNameSymbol, "FunSpec")
+    ))
+  }
 
-    "highlight objects" in withPresCompiler { (config, cc) =>
-      val sds = getSymbolDesignations(
-        config, cc, """
+  it should "highlight objects" in withPresCompiler { (config, cc) =>
+    val sds = getSymbolDesignations(
+      config, cc, """
             package com.example
             object A { object B { } }
             case class C() { }
@@ -195,72 +213,70 @@ class SemanticHighlightingSpec extends WordSpec with Matchers
               val d = c.E(1)
             }
           """,
-        List(ObjectSymbol)
-      )
-      assert(sds === List(
-        (ObjectSymbol, "C"),
-        (ObjectSymbol, "A"),
-        (ObjectSymbol, "B"),
-        (ObjectSymbol, "D"),
-        // TODO two problems there: "c" should be a varField ; E should be highlighted.
-        (ObjectSymbol, "c")
-      ))
-    }
+      List(ObjectSymbol)
+    )
+    sds should ===(List(
+      (ObjectSymbol, "C"),
+      (ObjectSymbol, "A"),
+      (ObjectSymbol, "B"),
+      (ObjectSymbol, "D"),
+      (ObjectSymbol, "c")
+    ))
+  }
 
-    "highlight operators" in withPresCompiler { (config, cc) =>
-      val sds = getSymbolDesignations(
-        config, cc, """
+  it should "highlight operators" in withPresCompiler { (config, cc) =>
+    val sds = getSymbolDesignations(
+      config, cc, """
             package com.example
             object Test {
               var a = 1 + 2 * 3
               a += 8
             }
           """,
-        List(OperatorFieldSymbol)
-      )
-      // TODO We should highlight the "+="
-      assert(sds === List(
-        (OperatorFieldSymbol, "+"),
-        (OperatorFieldSymbol, "*")
-      ))
-    }
+      List(OperatorFieldSymbol)
+    )
+    sds should ===(List(
+      (OperatorFieldSymbol, "+"),
+      (OperatorFieldSymbol, "*")
+    ))
+  }
 
-    "highlight packages" in withPresCompiler { (config, cc) =>
-      val sds = getSymbolDesignations(
-        config, cc, """
+  it should "highlight packages" in withPresCompiler { (config, cc) =>
+    val sds = getSymbolDesignations(
+      config, cc, """
              package com.example
              package other
           """,
-        List(PackageSymbol)
-      )
-      assert(sds === List(
-        (PackageSymbol, "com"),
-        (PackageSymbol, "example"),
-        (PackageSymbol, "other")
-      ))
-    }
+      List(PackageSymbol)
+    )
+    sds should ===(List(
+      (PackageSymbol, "com"),
+      (PackageSymbol, "example"),
+      (PackageSymbol, "other")
+    ))
+  }
 
-    "highlight params" in withPresCompiler { (config, cc) =>
-      val sds = getSymbolDesignations(
-        config, cc, """
+  it should "highlight params" in withPresCompiler { (config, cc) =>
+    val sds = getSymbolDesignations(
+      config, cc, """
             package com.example
             class Test {
               def f(u:  Int, v   :String) = v + u
             }
           """,
-        List(ParamSymbol)
-      )
-      assert(sds === List(
-        (ParamSymbol, "u"),
-        (ParamSymbol, "v"),
-        (ParamSymbol, "v"),
-        (ParamSymbol, "u")
-      ))
-    }
+      List(ParamSymbol)
+    )
+    sds should ===(List(
+      (ParamSymbol, "u"),
+      (ParamSymbol, "v"),
+      (ParamSymbol, "v"),
+      (ParamSymbol, "u")
+    ))
+  }
 
-    "highlight traits" in withPresCompiler { (config, cc) =>
-      val sds = getSymbolDesignations(
-        config, cc, """
+  it should "highlight traits" in withPresCompiler { (config, cc) =>
+    val sds = getSymbolDesignations(
+      config, cc, """
             package com.example
             trait X1 { }
             trait X2 { }
@@ -278,20 +294,20 @@ class SemanticHighlightingSpec extends WordSpec with Matchers
               }
             }
           """,
-        List(TraitSymbol)
-      )
-      assert(sds === List(
-        (TraitSymbol, "X2"),
-        (TraitSymbol, "X3"),
-        (TraitSymbol, "X4"),
-        (TraitSymbol, "X5[ String]"),
-        (TraitSymbol, "v2 .X6")
-      ))
-    }
+      List(TraitSymbol)
+    )
+    sds should ===(List(
+      (TraitSymbol, "X2"),
+      (TraitSymbol, "X3"),
+      (TraitSymbol, "X4"),
+      (TraitSymbol, "X5[ String]"),
+      (TraitSymbol, "v2 .X6")
+    ))
+  }
 
-    "highlight typeParams" in withPresCompiler { (config, cc) =>
-      val sds = getSymbolDesignations(
-        config, cc, """
+  it should "highlight typeParams" in withPresCompiler { (config, cc) =>
+    val sds = getSymbolDesignations(
+      config, cc, """
             package com.example
             class Test {
               def f[XX,YY](y: YY, x: XX) = {
@@ -300,20 +316,20 @@ class SemanticHighlightingSpec extends WordSpec with Matchers
               f[Int, String](1, "a")
             }
           """,
-        List(TypeParamSymbol)
-      )
-      assert(sds === List(
-        (TypeParamSymbol, "XX"),
-        (TypeParamSymbol, "YY"),
-        (TypeParamSymbol, "YY"),
-        (TypeParamSymbol, "XX"),
-        (TypeParamSymbol, "YY")
-      ))
-    }
+      List(TypeParamSymbol)
+    )
+    sds should ===(List(
+      (TypeParamSymbol, "XX"),
+      (TypeParamSymbol, "YY"),
+      (TypeParamSymbol, "YY"),
+      (TypeParamSymbol, "XX"),
+      (TypeParamSymbol, "YY")
+    ))
+  }
 
-    "highlight vals" in withPresCompiler { (config, cc) =>
-      val sds = getSymbolDesignations(
-        config, cc, """
+  it should "highlight vals" in withPresCompiler { (config, cc) =>
+    val sds = getSymbolDesignations(
+      config, cc, """
             package com.example
             class Test {
               def fun() = {
@@ -323,18 +339,18 @@ class SemanticHighlightingSpec extends WordSpec with Matchers
               }
             }
           """,
-        List(ValSymbol)
-      )
-      assert(sds === List(
-        (ValSymbol, "u"),
-        (ValSymbol, "v"),
-        (ValSymbol, "u")
-      ))
-    }
+      List(ValSymbol)
+    )
+    sds should ===(List(
+      (ValSymbol, "u"),
+      (ValSymbol, "v"),
+      (ValSymbol, "u")
+    ))
+  }
 
-    "highlight valFields" in withPresCompiler { (config, cc) =>
-      val sds = getSymbolDesignations(
-        config, cc, """
+  it should "highlight valFields" in withPresCompiler { (config, cc) =>
+    val sds = getSymbolDesignations(
+      config, cc, """
             package com.example
             class Test {
               val u= 1
@@ -345,19 +361,19 @@ class SemanticHighlightingSpec extends WordSpec with Matchers
               println((new Test).v)
             }
           """,
-        List(ValFieldSymbol)
-      )
-      assert(sds === List(
-        (ValFieldSymbol, "u"),
-        (ValFieldSymbol, "v"),
-        (ValFieldSymbol, "u"),
-        (ValFieldSymbol, "v")
-      ))
-    }
+      List(ValFieldSymbol)
+    )
+    sds should ===(List(
+      (ValFieldSymbol, "u"),
+      (ValFieldSymbol, "v"),
+      (ValFieldSymbol, "u"),
+      (ValFieldSymbol, "v")
+    ))
+  }
 
-    "highlight vars" in withPresCompiler { (config, cc) =>
-      val sds = getSymbolDesignations(
-        config, cc, """
+  it should "highlight vars" in withPresCompiler { (config, cc) =>
+    val sds = getSymbolDesignations(
+      config, cc, """
             package com.example
             class Test {
               def fun() = {
@@ -367,18 +383,18 @@ class SemanticHighlightingSpec extends WordSpec with Matchers
               }
             }
           """,
-        List(VarSymbol)
-      )
-      assert(sds === List(
-        (VarSymbol, "u"),
-        (VarSymbol, "v"),
-        (VarSymbol, "u")
-      ))
-    }
+      List(VarSymbol)
+    )
+    sds should ===(List(
+      (VarSymbol, "u"),
+      (VarSymbol, "v"),
+      (VarSymbol, "u")
+    ))
+  }
 
-    "highlight varFields" in withPresCompiler { (config, cc) =>
-      val sds = getSymbolDesignations(
-        config, cc, """
+  it should "highlight varFields" in withPresCompiler { (config, cc) =>
+    val sds = getSymbolDesignations(
+      config, cc, """
             package com.example
             class Test {
               var u= 1
@@ -389,19 +405,19 @@ class SemanticHighlightingSpec extends WordSpec with Matchers
               println((new Test).v)
             }
           """,
-        List(VarFieldSymbol)
-      )
-      assert(sds === List(
-        (VarFieldSymbol, "u"),
-        (VarFieldSymbol, "v"),
-        (VarFieldSymbol, "u"),
-        (VarFieldSymbol, "v")
-      ))
-    }
+      List(VarFieldSymbol)
+    )
+    sds should ===(List(
+      (VarFieldSymbol, "u"),
+      (VarFieldSymbol, "v"),
+      (VarFieldSymbol, "u"),
+      (VarFieldSymbol, "v")
+    ))
+  }
 
-    "highlight lazy val fields correctly as vals" in withPresCompiler { (config, cc) =>
-      val sds = getSymbolDesignations(
-        config, cc, """
+  it should "highlight lazy val fields correctly as vals" in withPresCompiler { (config, cc) =>
+    val sds = getSymbolDesignations(
+      config, cc, """
             package com.example
             class Test {
               lazy val u= 1
@@ -412,17 +428,17 @@ class SemanticHighlightingSpec extends WordSpec with Matchers
               println((new Test).v)
             }
           """,
-        List(ValFieldSymbol)
-      )
-      assert(sds === List(
-        (ValFieldSymbol, "u"),
-        (ValFieldSymbol, "v")
-      ))
-    }
+      List(ValFieldSymbol)
+    )
+    sds should ===(List(
+      (ValFieldSymbol, "u"),
+      (ValFieldSymbol, "v")
+    ))
+  }
 
-    "highlight setter operators" in withPresCompiler { (config, cc) =>
-      val sds = getSymbolDesignations(
-        config, cc, """
+  it should "highlight setter operators" in withPresCompiler { (config, cc) =>
+    val sds = getSymbolDesignations(
+      config, cc, """
             package com.example
             object Fubar {
                private var v: Int = 0
@@ -433,47 +449,47 @@ class SemanticHighlightingSpec extends WordSpec with Matchers
               Fubar.value = 1
             }
           """,
-        List(OperatorFieldSymbol)
-      )
-      assert(sds === List(
-        (OperatorFieldSymbol, "value")
-      ))
-    }
+      List(OperatorFieldSymbol)
+    )
+    sds should ===(List(
+      (OperatorFieldSymbol, "value")
+    ))
+  }
 
-    "not be confused by whitespace" in withPresCompiler { (config, cc) =>
-      val sds = getSymbolDesignations(
-        config, cc, """
+  it should "not be confused by whitespace" in withPresCompiler { (config, cc) =>
+    val sds = getSymbolDesignations(
+      config, cc, """
             package com.  example
           """,
-        List(PackageSymbol)
-      )
-      // only part of "example" is highlighted
-      assert(sds === List(
-        (PackageSymbol, "com"),
-        (PackageSymbol, "example")
-      ))
-    }
+      List(PackageSymbol)
+    )
+    // only part of "example" is highlighted
+    sds should ===(List(
+      (PackageSymbol, "com"),
+      (PackageSymbol, "example")
+    ))
+  }
 
-    "highlight negation operators" in withPresCompiler { (config, cc) =>
-      val sds = getSymbolDesignations(
-        config, cc, """
+  it should "highlight negation operators" in withPresCompiler { (config, cc) =>
+    val sds = getSymbolDesignations(
+      config, cc, """
             package com.example
             class Test {
               val x = !(3 == 4)
             }
           """,
-        List(OperatorFieldSymbol)
-      )
-      // Call to foo is missing
-      assert(sds === List(
-        (OperatorFieldSymbol, "!"),
-        (OperatorFieldSymbol, "==")
-      ))
-    }
+      List(OperatorFieldSymbol)
+    )
+    // Call to foo is missing
+    sds should ===(List(
+      (OperatorFieldSymbol, "!"),
+      (OperatorFieldSymbol, "==")
+    ))
+  }
 
-    "highlight implicit conversions" in withPresCompiler { (config, cc) =>
-      val sds = getSymbolDesignations(
-        config, cc, """
+  it should "highlight implicit conversions" in withPresCompiler { (config, cc) =>
+    val sds = getSymbolDesignations(
+      config, cc, """
             package com.example
             class Test {}
             object I {
@@ -482,16 +498,16 @@ class SemanticHighlightingSpec extends WordSpec with Matchers
               val u: Test  = StringToTest("y");
             }
           """,
-        List(ImplicitConversionSymbol)
-      )
-      assert(sds === List(
-        (ImplicitConversionSymbol, "\"sample\"")
-      ))
-    }
+      List(ImplicitConversionSymbol)
+    )
+    sds should ===(List(
+      (ImplicitConversionSymbol, "\"sample\"")
+    ))
+  }
 
-    "highlight implicit parameters" in withPresCompiler { (config, cc) =>
-      val sds = getSymbolDesignations(
-        config, cc, """
+  it should "highlight implicit parameters" in withPresCompiler { (config, cc) =>
+    val sds = getSymbolDesignations(
+      config, cc, """
             package com.example
             class Thing {}
             class Thong {}
@@ -502,16 +518,16 @@ class SemanticHighlightingSpec extends WordSpec with Matchers
               val t = zz(1)
             }
           """,
-        List(ImplicitParamsSymbol)
-      )
-      assert(sds === List(
-        (ImplicitParamsSymbol, "zz(1)")
-      ))
-    }
+      List(ImplicitParamsSymbol)
+    )
+    sds should ===(List(
+      (ImplicitParamsSymbol, "zz(1)")
+    ))
+  }
 
-    "highlight method calls after operators" in withPresCompiler { (config, cc) =>
-      val sds = getSymbolDesignations(
-        config, cc, """
+  it should "highlight method calls after operators" in withPresCompiler { (config, cc) =>
+    val sds = getSymbolDesignations(
+      config, cc, """
             package com.example
             class Test {
               def fun(u: Int, v: Int): Int = { u + v }
@@ -519,12 +535,11 @@ class SemanticHighlightingSpec extends WordSpec with Matchers
               fun(1, 2) + foo(4, 5)
             }
           """,
-        List(FunctionCallSymbol)
-      )
-      assert(sds === List(
-        (FunctionCallSymbol, "fun"),
-        (FunctionCallSymbol, "foo")
-      ))
-    }
+      List(FunctionCallSymbol)
+    )
+    sds should ===(List(
+      (FunctionCallSymbol, "fun"),
+      (FunctionCallSymbol, "foo")
+    ))
   }
 }

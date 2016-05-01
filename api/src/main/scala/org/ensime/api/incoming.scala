@@ -4,7 +4,7 @@ package org.ensime.api
 
 import java.io.File
 
-case class RpcRequestEnvelope(req: RpcRequest, callId: Int)
+final case class RpcRequestEnvelope(req: RpcRequest, callId: Int)
 
 /**
  * All messages into the ENSIME server from the client are part of
@@ -35,7 +35,7 @@ sealed trait RpcAnalyserRequest extends RpcRequest
  * @param file source.
  * @param range in the file to inspect.
  */
-case class ImplicitInfoReq(
+final case class ImplicitInfoReq(
   file: Either[File, SourceFileInfo],
   range: OffsetRange
 ) extends RpcAnalyserRequest
@@ -43,12 +43,22 @@ case class ImplicitInfoReq(
 /**
  * Responds with a `VoidResponse`.
  */
-case class RemoveFileReq(file: File) extends RpcAnalyserRequest
+final case class RemoveFileReq(file: File) extends RpcAnalyserRequest
 
 /**
  * Responds with a `VoidResponse`.
  */
-case class TypecheckFileReq(fileInfo: SourceFileInfo) extends RpcAnalyserRequest
+final case class TypecheckFileReq(fileInfo: SourceFileInfo) extends RpcAnalyserRequest
+
+/**
+ * Response with a `VoidResponse`.
+ */
+final case class UnloadModuleReq(module: String) extends RpcAnalyserRequest
+
+/**
+ * Response with a `VoidResponse`.
+ */
+final case class TypecheckModule(module: String) extends RpcAnalyserRequest
 
 /**
  * Responds with a `VoidResponse`.
@@ -63,17 +73,17 @@ case object TypecheckAllReq extends RpcAnalyserRequest
 /**
  * Responds with a `VoidResponse`.
  */
-case class TypecheckFilesReq(files: List[Either[File, SourceFileInfo]]) extends RpcAnalyserRequest
+final case class TypecheckFilesReq(files: List[Either[File, SourceFileInfo]]) extends RpcAnalyserRequest
 
 /**
  * Responds with `VoidResponse`.
  */
-case class FormatSourceReq(files: List[File]) extends RpcAnalyserRequest
+final case class FormatSourceReq(files: List[File]) extends RpcAnalyserRequest
 
 /**
  * Responds with the formatted file as a `StringResponse`.
  */
-case class FormatOneSourceReq(file: SourceFileInfo) extends RpcAnalyserRequest
+final case class FormatOneSourceReq(file: SourceFileInfo) extends RpcAnalyserRequest
 
 // related to searching the indexer
 sealed trait RpcSearchRequest extends RpcRequest
@@ -81,7 +91,7 @@ sealed trait RpcSearchRequest extends RpcRequest
 /**
  * Responds with `SymbolSearchResults`.
  */
-case class PublicSymbolSearchReq(
+final case class PublicSymbolSearchReq(
   keywords: List[String],
   maxResults: Int
 ) extends RpcSearchRequest
@@ -89,7 +99,7 @@ case class PublicSymbolSearchReq(
 /**
  * Responds with [ImportSuggestions].
  */
-case class ImportSuggestionsReq(
+final case class ImportSuggestionsReq(
   file: Either[File, SourceFileInfo],
   point: Int,
   names: List[String],
@@ -99,7 +109,7 @@ case class ImportSuggestionsReq(
 /**
  * Responds with `ERangePositions`.
  */
-case class UsesOfSymbolAtPointReq(
+final case class UsesOfSymbolAtPointReq(
   file: Either[File, SourceFileInfo],
   point: Int
 ) extends RpcAnalyserRequest // will probably become a search request
@@ -108,7 +118,7 @@ case class UsesOfSymbolAtPointReq(
  * Responds with a `StringResponse` for the URL of the documentation if valid,
  * or `FalseResponse`.
  */
-case class DocUriAtPointReq(
+final case class DocUriAtPointReq(
   file: Either[File, SourceFileInfo],
   point: OffsetRange
 ) extends RpcAnalyserRequest
@@ -117,7 +127,7 @@ case class DocUriAtPointReq(
  * Responds with a `StringResponse` for the URL of the documentation if valid,
  * or `FalseResponse`.
  */
-case class DocUriForSymbolReq(
+final case class DocUriForSymbolReq(
   typeFullName: String,
   memberName: Option[String],
   signatureString: Option[String]
@@ -126,7 +136,7 @@ case class DocUriForSymbolReq(
 /**
  * Responds with a `CompletionInfoList`.
  */
-case class CompletionsReq(
+final case class CompletionsReq(
   fileInfo: SourceFileInfo,
   point: Int,
   maxResults: Int,
@@ -137,7 +147,7 @@ case class CompletionsReq(
 /**
  * Responds with a `List[CompletionInfo]`.
  */
-case class PackageMemberCompletionReq(
+final case class PackageMemberCompletionReq(
   path: String,
   prefix: String
 ) extends RpcAnalyserRequest
@@ -145,19 +155,19 @@ case class PackageMemberCompletionReq(
 /**
  * Responds with `TypeInfo` if valid, or `FalseResponse`.
  */
-case class TypeByNameReq(name: String) extends RpcAnalyserRequest
+final case class TypeByNameReq(name: String) extends RpcAnalyserRequest
 
 /**
  * Responds with `TypeInfo` if valid, or `FalseResponse`.
  */
-case class TypeByNameAtPointReq(
+final case class TypeByNameAtPointReq(
   name: String, file: Either[File, SourceFileInfo], range: OffsetRange
 ) extends RpcAnalyserRequest
 
 /**
  * Responds with `TypeInfo` if valid, or `FalseResponse`.
  */
-case class TypeAtPointReq(
+final case class TypeAtPointReq(
   file: Either[File, SourceFileInfo], range: OffsetRange
 ) extends RpcAnalyserRequest
 
@@ -171,7 +181,7 @@ case class TypeAtPointReq(
  * @param file source.
  * @param range in the file to inspect.
  */
-case class InspectTypeAtPointReq(file: Either[File, SourceFileInfo], range: OffsetRange) extends RpcAnalyserRequest
+final case class InspectTypeAtPointReq(file: Either[File, SourceFileInfo], range: OffsetRange) extends RpcAnalyserRequest
 
 /**
  * Request detailed type description by fully qualified class name.
@@ -181,12 +191,12 @@ case class InspectTypeAtPointReq(file: Either[File, SourceFileInfo], range: Offs
  *
  * @param name fully qualified type name to inspect
  */
-case class InspectTypeByNameReq(name: String) extends RpcAnalyserRequest
+final case class InspectTypeByNameReq(name: String) extends RpcAnalyserRequest
 
 /**
  * Responds with a `SymbolInfo` if valid, or `FalseResponse`.
  */
-case class SymbolAtPointReq(file: Either[File, SourceFileInfo], point: Int) extends RpcAnalyserRequest
+final case class SymbolAtPointReq(file: Either[File, SourceFileInfo], point: Int) extends RpcAnalyserRequest
 
 /**
  * Request detailed symbol description by fully qualified symbol name.
@@ -197,7 +207,7 @@ case class SymbolAtPointReq(file: Either[File, SourceFileInfo], point: Int) exte
  * @param memberName short name of a member symbol of the qualified symbol.
  * @param signatureString to disambiguate overloaded methods.
  */
-case class SymbolByNameReq(
+final case class SymbolByNameReq(
   typeFullName: String,
   memberName: Option[String],
   signatureString: Option[String]
@@ -206,36 +216,16 @@ case class SymbolByNameReq(
 /**
  * Responds with `PackageInfo`.
  */
-case class InspectPackageByPathReq(path: String) extends RpcAnalyserRequest
-
-/**
- * Responds with a `RefactorFailure` or a `RefactorEffect`.
- */
-case class PrepareRefactorReq(
-  procId: Int,
-  tpe: Symbol, // tpe is ignored but part of the legacy wire format
-  params: RefactorDesc,
-  interactive: Boolean
-) extends RpcAnalyserRequest
+final case class InspectPackageByPathReq(path: String) extends RpcAnalyserRequest
 
 /**
  * Responds with a `RefactorFailure` or a `RefactorDiffEffect`.
  */
-case class RefactorReq(
+final case class RefactorReq(
   procId: Int,
   params: RefactorDesc,
   interactive: Boolean
 ) extends RpcAnalyserRequest
-
-/**
- * Responds with a `RefactorFailure` or a `RefactorEffect`.
- */
-case class ExecRefactorReq(procId: Int, tpe: RefactorType) extends RpcAnalyserRequest
-
-/**
- * Responds with a `VoidResponse`.
- */
-case class CancelRefactorReq(procId: Int) extends RpcAnalyserRequest
 
 /**
  * Request the semantic classes of symbols in the given range.
@@ -248,7 +238,7 @@ case class CancelRefactorReq(procId: Int) extends RpcAnalyserRequest
  * @param end of character offset of the input range.
  * @param requestedTypes semantic classes in which we are interested.
  */
-case class SymbolDesignationsReq(
+final case class SymbolDesignationsReq(
   file: Either[File, SourceFileInfo],
   start: Int,
   end: Int,
@@ -258,12 +248,23 @@ case class SymbolDesignationsReq(
 /**
  * Responds with a `FileRange`.
  */
-case class ExpandSelectionReq(file: File, start: Int, end: Int) extends RpcAnalyserRequest
+final case class ExpandSelectionReq(file: File, start: Int, end: Int) extends RpcAnalyserRequest
 
 /**
  * Responds with a `StructureView`.
  */
-case class StructureViewReq(fileInfo: SourceFileInfo) extends RpcAnalyserRequest
+final case class StructureViewReq(fileInfo: SourceFileInfo) extends RpcAnalyserRequest
+
+/**
+ * Responds with `ASTInfo`
+ *
+ * @param file source
+ * @param offset in file to inspect
+ */
+final case class AstAtPointReq(
+  file: SourceFileInfo,
+  offset: OffsetRange
+) extends RpcAnalyserRequest
 
 sealed trait RpcDebuggerRequest extends RpcRequest
 
@@ -276,12 +277,7 @@ case object DebugActiveVmReq extends RpcDebuggerRequest
 /**
  * Responds with `DebugVmStatus`.
  */
-case class DebugStartReq(commandLine: String) extends RpcDebuggerRequest
-
-/**
- * Responds with `DebugVmStatus`.
- */
-case class DebugAttachReq(hostname: String, port: String) extends RpcDebuggerRequest
+final case class DebugAttachReq(hostname: String, port: String) extends RpcDebuggerRequest
 
 /**
  * Responds with a `FalseResponse` or a `TrueResponse`.
@@ -291,12 +287,12 @@ case object DebugStopReq extends RpcDebuggerRequest
 /**
  * Responds with a `VoidResponse`.
  */
-case class DebugSetBreakReq(file: File, line: Int) extends RpcDebuggerRequest
+final case class DebugSetBreakReq(file: File, line: Int) extends RpcDebuggerRequest
 
 /**
  * Responds with a `VoidResponse`.
  */
-case class DebugClearBreakReq(file: File, line: Int) extends RpcDebuggerRequest
+final case class DebugClearBreakReq(file: File, line: Int) extends RpcDebuggerRequest
 
 /**
  * Responds with a `VoidResponse`.
@@ -316,44 +312,44 @@ case object DebugRunReq extends RpcDebuggerRequest
 /**
  * Responds with a `FalseResponse` or a `TrueResponse`.
  */
-case class DebugContinueReq(threadId: DebugThreadId) extends RpcDebuggerRequest
+final case class DebugContinueReq(threadId: DebugThreadId) extends RpcDebuggerRequest
 
 /**
  * Responds with a `FalseResponse` or a `TrueResponse`.
  */
-case class DebugStepReq(threadId: DebugThreadId) extends RpcDebuggerRequest
+final case class DebugStepReq(threadId: DebugThreadId) extends RpcDebuggerRequest
 
 /**
  * Responds with a `FalseResponse` or a `TrueResponse`.
  */
-case class DebugNextReq(threadId: DebugThreadId) extends RpcDebuggerRequest
+final case class DebugNextReq(threadId: DebugThreadId) extends RpcDebuggerRequest
 
 /**
  * Responds with a `FalseResponse` or a `TrueResponse`.
  */
-case class DebugStepOutReq(threadId: DebugThreadId) extends RpcDebuggerRequest
+final case class DebugStepOutReq(threadId: DebugThreadId) extends RpcDebuggerRequest
 
 /**
  * Responds with a `DebugLocation` if successful, or `FalseResponse`.
  */
-case class DebugLocateNameReq(threadId: DebugThreadId, name: String) extends RpcDebuggerRequest
+final case class DebugLocateNameReq(threadId: DebugThreadId, name: String) extends RpcDebuggerRequest
 
 /**
  * Responds with a `DebugValue` if successful, or `FalseResponse`.
  */
-case class DebugValueReq(loc: DebugLocation) extends RpcDebuggerRequest
+final case class DebugValueReq(loc: DebugLocation) extends RpcDebuggerRequest
 
 /**
  * Responds with a `StringResponse` if successful, or `FalseResponse`.
  */
-case class DebugToStringReq(threadId: DebugThreadId, loc: DebugLocation) extends RpcDebuggerRequest
+final case class DebugToStringReq(threadId: DebugThreadId, loc: DebugLocation) extends RpcDebuggerRequest
 
 /**
  * Responds with a `FalseResponse` or a `TrueResponse`.
  */
-case class DebugSetValueReq(loc: DebugLocation, newValue: String) extends RpcDebuggerRequest
+final case class DebugSetValueReq(loc: DebugLocation, newValue: String) extends RpcDebuggerRequest
 
 /**
  * Responds with a `DebugBacktrace`.
  */
-case class DebugBacktraceReq(threadId: DebugThreadId, index: Int, count: Int) extends RpcDebuggerRequest
+final case class DebugBacktraceReq(threadId: DebugThreadId, index: Int, count: Int) extends RpcDebuggerRequest

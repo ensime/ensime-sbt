@@ -3,14 +3,13 @@
 package org.ensime.core
 
 import java.io.File
-import org.scalatest._
 import org.ensime.util.file._
-
+import org.ensime.util.EnsimeSpec
 import org.ensime.api._
 
 // this test is mostly showing what Canon can do, we're testing
 // shapeless more than our specific Poly1.
-class CanonSpec extends FlatSpec with Matchers {
+class CanonSpec extends EnsimeSpec {
 
   val file = new File(".")
   val canon = file.canon

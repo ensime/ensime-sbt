@@ -4,28 +4,28 @@ package org.ensime.core.javac
 
 import akka.actor.ActorRef
 import akka.event.slf4j.SLF4JLogging
-import com.sun.source.tree.{ MemberSelectTree, MethodInvocationTree, Tree, IdentifierTree }
+import com.sun.source.tree.{ MemberSelectTree, Tree, IdentifierTree }
 import com.sun.source.util.TreePath
-import javax.lang.model.`type`.{ DeclaredType, PrimitiveType, ReferenceType, TypeKind, TypeMirror }
+import javax.lang.model.`type`.TypeMirror
 import javax.lang.model.element.{ Element, ExecutableElement, PackageElement, TypeElement, VariableElement }
-import javax.lang.model.util.{ ElementFilter, Elements }
-import org.ensime.core.{ DocFqn, DocSig, DocSigPair, CompletionUtil }
+import javax.lang.model.util.ElementFilter
+import org.ensime.core.CompletionUtil
 import org.ensime.util.file._
 import org.ensime.api._
 import scala.collection.JavaConversions._
 import java.nio.charset.Charset
 import com.sun.source.tree.Scope
-import scala.collection.mutable.HashSet;
 import scala.collection.mutable.ArrayBuffer;
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+import scala.collection.breakOut
 
 trait JavaCompletion extends Helpers with SLF4JLogging {
 
   import CompletionUtil._
 
-  protected def scopeForPoint(file: SourceFileInfo, offset: Int): Option[(CompilationInfo, Scope)]
-  protected def pathToPoint(file: SourceFileInfo, offset: Int): Option[(CompilationInfo, TreePath)]
+  protected def scopeForPoint(file: SourceFileInfo, offset: Int): Option[(Compilation, Scope)]
+  protected def pathToPoint(file: SourceFileInfo, offset: Int): Option[(Compilation, TreePath)]
   protected def indexer: ActorRef
 
   def completionsAt(info: SourceFileInfo, offset: Int, maxResultsArg: Int, caseSens: Boolean): CompletionInfoList = {
@@ -57,26 +57,25 @@ trait JavaCompletion extends Helpers with SLF4JLogging {
       // Erase the trailing partial subtype (it breaks type resolution).
       val patched = s.substring(0, indexAfterTarget) + " " + s.substring(indexAfterTarget + defaultPrefix.length + 1);
       (pathToPoint(SourceFileInfo(info.file, Some(patched), None), indexAfterTarget - 1) map {
-        case (info: CompilationInfo, path: TreePath) => {
-          memberCandidates(info, path.getLeaf, defaultPrefix, true, caseSens)
+        case (c: Compilation, path: TreePath) => {
+          memberCandidates(c, path.getLeaf, defaultPrefix, true, caseSens)
         }
       })
     } else if (ImportRegexp.findFirstMatchIn(preceding).isDefined) {
       (pathToPoint(info, indexAfterTarget) flatMap {
-        case (info: CompilationInfo, path: TreePath) => {
+        case (c: Compilation, path: TreePath) => {
           getEnclosingMemberSelectTree(path).map { m =>
-            packageMemberCandidates(info, m, defaultPrefix, caseSens)
+            packageMemberCandidates(c, m, defaultPrefix, caseSens)
           }
         }
       })
     } else if (isMemberAccess) {
-      // TODO how to avoid allocating a new string? buffer of immutable string slices?
       // Erase the trailing partial member (it breaks type resolution).
       val patched = s.substring(0, indexAfterTarget) + ".wait()" + s.substring(indexAfterTarget + defaultPrefix.length + 1);
       (pathToPoint(SourceFileInfo(info.file, Some(patched), None), indexAfterTarget + 1) flatMap {
-        case (info: CompilationInfo, path: TreePath) => {
+        case (c: Compilation, path: TreePath) => {
           getEnclosingMemberSelectTree(path).map { m =>
-            memberCandidates(info, m.getExpression(), defaultPrefix, false, caseSens)
+            memberCandidates(c, m.getExpression(), defaultPrefix, false, caseSens)
           }
         }
       })
@@ -88,8 +87,8 @@ trait JavaCompletion extends Helpers with SLF4JLogging {
       } else None
 
       (scopeForPoint(info, indexAfterTarget) map {
-        case (info: CompilationInfo, s: Scope) => {
-          scopeMemberCandidates(info, s, defaultPrefix, caseSens, constructing)
+        case (c: Compilation, s: Scope) => {
+          scopeMemberCandidates(c, s, defaultPrefix, caseSens, constructing)
         }
       }) map { scopeCandidates =>
         val typeSearchResult = typeSearch.flatMap(Await.result(_, Duration.Inf)).getOrElse(List())
@@ -126,37 +125,37 @@ trait JavaCompletion extends Helpers with SLF4JLogging {
   }
 
   private def packageMemberCandidates(
-    info: CompilationInfo,
+    compilation: Compilation,
     select: MemberSelectTree,
     prefix: String,
     caseSense: Boolean
   ): List[CompletionInfo] = {
     val pkg = selectedPackageName(select)
-    val candidates = (Option(info.getElements.getPackageElement(pkg)) map { p: PackageElement =>
-      p.getEnclosedElements().flatMap { e => filterElement(info, e, prefix, caseSense, true, false) }
+    val candidates = (Option(compilation.elements.getPackageElement(pkg)) map { p: PackageElement =>
+      p.getEnclosedElements().flatMap { e => filterElement(compilation, e, prefix, caseSense, true, false) }
     }).getOrElse(List())
     candidates.toList
   }
 
-  private def filterElement(info: CompilationInfo, e: Element, prefix: String, caseSense: Boolean,
+  private def filterElement(c: Compilation, e: Element, prefix: String, caseSense: Boolean,
     typesOnly: Boolean, constructors: Boolean, baseRelevance: Int = 0): List[CompletionInfo] = {
     val s = e.getSimpleName.toString
 
     // reward case case-sensitive matches
     val relevance = if (s.startsWith(prefix)) baseRelevance + 50 else baseRelevance
 
-    if (matchesPrefix(s, prefix, matchEntire = false, caseSens = caseSense) && !s.contains("$")) {
+    if (matchesPrefix(s, prefix, matchEntire = false, caseSens = caseSense) && !s.contains("$") && !s.contains("<init>")) {
       e match {
         case e: ExecutableElement if !typesOnly => List(methodInfo(e, relevance + 5))
         case e: VariableElement if !typesOnly => List(fieldInfo(e, relevance + 10))
-        case e: TypeElement => if (constructors) constructorInfos(info, e, relevance + 5) else List(typeInfo(e, relevance))
+        case e: TypeElement => if (constructors) constructorInfos(c, e, relevance + 5) else List(typeInfo(e, relevance))
         case _ => List()
       }
     } else List()
   }
 
   private def scopeMemberCandidates(
-    info: CompilationInfo,
+    compilation: Compilation,
     scope: Scope,
     prefix: String,
     caseSense: Boolean,
@@ -168,8 +167,8 @@ trait JavaCompletion extends Helpers with SLF4JLogging {
     // enclosing classes. Need to add those manually.
     //
     def addTypeMembers(tel: TypeElement, relevance: Int): Unit = {
-      for (el <- info.getElements().getAllMembers(tel)) {
-        for (info <- filterElement(info, el, prefix, caseSense, false, constructing, relevance)) {
+      for (el <- compilation.elements.getAllMembers(tel)) {
+        for (info <- filterElement(compilation, el, prefix, caseSense, false, constructing, relevance)) {
           candidates += info
         }
       }
@@ -193,7 +192,7 @@ trait JavaCompletion extends Helpers with SLF4JLogging {
     var s = scope
     while (s != null) {
       for (el <- s.getLocalElements()) {
-        for (info <- filterElement(info, el, prefix, caseSense, false, constructing, relavence)) {
+        for (info <- filterElement(compilation, el, prefix, caseSense, false, constructing, relavence)) {
           candidates += info
         }
       }
@@ -204,27 +203,31 @@ trait JavaCompletion extends Helpers with SLF4JLogging {
   }
 
   private def memberCandidates(
-    info: CompilationInfo,
+    c: Compilation,
     target: Tree,
     prefix: String,
     importing: Boolean,
     caseSense: Boolean
   ): List[CompletionInfo] = {
-    val candidates = typeElement(info, target).map { el =>
-      el match {
-        case tel: TypeElement => {
-          val elements: Elements = info.getElements()
-          elements.getAllMembers(tel).flatMap { e =>
-            filterElement(info, e, prefix, caseSense, importing, false)
-          }
-        }
-        case e => {
-          log.warn("Unrecognized type element " + e)
-          List()
-        }
-      }
-    }.getOrElse(List())
-    candidates.toList
+
+    typeElement(c, target).toList.flatMap {
+
+      case tel: TypeElement =>
+
+        val path = c.trees.getPath(c.compilationUnit, target)
+        val scope = c.trees.getScope(path)
+
+        val isAccessible: Element => Boolean = c.trees
+          .isAccessible(scope, _, c.types.getDeclaredType(tel))
+
+        c.elements.getAllMembers(tel).filter(isAccessible).flatMap { el =>
+          filterElement(c, el, prefix, caseSense, importing, false)
+        }(breakOut)
+
+      case e =>
+        log.warn("Unrecognized type element " + e)
+        List.empty
+    }
   }
 
   private def methodInfo(e: ExecutableElement, relavence: Int): CompletionInfo = {
@@ -254,9 +257,9 @@ trait JavaCompletion extends Helpers with SLF4JLogging {
     )
   }
 
-  private def constructorInfos(info: CompilationInfo, e: TypeElement, relavence: Int): List[CompletionInfo] = {
+  private def constructorInfos(compilation: Compilation, e: TypeElement, relavence: Int): List[CompletionInfo] = {
     val s = e.getSimpleName.toString
-    ElementFilter.constructorsIn(info.getElements().getAllMembers(e)).map(methodInfo(_, relavence)).map { m =>
+    ElementFilter.constructorsIn(compilation.elements.getAllMembers(e)).map(methodInfo(_, relavence)).map { m =>
       m.copy(name = s)
     }.toList
   }

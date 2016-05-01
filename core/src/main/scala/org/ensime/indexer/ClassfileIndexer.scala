@@ -108,7 +108,6 @@ trait ClassfileIndexer {
   }
 
   // factors out much of the verbose code that looks for references to members
-  // TODO: we need a classesInSignature (which needs the ability to parse signature)
   private trait ReferenceInClassHunter {
     this: ClassVisitor =>
 

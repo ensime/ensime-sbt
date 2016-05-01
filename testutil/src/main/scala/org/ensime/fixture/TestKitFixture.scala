@@ -16,7 +16,7 @@ import akka.testkit._
  * in a suite, but sometimes isolation of the system is needed on a
  * per-test basis, this fixture adds support for that.
  *
- * Instead of extending TestKit, use withActorSystem and import
+ * Instead of extending TestKit, use withTestKit and import
  * the parameter for all implicits.
  *
  * Inspired by https://gist.github.com/derekwyatt/3138807

@@ -6,7 +6,8 @@ import akka.actor._
 import akka.testkit._
 import org.ensime.api._
 import org.ensime.core._
-import org.ensime.indexer.{ EnsimeVFS, SearchService }
+import org.ensime.vfs._
+import org.ensime.indexer.SearchService
 import org.scalatest._
 
 trait AnalyzerFixture {

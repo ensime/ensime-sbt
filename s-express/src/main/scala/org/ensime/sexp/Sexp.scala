@@ -23,15 +23,15 @@ sealed abstract class Sexp {
   private[sexp] def isList: Boolean = false
 }
 
-case class SexpCons(x: Sexp, y: Sexp) extends Sexp {
+final case class SexpCons(x: Sexp, y: Sexp) extends Sexp {
   private[sexp] override val isList = y.isList
 }
 
 sealed trait SexpAtom extends Sexp
-case class SexpChar(value: Char) extends SexpAtom
-case class SexpString(value: String) extends SexpAtom
-case class SexpNumber(value: BigDecimal) extends SexpAtom
-case class SexpSymbol(value: String) extends SexpAtom
+final case class SexpChar(value: Char) extends SexpAtom
+final case class SexpString(value: String) extends SexpAtom
+final case class SexpNumber(value: BigDecimal) extends SexpAtom
+final case class SexpSymbol(value: String) extends SexpAtom
 case object SexpNil extends SexpAtom {
   private[sexp] override def isList = true
 }
@@ -57,9 +57,8 @@ object SexpNumber {
 object SexpList {
   def apply(els: Sexp*): Sexp = apply(els.toList)
 
-  def apply(els: List[Sexp]): Sexp = els match {
-    case Nil => SexpNil
-    case head :: tail => SexpCons(head, apply(tail))
+  def apply(els: List[Sexp]): Sexp = els.foldRight(SexpNil: Sexp) {
+    case (head, tail) => SexpCons(head, tail)
   }
 
   def unapply(sexp: Sexp): Option[List[Sexp]] =

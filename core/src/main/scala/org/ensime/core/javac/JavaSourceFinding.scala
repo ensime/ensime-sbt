@@ -8,7 +8,8 @@ import java.io.File
 import javax.lang.model.element.Element
 import org.ensime.api._
 import org.ensime.model.LineSourcePositionHelper
-import org.ensime.indexer.{ EnsimeVFS, SearchService }
+import org.ensime.vfs._
+import org.ensime.indexer.SearchService
 
 trait JavaSourceFinding extends Helpers with SLF4JLogging {
 
@@ -17,28 +18,28 @@ trait JavaSourceFinding extends Helpers with SLF4JLogging {
   def vfs: EnsimeVFS
   def config: EnsimeConfig
 
-  protected def findInCompiledUnit(info: CompilationInfo, fqn: JavaFqn): Option[SourcePosition] = {
-    Option(info.getElements().getTypeElement(fqn.toFqnString)).flatMap(elementPosition(info, _))
+  protected def findInCompiledUnit(c: Compilation, fqn: JavaFqn): Option[SourcePosition] = {
+    Option(c.elements.getTypeElement(fqn.toFqnString)).flatMap(elementPosition(c, _))
   }
 
-  private def elementPosition(info: CompilationInfo, el: Element): Option[SourcePosition] = {
+  private def elementPosition(c: Compilation, el: Element): Option[SourcePosition] = {
     // if we can get a tree for the element, determining start position
     // is easy
-    Option(info.getTrees.getPath(el)).map { path =>
+    Option(c.trees.getPath(el)).map { path =>
       OffsetSourcePosition(
         new File(path.getCompilationUnit.getSourceFile.getName),
-        info.getTrees.getSourcePositions
+        c.trees.getSourcePositions
           .getStartPosition(path.getCompilationUnit, path.getLeaf).toInt
       )
     }
   }
 
-  protected def findDeclPos(info: CompilationInfo, path: TreePath): Option[SourcePosition] = {
-    element(info, path).flatMap(elementPosition(info, _)).orElse(findInIndexer(info, path))
+  protected def findDeclPos(c: Compilation, path: TreePath): Option[SourcePosition] = {
+    element(c, path).flatMap(elementPosition(c, _)).orElse(findInIndexer(c, path))
   }
 
-  private def findInIndexer(info: CompilationInfo, path: TreePath): Option[SourcePosition] = {
-    val javaFqn = fqn(info, path)
+  private def findInIndexer(c: Compilation, path: TreePath): Option[SourcePosition] = {
+    val javaFqn = fqn(c, path)
     val query = javaFqn.map(_.toFqnString).getOrElse("")
     val hit = search.findUnique(query)
     log.debug(s"search: '$query' = $hit")
@@ -49,5 +50,4 @@ trait JavaSourceFinding extends Helpers with SLF4JLogging {
         Some(sourcePos)
     }
   }
-
 }

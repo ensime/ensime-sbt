@@ -2,9 +2,9 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.sexp
 
-import org.scalatest._
+import org.ensime.util.EnsimeSpec
 
-class SexpSpec extends FunSpec with Matchers {
+class SexpSpec extends EnsimeSpec {
 
   val foostring = SexpString("foo")
   val barstring = SexpString("bar")
@@ -13,65 +13,53 @@ class SexpSpec extends FunSpec with Matchers {
   val fookey = SexpSymbol(":foo")
   val barkey = SexpSymbol(":bar")
 
-  describe("SexpList") {
-    it("should create from varargs") {
-      assert(SexpList(foosym, barsym) === SexpList(List(foosym, barsym)))
+  "SexpList" should "create from varargs" in {
+    SexpList(foosym, barsym) should ===(SexpList(List(foosym, barsym)))
+  }
+
+  it should "unroll as basic" in {
+    SexpList(Nil) should ===(SexpNil)
+
+    SexpList(foosym) should ===(SexpCons(foosym, SexpNil))
+
+    SexpList(foosym, barsym) === (SexpCons(foosym, SexpCons(barsym, SexpNil)))
+  }
+
+  it should "match lists" in {
+    SexpCons(foosym, SexpNil) match {
+      case SexpList(els) if els == List(foosym) =>
+      case _ => fail()
     }
-
-    it("should unroll as basic") {
-      assert(SexpList(Nil) === SexpNil)
-
-      assert(SexpList(foosym) ===
-        SexpCons(foosym, SexpNil))
-
-      assert(SexpList(foosym, barsym) ===
-        SexpCons(foosym, SexpCons(barsym, SexpNil)))
+    SexpCons(foosym, SexpCons(barsym, SexpNil)) match {
+      case SexpList(els) if els == List(foosym, barsym) =>
+      case _ => fail()
     }
-
-    it("should match lists") {
-      SexpCons(foosym, SexpNil) match {
-        case SexpList(els) if els == List(foosym) =>
-        case _ => fail()
-      }
-      SexpCons(foosym, SexpCons(barsym, SexpNil)) match {
-        case SexpList(els) if els == List(foosym, barsym) =>
-        case _ => fail()
-      }
-      SexpNil match {
-        case SexpList(_) => fail()
-        case _ =>
-      }
+    SexpNil match {
+      case SexpList(_) => fail()
+      case _ =>
     }
   }
 
-  describe("SexpData") {
-    it("should create from varargs") {
-      assert(SexpData(
-        fookey -> barsym,
-        barkey -> foosym
-      ) === SexpList(
-          fookey, barsym,
-          barkey, foosym
-        ))
-    }
+  it should "support a list with 1000000 elements" in {
+    val data = List.fill(1000000)(SexpChar('a'))
+    SexpList(data) shouldBe a[Sexp]
+  }
 
-    it("should unroll as basic") {
-      assert(SexpData(
-        fookey -> barsym,
-        barkey -> foosym
-      ) === SexpCons(
-          fookey, SexpCons(
-          barsym, SexpCons(
-          barkey, SexpCons(
-          foosym, SexpNil
-        )
-        )
-        )
-        ))
-    }
+  "SexpData" should "create from varargs" in {
+    SexpData(
+      fookey -> barsym,
+      barkey -> foosym
+    ) should ===(SexpList(
+        fookey, barsym,
+        barkey, foosym
+      ))
+  }
 
-    it("should match SexpData") {
-      SexpCons(
+  it should "unroll as basic" in {
+    SexpData(
+      fookey -> barsym,
+      barkey -> foosym
+    ) should ===(SexpCons(
         fookey, SexpCons(
         barsym, SexpCons(
         barkey, SexpCons(
@@ -79,24 +67,35 @@ class SexpSpec extends FunSpec with Matchers {
       )
       )
       )
-      ) match {
-        case SexpData(kvs) if kvs.size == 2 =>
-        case _ => fail()
-      }
+      ))
+  }
 
-      SexpNil match {
-        case SexpData(_) => fail()
-        case _ =>
-      }
+  it should "match SexpData" in {
+    SexpCons(
+      fookey, SexpCons(
+      barsym, SexpCons(
+      barkey, SexpCons(
+      foosym, SexpNil
+    )
+    )
+    )
+    ) match {
+      case SexpData(kvs) if kvs.size == 2 =>
+      case _ => fail()
+    }
+
+    SexpNil match {
+      case SexpData(_) => fail()
+      case _ =>
     }
   }
 
-  describe("SexpCons") {
-    it("should unroll as fully basic") {
-      val a = SexpList(foosym)
-      val b = SexpList(barsym)
-      assert(SexpCons(a, b) ===
-        SexpCons(SexpCons(foosym, SexpNil), SexpCons(barsym, SexpNil)))
-    }
+  "SexpCons" should "unroll as fully basic" in {
+    val a = SexpList(foosym)
+    val b = SexpList(barsym)
+    SexpCons(a, b) should ===(SexpCons(
+      SexpCons(foosym, SexpNil),
+      SexpCons(barsym, SexpNil)
+    ))
   }
 }

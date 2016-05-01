@@ -2,14 +2,12 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.indexer
 
-import akka.event.slf4j.SLF4JLogging
-import org.scalatest.FunSpec
-import org.scalatest.Matchers
+import org.ensime.util.EnsimeSpec
 import DescriptorParser.{ parse, parseType }
 import ClassName._
 import scala.util.Try
 
-class DescriptorParserSpec extends FunSpec with Matchers with SLF4JLogging {
+class DescriptorParserSpec extends EnsimeSpec {
 
   private val SZ = ClassName(PackageName(List("scalaz", "syntax")), "ToApplicativeOps$ApplicativeIdV$$anonfun$η$1")
   private val S = ClassName(PackageName(List("java", "lang")), "String")
@@ -20,70 +18,65 @@ class DescriptorParserSpec extends FunSpec with Matchers with SLF4JLogging {
   private val Z = PrimitiveBoolean
   private val root = PackageName(Nil)
 
-  describe("DescriptorParser") {
-    it("should fail to parse the empty string") {
-      assert(Try(parse("")).isFailure)
-    }
-
-    it("should fail to parse a bad string") {
-      assert(Try(parse("not valid")).isFailure)
-    }
-
-    it("should parse descriptors without parameters") {
-      assert(parse("()V") === D(Nil, PrimitiveVoid))
-      assert(parse("()Ljava/lang/String;") === D(Nil, S))
-      assert(parse("()[Ljava/lang/String;") === D(Nil, A(S)))
-      assert(parse("()[[Ljava/lang/String;") === D(Nil, A(A(S))))
-      assert(parse("()[[[Ljava/lang/String;") === D(Nil, A(A(A(S)))))
-    }
-
-    it("should handle multiple object parameters") {
-      assert(parse("(I[IILjava/lang/String;Z)V") === D(List(I, A(I), I, S, Z), V))
-    }
-
-    it("should be invertible") {
-      def invert(desc: String) =
-        assert(parse(desc).descriptorString === desc)
-
-      invert("(I[IILjava/lang/String;Z)V")
-    }
+  "DescriptorParser" should "fail to parse the empty string" in {
+    intercept[Exception](parse(""))
   }
 
-  describe("DescriptorParser's JVM internal mode") {
-    it("should fail to parse the empty string") {
-      assert(Try(parseType("")).isFailure)
-    }
+  it should "fail to parse a bad string" in {
+    intercept[Exception](parse("not valid"))
+  }
 
-    it("should fail to parse a bad string") {
-      assert(Try(parseType("not valid")).isFailure)
-    }
+  it should "parse descriptors without parameters" in {
+    parse("()V") should ===(D(Nil, PrimitiveVoid))
+    parse("()Ljava/lang/String;") should ===(D(Nil, S))
+    parse("()[Ljava/lang/String;") should ===(D(Nil, A(S)))
+    parse("()[[Ljava/lang/String;") should ===(D(Nil, A(A(S))))
+    parse("()[[[Ljava/lang/String;") should ===(D(Nil, A(A(A(S)))))
+  }
 
-    it("should handle $_- in package names") {
-      assert(parseType("Lcom/-$random_/Foo;") === ClassName(PackageName(List("com", "-$random_")), "Foo"))
-    }
+  it should "handle multiple object parameters" in {
+    parse("(I[IILjava/lang/String;Z)V") should ===(D(List(I, A(I), I, S, Z), V))
+  }
 
-    it("should handle examples") {
-      assert(parseType("Lscalaz/syntax/ToApplicativeOps$ApplicativeIdV$$anonfun$η$1;") === SZ)
-      assert(parseType("Ljava/lang/String;") === S)
-      assert(parseType("[Ljava/lang/String;") === A(S))
-      assert(parseType("[[Ljava/lang/String;") === A(A(S)))
-      assert(parseType("V") === V)
-      assert(parseType("LMyAnnotation;") === ClassName(root, "MyAnnotation"))
+  it should "be invertible" in {
+    def invert(desc: String) =
+      parse(desc).descriptorString shouldBe desc
 
-      // of course, SUN break their own rules for package names (capitals)
-      assert(Try(parseType("Lcom/sun/tools/corba/se/idl/toJavaPortable/NameModifierImpl;")).isSuccess)
+    invert("(I[IILjava/lang/String;Z)V")
+  }
 
-      // hmmm, apache, what???? dashes in package names????
-      assert(Try(parseType("Lorg/spark-project/guava/annotations/VisibleForTesting;")).isSuccess)
+  "DescriptorParser's JVM internal mode" should "fail to parse the empty string" in {
+    intercept[Exception](parseType(""))
+  }
 
-    }
+  it should "fail to parse a bad string" in {
+    intercept[Exception](parseType("not valid"))
+  }
 
-    it("should be invertible") {
-      def invert(desc: String) =
-        assert(parseType(desc).internalString === desc)
+  it should "handle $_- in package names" in {
+    parseType("Lcom/-$random_/Foo;") should ===(ClassName(PackageName(List("com", "-$random_")), "Foo"))
+  }
 
-      invert("Ljava/lang/String;")
-      invert("[[Ljava/lang/String;")
-    }
+  it should "handle examples" in {
+    parseType("Lscalaz/syntax/ToApplicativeOps$ApplicativeIdV$$anonfun$η$1;") should ===(SZ)
+    parseType("Ljava/lang/String;") should ===(S)
+    parseType("[Ljava/lang/String;") should ===(A(S))
+    parseType("[[Ljava/lang/String;") should ===(A(A(S)))
+    parseType("V") should ===(V)
+    parseType("LMyAnnotation;") should ===(ClassName(root, "MyAnnotation"))
+
+    // of course, SUN break their own rules for package names (capitals)
+    Try(parseType("Lcom/sun/tools/corba/se/idl/toJavaPortable/NameModifierImpl;")).success
+
+    // hmmm, apache, what???? dashes in package names????
+    Try(parseType("Lorg/spark-project/guava/annotations/VisibleForTesting;")).success
+  }
+
+  it should "be invertible" in {
+    def invert(desc: String) =
+      parseType(desc).internalString shouldBe desc
+
+    invert("Ljava/lang/String;")
+    invert("[[Ljava/lang/String;")
   }
 }

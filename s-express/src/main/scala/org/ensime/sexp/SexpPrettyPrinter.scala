@@ -2,8 +2,6 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.sexp
 
-import scala.annotation.tailrec
-
 /**
  * The output is a non-standard interpretation of "pretty lisp" ---
  * emacs style formatting requires counting the length of the text on

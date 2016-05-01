@@ -6,7 +6,6 @@ import org.apache.commons.io.FileUtils
 import org.ensime.api._
 import org.ensime.fixture._
 import org.ensime.util.EnsimeSpec
-import org.scalatest.concurrent.Eventually
 import scala.concurrent.duration._
 
 /**
@@ -38,8 +37,7 @@ class JarTargetTest extends EnsimeSpec
     }
   }
 
-  // FIXME https://github.com/ensime/ensime-server/pull/1273
-  ignore should "allow jar targets to be deleted" in {
+  it should "allow jar targets to be deleted" in {
     withEnsimeConfig { implicit config =>
       withTestKit { implicit tk =>
         withProject { (project, asyncHelper) =>

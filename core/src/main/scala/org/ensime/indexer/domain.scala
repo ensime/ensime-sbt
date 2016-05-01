@@ -25,7 +25,7 @@ sealed trait FullyQualifiedName {
   def fqnString: String
 }
 
-case class PackageName(path: List[String]) extends FullyQualifiedName {
+final case class PackageName(path: List[String]) extends FullyQualifiedName {
   def contains(o: FullyQualifiedName) = o match {
     case PackageName(pn) => pn.startsWith(path)
     case ClassName(p, _) => contains(p)
@@ -35,9 +35,9 @@ case class PackageName(path: List[String]) extends FullyQualifiedName {
   def parent = PackageName(path.init)
 }
 
-case class ClassName(pack: PackageName, name: String) extends FullyQualifiedName with DescriptorType {
+final case class ClassName(pack: PackageName, name: String) extends FullyQualifiedName with DescriptorType {
   def contains(o: FullyQualifiedName) = o match {
-    case ClassName(op, on) if pack == op & on.startsWith(name) =>
+    case ClassName(op, on) if pack == op && on.startsWith(name) =>
       (on == name) || on.startsWith(name + "$")
     case MemberName(cn, _) => contains(cn)
     case _ => false
@@ -47,27 +47,41 @@ case class ClassName(pack: PackageName, name: String) extends FullyQualifiedName
     if (pack.path.isEmpty) name
     else ClassName.cleanupPackage(pack.fqnString + "." + name)
 
-  def internalString =
+  private def nonPrimitiveInternalString: String =
     "L" + (if (pack.path.isEmpty) name else pack.path.mkString("/") + "/" + name) + ";"
+
+  lazy val internalString: String = {
+    if (pack.path.isEmpty)
+      name match {
+        case "boolean" => "Z"
+        case "byte" => "B"
+        case "char" => "C"
+        case "short" => "S"
+        case "int" => "I"
+        case "long" => "J"
+        case "float" => "F"
+        case "double" => "D"
+        case "void" => "V"
+        case _ => nonPrimitiveInternalString
+      }
+    else nonPrimitiveInternalString
+  }
 }
 
 object ClassName {
   private val Root = PackageName(Nil)
   // we consider Primitives to be ClassNames
-  private def Primitive(name: String, desc: String): ClassName = new ClassName(Root, name) {
-    override def fqnString = name
-    override def internalString = desc
-  }
+  private def Primitive(name: String): ClassName = ClassName(Root, name)
 
-  val PrimitiveBoolean = Primitive("boolean", "Z")
-  val PrimitiveByte = Primitive("byte", "B")
-  val PrimitiveChar = Primitive("char", "C")
-  val PrimitiveShort = Primitive("short", "S")
-  val PrimitiveInt = Primitive("int", "I")
-  val PrimitiveLong = Primitive("long", "J")
-  val PrimitiveFloat = Primitive("float", "F")
-  val PrimitiveDouble = Primitive("double", "D")
-  val PrimitiveVoid = Primitive("void", "V")
+  val PrimitiveBoolean = Primitive("boolean")
+  val PrimitiveByte = Primitive("byte")
+  val PrimitiveChar = Primitive("char")
+  val PrimitiveShort = Primitive("short")
+  val PrimitiveInt = Primitive("int")
+  val PrimitiveLong = Primitive("long")
+  val PrimitiveFloat = Primitive("float")
+  val PrimitiveDouble = Primitive("double")
+  val PrimitiveVoid = Primitive("void")
 
   // must be a single type descriptor
   // strips array reification
@@ -91,7 +105,7 @@ object ClassName {
   }
 }
 
-case class MemberName(
+final case class MemberName(
     owner: ClassName,
     name: String
 ) extends FullyQualifiedName {
@@ -103,20 +117,19 @@ sealed trait DescriptorType {
   def internalString: String
 }
 
-case class ArrayDescriptor(fqn: DescriptorType) extends DescriptorType {
+final case class ArrayDescriptor(fqn: DescriptorType) extends DescriptorType {
   def reifier: ClassName = fqn match {
     case c: ClassName => c
     case a: ArrayDescriptor => a.reifier
   }
   def internalString = "[" + fqn.internalString
 }
-case class Descriptor(params: List[DescriptorType], ret: DescriptorType) {
+final case class Descriptor(params: List[DescriptorType], ret: DescriptorType) {
   def descriptorString =
     "(" + params.map(_.internalString).mkString("") + ")" + ret.internalString
 }
 
-// TODO: replace generics Strings with domain objects
-case class RawClassfile(
+final case class RawClassfile(
   name: ClassName,
   generics: Option[String],
   superClass: Option[ClassName],
@@ -128,26 +141,26 @@ case class RawClassfile(
   source: RawSource
 )
 
-case class RawSource(
+final case class RawSource(
   filename: Option[String],
   line: Option[Int]
 )
 
-case class RawType(
+final case class RawType(
     fqn: String,
     access: Access
 ) {
   def fqnString = ClassName.cleanupPackage(fqn)
 }
 
-case class RawField(
+final case class RawField(
   name: MemberName,
   clazz: ClassName,
   generics: Option[String],
   access: Access
 )
 
-case class RawMethod(
+final case class RawMethod(
   name: MemberName,
   access: Access,
   descriptor: Descriptor,

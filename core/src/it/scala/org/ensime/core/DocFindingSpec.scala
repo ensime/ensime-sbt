@@ -2,25 +2,13 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.core
 
-import java.io.File
-
-import akka.event.slf4j.SLF4JLogging
 import org.ensime.fixture._
-import org.ensime.indexer.EnsimeVFS
-import org.scalatest._
+import org.ensime.util.EnsimeSpec
 
-import scala.collection.immutable.Queue
-import scala.concurrent.Await
-import scala.reflect.internal.util.{ BatchSourceFile, OffsetPosition }
-import scala.tools.nsc.Settings
-import scala.tools.nsc.reporters.ConsoleReporter
-import scala.util.Properties
-
-class DocFindingSpec extends FlatSpec with Matchers
+class DocFindingSpec extends EnsimeSpec
     with IsolatedRichPresentationCompilerFixture
     with RichPresentationCompilerTestUtils
-    with ReallyRichPresentationCompilerFixture
-    with SLF4JLogging {
+    with ReallyRichPresentationCompilerFixture {
   import ReallyRichPresentationCompilerFixture._
 
   val original = EnsimeConfigFixture.DocsTestProject
@@ -93,8 +81,6 @@ class DocFindingSpec extends FlatSpec with Matchers
           case "13" => sig.java shouldBe DocSig(DocFqn("com.google.common.io", "Files"), Some("map(java.io.File, java.nio.channels.FileChannel.MapMode)"))
           case "14" => sig.java shouldBe DocSig(DocFqn("com.google.common.io", "Files"), Some("map(java.io.File, java.nio.channels.FileChannel.MapMode, long)"))
           case "15" => sig.java shouldBe DocSig(DocFqn("com.google.common.io", "Files"), Some("write(byte[], java.io.File)"))
-          // TODO(fix this hack) - just goes to the class itself if companion
-          // constructor is requested.
           case "16" => sig.java shouldBe DocSig(DocFqn("scala", "Some"), None)
           case "17" => sig.java shouldBe DocSig(DocFqn("java.lang", "String"), None)
           case "18" => sig.scala shouldBe DocSig(DocFqn("scala", "Int"), None)
@@ -106,10 +92,6 @@ class DocFindingSpec extends FlatSpec with Matchers
           case "25" => sig.java shouldBe DocSig(DocFqn("java.util", "Map.Entry"), None)
           case "26" => sig.java shouldBe DocSig(DocFqn("java.util", "package"), None)
           case "27" => sig.java shouldBe DocSig(DocFqn("scala.collection", "package"), None)
-          // TODO: Would be nice to be able to inspect a particular constructor. The problem is that
-          // symbolAt returns the type itself when point is in 'File', and it's not totally clear
-          // that's wrong.
-          //            case "28" => sig.java shouldBe DocSig("java.io.File", Some("File(java.lang.String, java.lang.String)")
           case "28" => sig.scala shouldBe DocSig(DocFqn("scala", "package"), Some("Exception=Exception"))
 
           // Check @usecase handling.

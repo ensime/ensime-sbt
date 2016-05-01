@@ -3,10 +3,10 @@
 package org.ensime.core
 
 import akka.actor._
-import akka.event.LoggingReceive.withLabel
 import org.ensime.api._
 import org.ensime.core.javac._
-import org.ensime.indexer.{ EnsimeVFS, SearchService }
+import org.ensime.vfs._
+import org.ensime.indexer.SearchService
 import org.ensime.util.ReportHandler
 import org.ensime.util.FileUtils
 
@@ -50,7 +50,6 @@ class JavaAnalyzer(
     // no way to stop the java compiler
   }
 
-  // TODO: create a sealed family of requests / responses just for Java usage
   override def receive = {
     case TypecheckFileReq(sfi) =>
       javaCompiler.askTypecheckFiles(sfi :: Nil)
@@ -67,14 +66,14 @@ class JavaAnalyzer(
       sender() ! javaCompiler.askDocSignatureAtPoint(file, range.from)
 
     case TypeAtPointReq(file, range) =>
-      sender() ! javaCompiler.askTypeAtPoint(file, range.from)
+      sender() ! javaCompiler.askTypeAtPoint(file, range.from).getOrElse(FalseResponse)
 
     case SymbolDesignationsReq(f, start, end, tpes) =>
       // NOT IMPLEMENTED YET
       sender ! SymbolDesignations(f.file, Nil)
 
     case SymbolAtPointReq(file, point) =>
-      sender() ! javaCompiler.askSymbolAtPoint(file, point)
+      sender() ! javaCompiler.askSymbolAtPoint(file, point).getOrElse(FalseResponse)
 
     case ImplicitInfoReq(file, range: OffsetRange) =>
       // Implicit type conversion information is not applicable for Java, so we

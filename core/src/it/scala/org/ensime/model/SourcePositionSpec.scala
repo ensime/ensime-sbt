@@ -5,39 +5,47 @@ package org.ensime.model
 import org.ensime.api._
 import org.ensime.fixture._
 import org.ensime.indexer.DatabaseService.FqnSymbol
-import org.ensime.indexer.EnsimeVFS
-import org.scalatest._
+import org.ensime.vfs._
+import org.ensime.util.EnsimeSpec
 import org.ensime.util.file._
 
-class SourcePositionSpec extends WordSpec with Matchers
-    with SharedEnsimeConfigFixture with SharedEnsimeVFSFixture {
+class SourcePositionSpec extends EnsimeSpec
+    with SharedEnsimeConfigFixture
+    with SharedEnsimeVFSFixture {
+
   val original = EnsimeConfigFixture.SimpleTestProject.copy(
     javaLibs = Nil
   )
 
-  "org.ensime.model.SourcePosition" should {
-    "resolve FqnSymbols for local files with no line number" in withEnsimeConfig { implicit config =>
+  "SourcePosition" should "resolve FqnSymbols for local files with no line number" in {
+    withEnsimeConfig { implicit config =>
       lookup(knownFile) match {
         case Some(LineSourcePosition(name, 0)) if name.isFile =>
         case o => fail(s"not resolved $o")
       }
     }
+  }
 
-    "resolve FqnSymbols for local with a line number" in withEnsimeConfig { implicit config =>
+  it should "resolve FqnSymbols for local with a line number" in {
+    withEnsimeConfig { implicit config =>
       lookup(knownFile, Some(100)) match {
         case Some(LineSourcePosition(name, 100)) if name.isFile =>
         case o => fail(s"not resolved $o")
       }
     }
+  }
 
-    "resolve FqnSymbols for archive entries with no line number" in withEnsimeConfig { implicit config =>
+  it should "resolve FqnSymbols for archive entries with no line number" in {
+    withEnsimeConfig { implicit config =>
       lookup(knownJarEntry) match {
         case Some(LineSourcePosition(name, 0)) if name.isFile =>
         case o => fail(s"not resolved $o")
       }
     }
+  }
 
-    "resolve FqnSymbols for archive entries with a line number" in withEnsimeConfig { implicit config =>
+  it should "resolve FqnSymbols for archive entries with a line number" in {
+    withEnsimeConfig { implicit config =>
       lookup(knownJarEntry, Some(100)) match {
         case Some(LineSourcePosition(name, 100)) if name.isFile =>
         case o => fail(s"not resolved $o")

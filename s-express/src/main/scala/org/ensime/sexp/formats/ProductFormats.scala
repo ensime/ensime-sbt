@@ -69,7 +69,11 @@ trait LowPriorityProductFormats {
 
     def write(x: T): Sexp =
       if (keys.isEmpty) SexpNil
-      else SexpData(keys zip r.value.write(g.to(x)))
+      else {
+        val pairs = keys zip r.value.write(g.to(x))
+        if (skipNilValues) SexpData(pairs.filterNot(_._2 == SexpNil))
+        else SexpData(pairs)
+      }
 
     def read(value: Sexp): T = value match {
       case SexpNil => g.from(r.value.read(Nil))
@@ -87,6 +91,8 @@ trait LowPriorityProductFormats {
 
   // capable of overloading for legacy formats
   def toWireName(field: String): String = field
+  // capable of overriding to skip nil values in writing out case classes fields
+  def skipNilValues: Boolean = false
 }
 
 trait ProductFormats extends LowPriorityProductFormats {

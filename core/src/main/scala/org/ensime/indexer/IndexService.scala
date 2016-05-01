@@ -39,9 +39,9 @@ object IndexService extends SLF4JLogging {
     def fqn: String
     def id = fqn
   }
-  case class ClassIndex(fqn: String, file: Option[FileCheck]) extends FqnIndex
-  case class MethodIndex(fqn: String, file: Option[FileCheck]) extends FqnIndex
-  case class FieldIndex(fqn: String, file: Option[FileCheck]) extends FqnIndex
+  final case class ClassIndex(fqn: String, file: Option[FileCheck]) extends FqnIndex
+  final case class MethodIndex(fqn: String, file: Option[FileCheck]) extends FqnIndex
+  final case class FieldIndex(fqn: String, file: Option[FileCheck]) extends FqnIndex
   abstract class AFqnIndexS[T <: FqnIndex](
       clazz: Class[T],
       cons: (String, Option[FileCheck]) => T
@@ -84,13 +84,17 @@ class IndexService(path: File) {
 
   private val lucene = new SimpleLucene(path, analyzers)
 
-  def persist(check: FileCheck, symbols: List[FqnSymbol], commit: Boolean): Unit = {
+  def persist(check: FileCheck, symbols: List[FqnSymbol], commit: Boolean, boost: Boolean): Unit = {
     val f = Some(check)
     val fqns: List[Document] = symbols.map {
       case FqnSymbol(_, _, _, fqn, Some(_), _, _, _, _) => MethodIndex(fqn, f).toDocument
       case FqnSymbol(_, _, _, fqn, _, Some(_), _, _, _) => FieldIndex(fqn, f).toDocument
       case FqnSymbol(_, _, _, fqn, _, _, _, _, _) => ClassIndex(fqn, f).toDocument
     }
+    if (boost) {
+      fqns foreach { _.boostText("fqn", 1.1f) }
+    }
+
     lucene.create(fqns, commit)
   }
 
@@ -115,14 +119,14 @@ class IndexService(path: File) {
       add(new BoostedPrefixQuery(new Term("fqn", query)), Occur.MUST)
       add(ClassIndexT, Occur.MUST)
     }
-    lucene.search(q, max).map(_.toEntity[ClassIndex])
+    lucene.search(q, max).map(_.toEntity[ClassIndex]).distinct
   }
 
   def searchClassesMethods(terms: List[String], max: Int): List[FqnIndex] = {
     val query = new DisjunctionMaxQuery(
       terms.map(buildTermClassMethodQuery), 0f
     )
-    lucene.search(query, max).map(_.toEntity[ClassIndex])
+    lucene.search(query, max).map(_.toEntity[ClassIndex]).distinct
   }
 
   def buildTermClassMethodQuery(query: String): BooleanQuery = {

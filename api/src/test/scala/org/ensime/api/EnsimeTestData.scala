@@ -59,8 +59,6 @@ trait EnsimeTestData {
   val file4 = canon("/foo/def")
   val file5 = canon("/foo/hij")
 
-  val refactorEffect = new RefactorEffect(9, RefactorType.AddImport, List(TextEdit(file3, 5, 7, "aaa")))
-  val refactorResult = new RefactorResult(7, RefactorType.AddImport, List(file3, file1))
   val refactorDiffEffect = new RefactorDiffEffect(9, RefactorType.AddImport, file2)
 
   val sourcePos1 = new LineSourcePosition(file1, 57)
@@ -93,8 +91,6 @@ trait EnsimeTestData {
   val symbolSearchResults = new SymbolSearchResults(List(methodSearchRes, typeSearchRes))
 
   val completionInfoCList = CompletionInfoList("fooBar", List(completionInfo))
-
-  val refactorRenameEffect = new RefactorEffect(7, RefactorType.Rename, List(TextEdit(file3, 5, 7, "aaa")))
 
   val fileRange = FileRange("/abc", 7, 9)
 
@@ -142,4 +138,8 @@ trait EnsimeTestData {
       )
     )
   ))
+
+  val astInfo = AstInfo(
+    "List(Apply(Select(Literal(Constant(1)), TermName(\"$plus\")), List(Literal(Constant(1)))))"
+  )
 }

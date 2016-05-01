@@ -4,11 +4,11 @@ package org.ensime.sexp.formats
 
 import BigIntConvertor._
 import org.scalacheck.{ Arbitrary, Gen }
-import org.scalatest._
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import scala.collection.immutable.BitSet
+import org.ensime.util.EnsimeSpec
 
-class BigIntConvertorSpec extends FunSpec {
+class BigIntConvertorSpec extends EnsimeSpec {
   private val examples = List(
     BitSet() -> BigInt(0),
     BitSet(0) -> BigInt(1),
@@ -18,20 +18,20 @@ class BigIntConvertorSpec extends FunSpec {
     BitSet(1, 64) -> BigInt("18446744073709551618")
   )
 
-  it("should convert basic BigSet to BitInt") {
+  "BigIntConvertor" should "convert basic BigSet to BitInt" in {
     examples foreach {
-      case (bitset, bigint) => assert(fromBitSet(bitset) === bigint)
+      case (bitset, bigint) => fromBitSet(bitset) should ===(bigint)
     }
   }
 
-  it("should convert basic BigInt to BitSet") {
+  it should "convert basic BigInt to BitSet" in {
     examples foreach {
-      case (bitset, bigint) => assert(toBitSet(bigint) === bitset)
+      case (bitset, bigint) => toBitSet(bigint) should ===(bitset)
     }
   }
 }
 
-class BigIntConvertorCheck extends FunSpec with GeneratorDrivenPropertyChecks {
+class BigIntConvertorCheck extends EnsimeSpec with GeneratorDrivenPropertyChecks {
 
   def positiveIntStream: Arbitrary[Stream[Int]] = Arbitrary {
     Gen.containerOf[Stream, Int](Gen.chooseNum(0, 2 * Short.MaxValue))
@@ -41,20 +41,20 @@ class BigIntConvertorCheck extends FunSpec with GeneratorDrivenPropertyChecks {
     for (seq <- positiveIntStream.arbitrary) yield BitSet(seq: _*)
   }
 
-  it("should round-trip BigInt <=> BitSet") {
+  "BigIntConvertor" should "round-trip BigInt <=> BitSet" in {
     forAll { (bigint: BigInt) =>
       whenever(bigint >= 0) {
         // the exact rules for which negative numbers are allowed
         // seems to be quite complex, but certainly it is sometimes
         // valid.
-        assert(fromBitSet(toBitSet(bigint)) === bigint)
+        fromBitSet(toBitSet(bigint)) should ===(bigint)
       }
     }
   }
 
-  it("should round-trip BitSet <=> BigInt") {
+  it should "round-trip BitSet <=> BigInt" in {
     forAll { (bitset: BitSet) =>
-      assert(toBitSet(fromBitSet(bitset)) === bitset)
+      toBitSet(fromBitSet(bitset)) should ===(bitset)
     }
   }
 }

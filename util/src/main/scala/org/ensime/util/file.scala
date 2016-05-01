@@ -2,7 +2,6 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.util
 
-import com.google.common.base.Charsets
 import java.io.{ File => JFile, _ }
 import com.google.common.io.Files
 

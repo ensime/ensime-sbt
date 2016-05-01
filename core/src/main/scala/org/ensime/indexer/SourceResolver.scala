@@ -5,9 +5,8 @@ package org.ensime.indexer
 import akka.event.slf4j.SLF4JLogging
 import org.apache.commons.vfs2._
 
-import collection.mutable
-
 import org.ensime.api._
+import org.ensime.vfs._
 
 import org.ensime.util.list._
 import org.ensime.util.map._
@@ -44,7 +43,7 @@ class SourceResolver(
     all = recalculate
   }
 
-  private def scan(f: FileObject) = f.findFiles(EnsimeVFS.SourceSelector) match {
+  private def scan(f: FileObject) = f.findFiles(SourceSelector) match {
     case null => Nil
     case res => res.toList
   }
@@ -61,7 +60,12 @@ class SourceResolver(
       // interestingly, this is able to handle zip files
       srcJar = vfs.vjar(srcJarFile)
       srcEntry <- scan(srcJar)
-    } yield (infer(srcJar, srcEntry), srcEntry)
+      inferred = infer(srcJar, srcEntry)
+      // continue to hold a reference to source jars
+      // so that we can access their contents elsewhere.
+      // this does mean we have a file handler, sorry.
+      //_ = vfs.nuke(srcJar)
+    } yield (inferred, srcEntry)
   }.toMultiMapSet
 
   private def userSources = {

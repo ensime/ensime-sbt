@@ -3,59 +3,43 @@
 package org.ensime.core.debug
 
 import akka.actor.ActorRef
+import akka.event.slf4j.SLF4JLogging
 import com.sun.jdi.request.{ EventRequest, EventRequestManager }
 import com.sun.jdi._
 import org.ensime.api._
-import org.slf4j.LoggerFactory
 import org.ensime.util.file._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.{ Iterable, mutable }
 
-class VM(val mode: VmMode, vmOptions: List[String], debugManager: ActorRef, broadcaster: ActorRef, sourceMap: SourceMap) {
-  val log = LoggerFactory.getLogger("DebugVM")
-
+class VM(
+    hostname: String,
+    port: Int,
+    debugManager: ActorRef,
+    broadcaster: ActorRef,
+    sourceMap: SourceMap
+) extends SLF4JLogging {
   import scala.collection.JavaConversions._
 
   private val vm: VirtualMachine = {
-    mode match {
-      case VmStart(commandLine) ⇒
-        val connector = Bootstrap.virtualMachineManager().defaultConnector()
-        val arguments = connector.defaultArguments()
+    log.info("Attach to running vm")
 
-        val opts = arguments.get("options").value
-        val allVMOpts = (List(opts) ++ vmOptions).mkString(" ")
-        arguments.get("options").setValue(allVMOpts)
-        arguments.get("main").setValue(commandLine)
-        // set the debugged process into suspend mode so we can catch it and add
-        // breakpoints (see vm start  event), otherwise we have a race condition.
-        arguments.get("suspend").setValue("true")
+    val vmm = Bootstrap.virtualMachineManager()
+    val connector = vmm.attachingConnectors().get(0)
 
-        log.info("Using Connector: " + connector.name + " : " + connector.description())
-        log.info("Connector class: " + connector.getClass.getName)
-        log.info("Debugger VM args: " + allVMOpts)
-        log.info("Debugger program args: " + commandLine)
-        connector.launch(arguments)
-      case VmAttach(hostname, port) ⇒
-        log.info("Attach to running vm")
+    val env = connector.defaultArguments()
+    env.get("port").setValue(port.toString)
+    env.get("hostname").setValue(hostname)
 
-        val vmm = Bootstrap.virtualMachineManager()
-        val connector = vmm.attachingConnectors().get(0)
-
-        val env = connector.defaultArguments()
-        env.get("port").setValue(port)
-        env.get("hostname").setValue(hostname)
-
-        log.info("Using Connector: " + connector.name + " : " + connector.description())
-        log.info("Debugger arguments: " + env)
-        log.info("Attach to VM")
-        val vm = connector.attach(env)
-        log.info("VM: " + vm.description + ", " + vm)
-        // if the remote VM has been started in suspended state, we need to nudge it
-        // if the remote VM has been started in running state, this call seems to be a no-op
-        vm.resume()
-        vm
-    }
+    log.info("Using Connector: " + connector.name + " : " + connector.description())
+    log.info("Debugger arguments: " + env)
+    log.info("Attach to VM")
+    val vm = connector.attach(env)
+    log.info("VM: " + vm.description + ", " + vm)
+    // if the remote VM has been started in suspended state, we need to nudge it
+    // if the remote VM has been started in running state, this call seems to be a no-op
+    vm.resume()
+    vm
   }
 
   //This flag is useful for debugging but not needed during general use
@@ -85,18 +69,10 @@ class VM(val mode: VmMode, vmOptions: List[String], debugManager: ActorRef, broa
 
   private val fileToUnits = mutable.HashMap[String, mutable.HashSet[ReferenceType]]()
   private val process = vm.process()
-  private val monitor = mode match {
-    case VmAttach(_, _) => Nil
-    case VmStart(_) => List(
-      new MonitorOutput(process.getErrorStream, broadcaster),
-      new MonitorOutput(process.getInputStream, broadcaster)
-    )
-  }
   private val savedObjects = new mutable.HashMap[DebugObjectId, ObjectReference]()
 
   def start(): Unit = {
     evtQ.start()
-    monitor.foreach { _.start() }
   }
 
   def exit(exitCode: Int): Unit = {
@@ -104,9 +80,8 @@ class VM(val mode: VmMode, vmOptions: List[String], debugManager: ActorRef, broa
   }
 
   def dispose() = try {
-    evtQ.finished = true
+    evtQ.stop()
     vm.dispose()
-    monitor.foreach { _.finished = true }
   } catch {
     case e: VMDisconnectedException =>
   }

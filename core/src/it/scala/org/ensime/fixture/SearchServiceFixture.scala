@@ -4,7 +4,8 @@ package org.ensime.fixture
 
 import akka.actor.ActorSystem
 import org.ensime.api._
-import org.ensime.indexer.{ EnsimeVFS, SearchService }
+import org.ensime.vfs._
+import org.ensime.indexer.SearchService
 import scala.concurrent._
 import scala.concurrent.duration._
 

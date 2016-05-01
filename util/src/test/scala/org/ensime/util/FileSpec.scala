@@ -8,7 +8,6 @@ import com.google.common.io.Files
 import java.io.{ File => JFile }
 
 import org.scalatest._
-import scala.util.Properties
 
 class FileSpec extends FlatSpec with Matchers {
   import file._

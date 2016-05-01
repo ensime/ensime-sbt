@@ -24,7 +24,7 @@ import scala.concurrent.duration._
 import scala.util.Properties._
 import scala.util._
 
-case class ShutdownRequest(reason: String, isError: Boolean = false)
+final case class ShutdownRequest(reason: String, isError: Boolean = false)
 
 class ServerActor(
     config: EnsimeConfig,
@@ -34,22 +34,28 @@ class ServerActor(
 
   override val supervisorStrategy = OneForOneStrategy() {
     case ex: Exception =>
+      log.error(s"Error with monitor actor ${ex.getMessage}", ex)
       self ! ShutdownRequest(s"Monitor actor failed with ${ex.getClass} - ${ex.toString}", isError = true)
       Stop
   }
 
   def initialiseChildren(): Unit = {
 
-    implicit val config = this.config
-    implicit val mat = ActorMaterializer()
-    implicit val timeout = Timeout(10 seconds)
+    implicit val config: EnsimeConfig = this.config
+    implicit val mat: ActorMaterializer = ActorMaterializer()
+    implicit val timeout: Timeout = Timeout(10 seconds)
 
     val broadcaster = context.actorOf(Broadcaster(), "broadcaster")
     val project = context.actorOf(Project(broadcaster), "project")
 
+    val preferredTcpPort = PortUtil.port(config.cacheDir, "port")
     val shutdownOnLastDisconnect = Environment.shutdownOnDisconnectFlag
-    context.actorOf(TCPServer(config.cacheDir, protocol, project,
-      broadcaster, shutdownOnLastDisconnect), "tcp-server")
+    context.actorOf(Props(
+      new TCPServer(
+        config.cacheDir, protocol, project,
+        broadcaster, shutdownOnLastDisconnect, preferredTcpPort
+      )
+    ), "tcp-server")
 
     // this is a bit ugly in a couple of ways
     // 1) web server creates handlers in the top domain
@@ -58,18 +64,24 @@ class ServerActor(
 
     // async start the HTTP Server
     val selfRef = self
-    Http()(context.system).bindAndHandle(webserver.route, interface, 0).onSuccess {
-      case ServerBinding(addr) =>
+    val preferredHttpPort = PortUtil.port(config.cacheDir, "http")
+    Http()(context.system).bindAndHandle(webserver.route, interface, preferredHttpPort.getOrElse(0)).onComplete {
+      case Failure(ex) =>
+        log.error(s"Error binding http endpoint ${ex.getMessage}", ex)
+        selfRef ! ShutdownRequest(s"http endpoint failed to bind ($preferredHttpPort)", isError = true)
+
+      case Success(ServerBinding(addr)) =>
         log.info(s"ENSIME HTTP on ${addr.getAddress}")
         try {
           PortUtil.writePort(config.cacheDir, addr.getPort, "http")
         } catch {
           case ex: Throwable =>
+            log.error(s"Error initializing http endpoint ${ex.getMessage}", ex)
             selfRef ! ShutdownRequest(s"http endpoint failed to initialise: ${ex.getMessage}", isError = true)
         }
     }(context.system.dispatcher)
 
-    log.info(Environment.info)
+    Environment.info foreach log.info
   }
 
   override def preStart(): Unit = {
@@ -77,6 +89,7 @@ class ServerActor(
       initialiseChildren()
     } catch {
       case t: Throwable =>
+        log.error(s"Error during startup - ${t.getMessage}", t)
         self ! ShutdownRequest(t.toString, isError = true)
     }
   }
@@ -105,7 +118,7 @@ object Server {
     if (!ensimeFile.exists() || !ensimeFile.isFile)
       throw new RuntimeException(s".ensime file ($ensimeFile) not found")
 
-    implicit val config = try {
+    implicit val config: EnsimeConfig = try {
       EnsimeConfigProtocol.parse(Files.toString(ensimeFile, Charsets.UTF_8))
     } catch {
       case e: Throwable =>
@@ -138,10 +151,12 @@ object Server {
         Try(system.awaitTermination())
 
         log.info("Shutdown complete")
-        if (request.isError)
-          System.exit(1)
-        else
-          System.exit(0)
+        if (!propIsSet("ensime.server.test")) {
+          if (request.isError)
+            System.exit(1)
+          else
+            System.exit(0)
+        }
       }
     })
     t.start()

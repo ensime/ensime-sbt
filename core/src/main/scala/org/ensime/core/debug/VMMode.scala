@@ -9,9 +9,9 @@ sealed abstract class VmMode {
   def shouldExit: Boolean
 }
 
-private case class VmAttach(hostname: String, port: String) extends VmMode {
+private final case class VmAttach(hostname: String, port: String) extends VmMode {
   override def shouldExit: Boolean = false
 }
-private case class VmStart(commandLine: String) extends VmMode {
+private final case class VmStart(commandLine: String) extends VmMode {
   override def shouldExit: Boolean = true
 }

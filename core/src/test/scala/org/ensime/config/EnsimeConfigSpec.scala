@@ -2,16 +2,14 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.config
 
-import org.scalatest.{ FunSpec, Matchers }
 import org.ensime.util.file._
-import org.ensime.util.EscapingStringInterpolation
+import org.ensime.util.{ EnsimeSpec, EscapingStringInterpolation }
 
 import org.ensime.api._
 
 import scala.util.Properties
-import scala.util.Try
 
-class EnsimeConfigSpec extends FunSpec with Matchers {
+class EnsimeConfigSpec extends EnsimeSpec {
 
   import EscapingStringInterpolation._
 
@@ -19,57 +17,50 @@ class EnsimeConfigSpec extends FunSpec with Matchers {
     testFn(EnsimeConfigProtocol.parse(contents))
   }
 
-  describe("ProjectConfigSpec") {
+  "EnsimeConfig" should "parse a simple config" in withTempDir { dir =>
+    val abc = dir / "abc"
+    val cache = dir / ".ensime_cache"
+    val javaHome = File(Properties.javaHome)
 
-    it("should parse a simple config") {
-      withTempDir { dir =>
-        val abc = dir / "abc"
-        val cache = dir / ".ensime_cache"
-        val javaHome = File(Properties.javaHome)
+    abc.mkdirs()
+    cache.mkdirs()
 
-        abc.mkdirs()
-        cache.mkdirs()
-
-        test(dir, s"""
+    test(dir, s"""
 (:name "project"
  :scala-version "2.10.4"
  :java-home "$javaHome"
  :root-dir "$dir"
  :cache-dir "$cache"
  :reference-source-roots ()
- :debug-args ("-Dthis=that")
  :subprojects ((:name "module1"
                 :scala-version "2.10.4"
                 :depends-on-modules ()
-                :target "$abc"
-                :test-target "$abc"
+                :targets ("$abc")
+                :test-targets ("$abc")
                 :source-roots ()
                 :reference-source-roots ()
                 :compiler-args ()
                 :runtime-deps ()
                 :test-deps ())))""", { implicit config =>
 
-          assert(config.name == "project")
-          assert(config.scalaVersion == "2.10.4")
-          val module1 = config.modules("module1")
-          assert(module1.name == "module1")
-          assert(module1.dependencies.isEmpty)
-          assert(!config.sourceMode)
-          assert(config.debugVMArgs === List("-Dthis=that"))
-        })
-      }
-    }
+      config.name shouldBe "project"
+      config.scalaVersion shouldBe "2.10.4"
+      val module1 = config.modules("module1")
+      module1.name shouldBe "module1"
+      module1.dependencies shouldBe empty
+      config.sourceMode shouldBe false
+    })
+  }
 
-    it("should parse a minimal config for a binary only project") {
-      withTempDir { dir =>
-        val abc = dir / "abc"
-        val cache = dir / ".ensime_cache"
-        val javaHome = File(Properties.javaHome)
+  it should "parse a minimal config for a binary only project" in withTempDir { dir =>
+    val abc = dir / "abc"
+    val cache = dir / ".ensime_cache"
+    val javaHome = File(Properties.javaHome)
 
-        abc.mkdirs()
-        cache.mkdirs()
+    abc.mkdirs()
+    cache.mkdirs()
 
-        test(dir, s"""
+    test(dir, s"""
 (:name "project"
  :scala-version "2.10.4"
  :java-home "$javaHome"
@@ -79,27 +70,26 @@ class EnsimeConfigSpec extends FunSpec with Matchers {
                 :scala-version "2.10.4"
                 :targets ("$abc"))))""", { implicit config =>
 
-          assert(config.name == "project")
-          assert(config.scalaVersion == "2.10.4")
-          val module1 = config.modules("module1")
-          assert(module1.name == "module1")
-          assert(module1.dependencies.isEmpty)
-          assert(module1.targetDirs.size === 1)
-        })
-      }
-    }
+      config.name shouldBe "project"
+      config.scalaVersion shouldBe "2.10.4"
+      val module1 = config.modules("module1")
+      module1.name shouldBe "module1"
+      module1.dependencies shouldBe empty
+      module1.targets should have size 1
+    })
+  }
 
-    it("should base class paths on source-mode value") {
-      List(true, false) foreach { (sourceMode: Boolean) =>
-        withTempDir { dir =>
-          val abc = dir / "abc"
-          val cache = dir / ".ensime_cache"
-          val javaHome = File(Properties.javaHome)
+  it should "base class paths on source-mode value" in {
+    List(true, false) foreach { (sourceMode: Boolean) =>
+      withTempDir { dir =>
+        val abc = dir / "abc"
+        val cache = dir / ".ensime_cache"
+        val javaHome = File(Properties.javaHome)
 
-          abc.mkdirs()
-          cache.mkdirs()
+        abc.mkdirs()
+        cache.mkdirs()
 
-          test(dir, s"""
+        test(dir, s"""
 (:name "project"
  :scala-version "2.10.4"
  :java-home "$javaHome"
@@ -109,14 +99,13 @@ class EnsimeConfigSpec extends FunSpec with Matchers {
  :subprojects ((:name "module1"
                 :scala-version "2.10.4"
                 :targets ("$abc"))))""", { implicit config =>
-            assert(config.sourceMode == sourceMode)
-            assert(config.runtimeClasspath == Set(abc), config)
-            assert(config.compileClasspath == (
-              if (sourceMode) Set.empty else Set(abc)
-            ))
-          })
-        }
+          config.sourceMode shouldBe sourceMode
+          config.compileClasspath shouldBe (
+            if (sourceMode) Set.empty else Set(abc)
+          )
+        })
       }
     }
   }
+
 }

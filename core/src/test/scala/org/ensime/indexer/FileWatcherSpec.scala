@@ -6,17 +6,18 @@ import akka.testkit._
 import com.google.common.io.Files
 import org.apache.commons.vfs2._
 import org.ensime.fixture._
+import org.ensime.vfs._
 import org.ensime.util._
 import org.ensime.util.file._
 import org.scalatest._
 import org.scalatest.tagobjects.Retryable
 
 sealed trait FileWatcherMessage
-case class Added(f: FileObject) extends FileWatcherMessage
-case class Removed(f: FileObject) extends FileWatcherMessage
-case class Changed(f: FileObject) extends FileWatcherMessage
-case class BaseAdded(f: FileObject) extends FileWatcherMessage
-case class BaseRemoved(f: FileObject) extends FileWatcherMessage
+final case class Added(f: FileObject) extends FileWatcherMessage
+final case class Removed(f: FileObject) extends FileWatcherMessage
+final case class Changed(f: FileObject) extends FileWatcherMessage
+final case class BaseAdded(f: FileObject) extends FileWatcherMessage
+final case class BaseRemoved(f: FileObject) extends FileWatcherMessage
 
 /**
  * These tests are insanely flakey so everything is retryable. The
@@ -361,7 +362,6 @@ abstract class FileWatcherSpec extends EnsimeSpec
 }
 
 class ApacheFileWatcherSpec extends FileWatcherSpec {
-  import EnsimeVFS._
   override def createClassWatcher(base: File)(implicit vfs: EnsimeVFS, tk: TestKit): Watcher =
     new ApachePollingFileWatcher(base, ClassfileSelector, true, listeners)
 

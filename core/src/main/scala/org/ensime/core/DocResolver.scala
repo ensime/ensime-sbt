@@ -3,12 +3,10 @@
 package org.ensime.core
 
 import akka.actor._
-import akka.event.slf4j.SLF4JLogging
 import com.google.common.io.ByteStreams
 import java.io.{ File, IOException }
 import java.util.jar.JarFile
 import org.ensime.api._
-import scala.collection.mutable
 
 class DocResolver(
     prefix: String,
@@ -18,7 +16,6 @@ class DocResolver(
     config: EnsimeConfig
 ) extends Actor with ActorLogging with DocUsecaseHandling {
 
-  var allDocJars: List[File] = _
   var htmlToJar = Map.empty[String, File]
   var jarNameToJar = Map.empty[String, File]
   var docTypes = Map.empty[String, DocType]
@@ -36,10 +33,8 @@ class DocResolver(
     // the package contents of each jar, and whether it's a javadoc or
     // scaladoc.
 
-    allDocJars = config.modules.values.flatMap(_.docJars).toList
-
     for (
-      jarFile <- allDocJars if jarFile.exists()
+      jarFile <- config.allDocJars if jarFile.exists()
     ) {
       try {
         val jar = new JarFile(jarFile)
@@ -103,23 +98,32 @@ class DocResolver(
     } else {
       val scalaSig = maybeReplaceWithUsecase(jar, sig.scala)
       val anchor = scalaSig.fqn.mkString +
-        scalaSig.member.map {
-          "@" + _
-        }.getOrElse("")
+        scalaSig.member.map("@" + _).getOrElse("")
       s"$prefix/$jarName/index.html#$anchor"
     }
   }
 
   private val PackRegexp = """^((?:[a-z0-9]+\.)+)""".r
 
-  private def guessJar(sig: DocSigPair): Option[File] = {
-    htmlToJar.get(scalaFqnToPath(sig.scala.fqn))
-      .orElse(htmlToJar.get(javaFqnToPath(sig.java.fqn)))
+  private def guessJar(sig: DocSigPair): Option[(File, DocSigPair)] = {
+    val scalafqn = scalaFqnToPath(sig.scala.fqn)
+    val javafqn = javaFqnToPath(sig.java.fqn)
+
+    val scala = htmlToJar.get(scalafqn).map((_, sig))
+    val scala2 = scala.orElse(
+      htmlToJar.get(scalafqn.replace("$.html", ".html")).map({ file =>
+        // Documentation for Object doesn't exists but documentation for Class does
+        val typeName = sig.scala.fqn.typeName.replaceFirst("\\$$", "")
+        val sigOfClass = sig.copy(scala = sig.scala.copy(fqn = sig.scala.fqn.copy(typeName = typeName)))
+        (file, sigOfClass)
+      })
+    )
+    scala2.orElse(htmlToJar.get(javafqn).map((_, sig)))
   }
 
   private def resolveLocalUri(sig: DocSigPair): Option[String] = {
     guessJar(sig) match {
-      case Some(jar) =>
+      case Some((jar, sig)) =>
         log.debug(s"Resolved to jar: $jar")
         Some(makeLocalUri(jar, sig))
       case _ =>
