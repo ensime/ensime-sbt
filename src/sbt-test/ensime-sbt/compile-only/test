@@ -1,3 +1,4 @@
+# basic behaviour
 > a/compile
 $ sleep 1000
 $ touch timestamp
@@ -5,3 +6,15 @@ $ sleep 1000
 > a/compileOnly a/src/main/scala/Foo.scala
 $ newer a/target/scala-2.10/classes/Foo.class timestamp
 $ newer timestamp a/target/scala-2.10/classes/Bar.class
+
+# failure modes
+-> compileOnly
+-> compileOnly a/src/test/scala/Foo.scala
+-> compileOnly b/src/main/scala/Foo.scala
+# aggregation
+-> compileOnly a/src/main/scala/Foo.scala
+-> test:compileOnly b/src/test/scala/FooTest.scala
+
+# works in the Test Configuration
+> b/test:compileOnly b/src/test/scala/FooTest.scala
+$ exists b/target/scala-2.10/test-classes/FooTest.class

@@ -32,10 +32,6 @@ object Sensible {
     ) ++ {
         if (scalaVersion.value.startsWith("2.11")) Seq("-Ywarn-unused-import")
         else Nil
-      } ++ {
-        // fatal warnings can get in the way during the DEV cycle
-        if (sys.env.contains("CI")) Seq("-Xfatal-warnings")
-        else Nil
       },
     javacOptions in (Compile, compile) ++= Seq(
       "-source", "1.6", "-target", "1.6", "-Xlint:all", "-Werror",
