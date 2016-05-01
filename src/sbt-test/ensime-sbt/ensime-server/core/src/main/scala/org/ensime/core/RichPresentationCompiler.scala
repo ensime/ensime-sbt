@@ -45,15 +45,14 @@ import org.ensime.api._
 import org.ensime.config._
 
 import akka.actor.ActorRef
-import org.ensime.indexer.{ EnsimeVFS, SearchService }
+import org.ensime.vfs._
+import org.ensime.indexer.SearchService
 import org.ensime.model._
-import org.ensime.util.FileUtils
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
 import scala.reflect.internal.util.{ BatchSourceFile, RangePosition, SourceFile }
 import scala.reflect.io.PlainFile
-import scala.reflect.io.VirtualFile
 
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interactive.{ CompilerControl, Global }
@@ -244,6 +243,9 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
   def askStructure(fileInfo: SourceFile): List[StructureViewMember] =
     askOption(structureView(fileInfo))
       .getOrElse(List.empty)
+
+  def askRaw(any: Any): String =
+    showRaw(any, printTypes = true, printIds = false, printKinds = true, printMirrors = true)
 
 }
 

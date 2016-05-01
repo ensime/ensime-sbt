@@ -1,6 +1,8 @@
-Protocol Version: 0.8.20 (Must match version at ConnectionInfo.protocolVersion)
+Protocol Version: 0.8.21 (Must match version at ConnectionInfo.protocolVersion)
 
 Protocol Change Log:
+  0.8.21
+    Added swank:ast-at-point
   0.8.20
     Removed CallCompletionInfoReq
     Removed TypeByIdReq

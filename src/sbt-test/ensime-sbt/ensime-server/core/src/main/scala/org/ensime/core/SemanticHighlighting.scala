@@ -9,11 +9,11 @@ import scala.collection.mutable.ListBuffer
 import scala.reflect.internal.util.RangePosition
 import scala.reflect.io.AbstractFile
 import scala.tools.nsc.symtab.Flags._
-import scala.tools.refactoring.common.{ CompilerAccess, PimpedTrees }
+import scala.tools.refactoring.common.{ CompilerAccess, EnrichedTrees }
 
 import org.ensime.api._
 
-class SemanticHighlighting(val global: RichPresentationCompiler) extends CompilerAccess with PimpedTrees {
+class SemanticHighlighting(val global: RichPresentationCompiler) extends CompilerAccess with EnrichedTrees {
 
   import global._
 
@@ -53,9 +53,15 @@ class SemanticHighlighting(val global: RichPresentationCompiler) extends Compile
         } else if (sym.hasFlag(PARAM)) {
           add(ParamSymbol)
         } else {
+
           if (sym.ownerChain.exists(_.isDeprecated)) {
             add(DeprecatedSymbol)
           }
+
+          if (sym.ownerChain.exists(_.annotations.exists(_.atp.toString().endsWith("deprecating")))) {
+            add(DeprecatedSymbol)
+          }
+
           if (sym.hasFlag(ACCESSOR)) {
             val under = sym.accessed
             // The compiler mis-reports lazy val fields
@@ -139,14 +145,6 @@ class SemanticHighlighting(val global: RichPresentationCompiler) extends Compile
             case TypeTree() =>
               if (!qualifySymbol(sym)) {
                 if (t.tpe != null) {
-                  // TODO:
-                  // This case occurs when
-                  // pattern matching on
-                  // case classes.
-                  // As in:
-                  // case MyClass(a:Int,b:Int)
-                  //
-                  // Works, but this is *way* under-constrained.
                   val start = treeP.startOrCursor
                   val end = treeP.endOrCursor
                   addAt(start, end, ObjectSymbol)
@@ -170,6 +168,7 @@ class SemanticHighlighting(val global: RichPresentationCompiler) extends Compile
     val typed = new Response[Tree]
     // AskLoadedTyped below doesn't wait, since this code should run in the pres. compiler thread.
     askLoadedTyped(p.source, keepLoaded = true, typed)
+
     typed.get.left.toOption match {
       case Some(tree) =>
         val traverser = new SymDesigsTraverser(p, requestedTypes.toSet)

@@ -1,50 +1,46 @@
 build:
-  image: ensime/ensime:latest
+  image: ensime/ensime:v1.x-cache
   pull: true
   environment:
     - SONATYPE_USERNAME=$$SONATYPE_USERNAME
     - SONATYPE_PASSWORD=$$SONATYPE_PASSWORD
-    - EMACS=/opt/emacs-24.4/bin/emacs
+    - EMACS=/opt/emacs-24.5/bin/emacs
     - AKKA_TEST_TIMEFACTOR=10
+    - SBT_TASK_LIMIT=6
+    - COURSIER_MODE=update-local-changing,missing
   commands:
+    - if $(git grep -qE "TODO|FIXME" -- `git ls-files | grep -v .drone.yml`) ; then
+        echo "Please remove TODO or FIXME. Create an issue at GitHub instead." ;
+        exit 1 ;
+      fi
+    - git log | head -n 20
+    - host `curl -s http://httpbin.org/ip | jq -r '.origin'` || true ;
     - sbt ++$SCALA_VERSION gen-ensime ;
-      mkdir .ensime_cache ;
       sbt ++$SCALA_VERSION clean test:compile it:compile doc ;
-      if [ $(git diff | wc -l) -ge 1 ] ; then
+      if $(! git diff --exit-code --quiet) ; then
         echo "Code formatting does not meet the project's standards:" ;
         git --no-pager diff ;
         exit 1 ;
       fi
     - sbt ++$SCALA_VERSION test it:test
-    - sbt ++$SCALA_VERSION publishLocal
-    - if [ "${SCALA_VERSION}" = "2.11.7" ] ; then
+    - if [ "${SCALA_VERSION}" = "2.11.8" ] ; then
+        sbt ++$SCALA_VERSION publishLocal ;
         git clone --depth 1 https://github.com/ensime/ensime-emacs.git ensime-emacs ;
         cd ensime-emacs ;
         cask pkg-file ;
         cask install ;
         cask build ;
         test/run_emacs_tests.sh ;
+        cd $CI_BUILD_DIR ;
       fi
     - if [ -z "$CI_PULL_REQUEST" ] ; then
-        cd $CI_BUILD_DIR ;
         sbt ++$SCALA_VERSION publish ;
         sbt ++$SCALA_VERSION ensime/assembly ;
-        ccdecrypt .id_rsa.cpt -E SONATYPE_PASSWORD ;
-        chmod 0600 .id_rsa ;
-        scp -o StrictHostKeyChecking=no -i .id_rsa target/scala-*/*-assembly.jar typelevel@docs.typelevel.org:ensime.typelevel.org/ ;
       fi
-
-# TODO https://github.com/ensime/ensime-server/issues/1091
-#    - if [ "${SCALA_VERSION}" = "2.11.7" ] ; then
-#        sbt ++$SCALA_VERSION clean ;
-#        sbt ++$SCALA_VERSION coverage test ;
-#        sbt ++$SCALA_VERSION coverage it:test ;
-#        sbt ++$SCALA_VERSION coverageAggregate ;
-#      fi
 
 matrix:
   SCALA_VERSION:
-    - 2.11.7
+    - 2.11.8
     - 2.10.6
 
 deploy:
@@ -53,4 +49,11 @@ deploy:
     repo: ensime/ensime
     when:
       matrix:
-        SCALA_VERSION: 2.11.7
+        SCALA_VERSION: 2.11.8
+  sftp:
+    host: docs.typelevel.org
+    username: typelevel
+    destination_path: ensime.typelevel.org/
+    files: 
+      - target/scala-2.10/*-assembly.jar
+      - target/scala-2.11/*-assembly.jar

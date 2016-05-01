@@ -1,4 +1,4 @@
 -XX:MaxPermSize=256m
 -Xss2m
--Xmx2g
-
+-Xms725m
+-Xmx725m

@@ -5,12 +5,11 @@ package org.ensime.indexer.lucene
 import java.io.StringReader
 import org.apache.lucene.analysis.core.KeywordTokenizer
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
-import org.scalatest.FunSpec
-import org.scalatest.Matchers
+import org.ensime.util.EnsimeSpec
 import DynamicSynonymFilter._
 import scala.collection.mutable
 
-class DynamicSynonymFilterSpec extends FunSpec with Matchers {
+class DynamicSynonymFilterSpec extends EnsimeSpec {
 
   val cleese = Set(
     "resting", "stunned", "deceased", "passed on",
@@ -41,15 +40,13 @@ class DynamicSynonymFilterSpec extends FunSpec with Matchers {
     words.toList.sorted
   }
 
-  describe("DynamicSynonymFilter") {
-    it("should not add synonyms where there are none") {
-      val term = "Norwegian Blue"
-      assert(applyEngineToTerm(term, engine) === List(term))
-    }
+  "DynamicSynonymFilter" should "not add synonyms where there are none" in {
+    val term = "Norwegian Blue"
+    applyEngineToTerm(term, engine) should ===(List(term))
+  }
 
-    it("should report known synonyms") {
-      val term = "dead"
-      assert(applyEngineToTerm(term, engine) === (cleese + term).toList.sorted)
-    }
+  it should "report known synonyms" in {
+    val term = "dead"
+    applyEngineToTerm(term, engine) should ===((cleese + term).toList.sorted)
   }
 }

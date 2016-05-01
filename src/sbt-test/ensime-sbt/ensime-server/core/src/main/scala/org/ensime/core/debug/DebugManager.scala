@@ -13,7 +13,7 @@ import org.ensime.api._
 
 import scala.collection.mutable
 
-case class DMClassPrepareEvent(prepareEvent: ClassPrepareEvent, eventSet: EventSet)
+final case class DMClassPrepareEvent(prepareEvent: ClassPrepareEvent, eventSet: EventSet)
 
 object DebugManager {
   def apply(
@@ -29,7 +29,6 @@ class DebugManager(
     config: EnsimeConfig
 ) extends Actor with ActorLogging {
 
-  // TODO this is built once on startup - probably makes sense for it to be done each time a debug vm is created
   private var sourceMap = new SourceMap(config)
 
   private var activeBreakpoints = Set[Breakpoint]()
@@ -104,11 +103,6 @@ class DebugManager(
     maybeVM = None
     broadcaster ! DebugVMDisconnectEvent
   }
-
-  def vmOptions(): List[String] = List(
-    "-classpath",
-    config.runtimeClasspath.mkString("\"", File.pathSeparator, "\"")
-  ) ++ config.debugVMArgs
 
   def withVM[T](action: (VM => T)): Option[T] = {
     maybeVM.synchronized {
@@ -237,24 +231,10 @@ class DebugManager(
     DebugVmError(1, message)
   }
 
-  def handleDebugStartReq(commandLine: String): RpcResponse = {
+  def handleDebugAttachReq(hostname: String, port: Int): RpcResponse = {
     disposeCurrentVM()
     try {
-      val vm = new VM(VmStart(commandLine), vmOptions(), self, broadcaster, sourceMap)
-      maybeVM = Some(vm)
-      vm.start()
-      DebugVmSuccess()
-    } catch {
-      case e: Exception =>
-        log.error(e, "Could not start VM")
-        handleStartupFailure(e)
-    }
-  }
-
-  def handleDebugAttachReq(hostname: String, port: String): RpcResponse = {
-    disposeCurrentVM()
-    try {
-      val vm = new VM(VmAttach(hostname, port), vmOptions(), self, broadcaster, sourceMap)
+      val vm = new VM(hostname, port, self, broadcaster, sourceMap)
       maybeVM = Some(vm)
       vm.start()
       DebugVmSuccess()
@@ -266,19 +246,14 @@ class DebugManager(
   }
 
   def fromUser: Receive = {
-    case DebugStartReq(commandLine: String) =>
-      sender ! handleDebugStartReq(commandLine)
     case DebugAttachReq(hostname, port) ⇒
-      sender ! handleDebugAttachReq(hostname, port)
+      sender ! handleDebugAttachReq(hostname, port.toInt)
     case DebugActiveVmReq =>
       sender ! handleRPCWithVM() { vm =>
         TrueResponse
       }
     case DebugStopReq =>
       sender ! handleRPCWithVM() { vm =>
-        if (vm.mode.shouldExit) {
-          vm.exit(0)
-        }
         vm.dispose()
         TrueResponse
       }

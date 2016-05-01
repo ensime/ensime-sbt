@@ -199,8 +199,6 @@ trait Helpers { self: Global =>
         Some(typeSym.outerClass)
       } else None
     } catch {
-      // TODO accessing outerClass sometimes throws java.lang.Error
-      // Notably, when tpe = scala.Predef$Class
       case e: java.lang.Error => None
     }
   }

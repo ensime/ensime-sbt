@@ -3,11 +3,11 @@
 package org.ensime.core
 
 import akka.actor._
-import akka.event.LoggingReceive
 import akka.event.LoggingReceive.withLabel
 import org.apache.commons.vfs2.FileObject
 import org.ensime.api._
 import org.ensime.core.debug.DebugManager
+import org.ensime.vfs._
 import org.ensime.indexer._
 
 import scala.collection.immutable.ListSet
@@ -34,13 +34,10 @@ class Project(
   private var javac: ActorRef = _
   private var debugger: ActorRef = _
 
-  // TODO consolidate search/indexer
   private var indexer: ActorRef = _
   private var docs: ActorRef = _
 
-  // TODO: use state transitions to manage this state
   // vfs, resolver, search and watchers are considered "reliable" (hah!)
-  // TODO: Actor-ise as many of these vals as possible
   private implicit val vfs: EnsimeVFS = EnsimeVFS()
   private val resolver = new SourceResolver(config)
   private val searchService = new SearchService(config, resolver)
@@ -52,7 +49,7 @@ class Project(
     def fileRemoved(f: FileObject): Unit = reTypeCheck()
     override def baseReCreated(f: FileObject): Unit = reTypeCheck()
   }
-  private val classfileWatcher = new ClassfileWatcher(config, searchService :: reTypecheck :: Nil)
+  private val classfileWatcher = context.actorOf(Props(new ClassfileWatcher(config, searchService :: reTypecheck :: Nil)), "classFileWatcher")
 
   def receive: Receive = awaitingConnectionInfoReq
 
@@ -105,7 +102,6 @@ class Project(
 
   override def postStop(): Unit = {
     // make sure the "reliable" dependencies are cleaned up
-    Try(classfileWatcher.shutdown())
     Try(sourceWatcher.shutdown())
     searchService.shutdown() // async
     Try(vfs.close())

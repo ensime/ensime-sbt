@@ -2,7 +2,6 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.indexer
 
-import java.io.File
 import java.sql.Timestamp
 
 import akka.event.slf4j.SLF4JLogging
@@ -11,6 +10,8 @@ import org.apache.commons.vfs2.FileObject
 import org.ensime.indexer.DatabaseService._
 
 import org.ensime.api._
+import org.ensime.vfs._
+import org.ensime.util.file._
 
 import scala.concurrent._
 import scala.concurrent.duration._
@@ -53,21 +54,14 @@ class DatabaseService(dir: File) extends SLF4JLogging {
     log.info("... created the search database")
   }
 
-  // TODO hierarchy
-  // TODO reverse lookup table
-
   // file with last modified time
   def knownFiles(): Future[Seq[FileCheck]] = db.run(fileChecks.result)
 
   def removeFiles(files: List[FileObject])(implicit ec: ExecutionContext): Future[Int] =
     db.run {
       val restrict = files.map(_.getName.getURI)
-
-      (
-        fqnSymbols.filter(_.file inSet restrict).delete
-        andThen
-        fileChecks.filter(_.filename inSet restrict).delete
-      )
+      // Deletion from fqnSymbols relies on fk cascade delete action
+      fileChecks.filter(_.filename inSetBind restrict).delete
     }
 
   private val timestampsQuery = Compiled {
@@ -111,7 +105,7 @@ class DatabaseService(dir: File) extends SLF4JLogging {
 }
 
 object DatabaseService {
-  case class FileCheck(id: Option[Int], filename: String, timestamp: Timestamp) {
+  final case class FileCheck(id: Option[Int], filename: String, timestamp: Timestamp) {
     def file(implicit vfs: EnsimeVFS) = vfs.vfile(filename)
     def lastModified = timestamp.getTime
     def changed(implicit vfs: EnsimeVFS) = file.getContent.getLastModifiedTime != lastModified
@@ -133,7 +127,7 @@ object DatabaseService {
   private val fileChecks = TableQuery[FileChecks]
   private val fileChecksCompiled = Compiled(TableQuery[FileChecks])
 
-  case class FqnSymbol(
+  final case class FqnSymbol(
       id: Option[Int],
       file: String, // the underlying file
       path: String, // the VFS handle (e.g. classes in jars)
@@ -168,6 +162,7 @@ object DatabaseService {
     def * = (id.?, file, path, fqn, descriptor, internal, source, line, offset) <> (FqnSymbol.tupled, FqnSymbol.unapply)
     def fqnIdx = index("idx_fqn", fqn, unique = false) // fqns are unique by type and sig
     def uniq = index("idx_uniq", (fqn, descriptor, internal), unique = true)
+    def filename = foreignKey("filename_fk", file, fileChecks)(_.filename, onDelete = ForeignKeyAction.Cascade)
   }
   private val fqnSymbols = TableQuery[FqnSymbols]
   private val fqnSymbolsCompiled = Compiled { TableQuery[FqnSymbols] }

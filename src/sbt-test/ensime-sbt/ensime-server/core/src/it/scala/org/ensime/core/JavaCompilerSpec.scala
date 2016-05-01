@@ -4,64 +4,63 @@ package org.ensime.core
 
 import java.io.File
 
-import akka.event.slf4j.SLF4JLogging
 import org.ensime.api.OffsetSourcePosition
 import org.ensime.api.LineSourcePosition
 import org.ensime.api.SourceFileInfo
-import org.ensime.core.javac.JavaCompiler
 import org.ensime.core.javac.JavaFqn
-import org.ensime.core.javac.Helpers
 import org.ensime.fixture._
-import org.ensime.indexer.EnsimeVFS
 import org.ensime.indexer.SearchServiceTestUtils
-import org.scalatest._
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
+import org.ensime.util.EnsimeSpec
 
-class JavaCompilerSpec extends FlatSpec with Matchers
+class JavaCompilerSpec extends EnsimeSpec
     with IsolatedJavaCompilerFixture
-    with SearchServiceTestUtils
-    with SLF4JLogging {
+    with SearchServiceTestUtils {
 
   val original = EnsimeConfigFixture.SimpleTestProject
 
-  "JavaCompiler" should "generate compilation notes" in withJavaCompiler { (_, config, cc, store, search) =>
-    runForPositionInCompiledSource(config, cc,
-      "import java.io.File;",
-      "class Test1 {",
-      "  ksjdfkdjsf @1@",
-      "}") { (sf, p, label, cc) =>
-      }
-    assert(!(store.notes.isEmpty))
-  }
-
-  it should "find type at point" in withJavaCompiler { (_, config, cc, store, search) =>
-    runForPositionInCompiledSource(config, cc,
-      "import java.io.File;",
-      "class Tes@0@t1 {",
-      "  private void main() {",
-      "    int fo@1@o = 1;",
-      "    System.out.println(fo@2@o);",
-      "  }",
-      "}") { (sf, offset, label, cc) =>
-        val info = cc.askTypeAtPoint(sf, offset).get
-        label match {
-          case "0" => info.name shouldBe "Test1"
-          case "1" => info.name shouldBe "int"
-          case "2" => info.name shouldBe "int"
+  "JavaCompiler" should "generate compilation notes" in {
+    withJavaCompiler { (_, config, cc, store, search) =>
+      runForPositionInCompiledSource(config, cc,
+        "import java.io.File;",
+        "class Test1 {",
+        "  ksjdfkdjsf @1@",
+        "}") { (sf, p, label, cc) =>
         }
-      }
+      store.notes should not be empty
+    }
   }
 
-  it should "link symbols to their source positions" in withJavaCompiler { (_, config, cc, store, _) =>
-    val test1 = SourceFileInfo(new File(config.rootDir, "testing/simple/src/main/java/org/example/Test1.java"))
-    val test2 = SourceFileInfo(new File(config.rootDir, "testing/simple/src/main/java/org/example/Test2.java"))
+  it should "find type at point" in {
+    withJavaCompiler { (_, config, cc, store, search) =>
+      runForPositionInCompiledSource(config, cc,
+        "import java.io.File;",
+        "class Tes@0@t1 {",
+        "  private void main() {",
+        "    int fo@1@o = 1;",
+        "    System.out.println(fo@2@o);",
+        "  }",
+        "}") { (sf, offset, label, cc) =>
+          val info = cc.askTypeAtPoint(sf, offset).get
+          label match {
+            case "0" => info.name shouldBe "Test1"
+            case "1" => info.name shouldBe "int"
+            case "2" => info.name shouldBe "int"
+          }
+        }
+    }
+  }
 
-    cc.askLinkPos(JavaFqn("org.example", "Test2", None), test2) should matchPattern { case Some(OffsetSourcePosition(f, 22)) => }
-    cc.askLinkPos(JavaFqn("org.example", "Foo", None), test2) should matchPattern { case None => }
-    cc.askLinkPos(JavaFqn("org.example", "Test2.Bar", None), test2) should matchPattern { case Some(OffsetSourcePosition(f, 260)) => }
-    //    cc.askLinkPos(JavaFqn("org.example", "Test2", Some("compute()")), test2) should matchPattern { case Some(OffsetSourcePosition(f, 58)) => }
+  it should "link symbols to their source positions" in {
+    withJavaCompiler { (_, config, cc, store, _) =>
+      val test1 = SourceFileInfo(new File(config.rootDir, "testing/simple/src/main/java/org/example/Test1.java"))
+      val test2 = SourceFileInfo(new File(config.rootDir, "testing/simple/src/main/java/org/example/Test2.java"))
 
+      cc.askLinkPos(JavaFqn("org.example", "Test2", None), test2) should matchPattern { case Some(OffsetSourcePosition(f, 22)) => }
+      cc.askLinkPos(JavaFqn("org.example", "Foo", None), test2) should matchPattern { case None => }
+      cc.askLinkPos(JavaFqn("org.example", "Test2.Bar", None), test2) should matchPattern { case Some(OffsetSourcePosition(f, 260)) => }
+      //    cc.askLinkPos(JavaFqn("org.example", "Test2", Some("compute()")), test2) should matchPattern { case Some(OffsetSourcePosition(f, 58)) => }
+
+    }
   }
 
   it should "find symbol at point" in withJavaCompiler { (_, config, cc, store, search) =>
@@ -135,10 +134,6 @@ class JavaCompilerSpec extends FlatSpec with Matchers
             info.localName shouldBe "compute"
             info.`type`.name shouldBe "()int"
             info.isCallable shouldBe true
-            // NOTE: we should find an OffsetSourcePosition here as the source enters
-            // the compiler's working set in case "5" above.
-            // TODO - However if the 'element' is not found, we'll fall through to indexer lookup.
-            // look into more exhaustive ways of finding the element.
             info.declPos should matchPattern {
               case Some(LineSourcePosition(f, 8)) if f.getName == "Test2.java" =>
               case Some(OffsetSourcePosition(f, 48)) if f.getName == "Test2.java" =>
@@ -177,66 +172,76 @@ class JavaCompilerSpec extends FlatSpec with Matchers
       }
   }
 
-  it should "find completions at point" in withJavaCompiler { (_, config, cc, store, search) =>
-    runForPositionInCompiledSource(config, cc,
-      "import java.io.File;",
-      "import java.lang.Str@5@;",
-      "import java.util.Map.E@6@;",
-      "import java.util.Map.E@7@blablabla;",
-      "class Test1 {",
-      "  public static final int MAX_VALUE = 10;",
-      "  public static class TestInner {",
-      "    public int maxValue = 10;",
-      "    private void main(String foo, String bar) {",
-      "      File f = new File(\".\");",
-      "      f.toSt@0@;",
-      "      System.out.println(f.toStr@1@);",
-      "      System.out.println((f).toStr@2@);",
-      "      System.out.println(f.toString().substr@3@);",
-      "      f.@4@;",
-      "      new Fi@8@",
-      "      System.out.println(fo@9@ + bar);",
-      "      System.out.println(maxV@10@);",
-      "      System.out.println(MAX_@11@);",
-      "      System.out.println(new Inte@12@);",
-      "      int testinner = 5;",
-      "      System.out.println(f.toStr@1@);",
-      "      System.out.@14@",
-      "    }",
-      "  }",
-      "}") { (sf, offset, label, cc) =>
-        val info = cc.askCompletionsAtPoint(sf, offset, 0, false)
-        label match {
-          case "0" => assert(info.completions.exists(_.name == "toString"))
-          case "1" => assert(info.completions.exists(_.name == "toString"))
-          case "2" => assert(info.completions.exists(_.name == "toString"))
-          case "3" => assert(info.completions.exists(_.name == "substring"))
-          case "4" => assert(info.completions.exists(_.name == "createTempFile") &&
-            info.completions.exists(_.name == "wait"))
-          case "5" => assert(info.completions.exists(_.name == "String"))
-          case "6" => assert(info.completions.exists(_.name == "Entry"))
-          case "7" => assert(info.completions.exists(_.name == "Entry"))
-          case "8" => assert(info.completions.exists(_.name == "File"))
-          case "9" => assert(info.completions.exists(_.name == "foo"))
-          case "10" => assert(info.completions.exists(_.name == "maxValue"))
-          case "11" => assert(info.completions.exists(_.name == "MAX_VALUE"))
-          case "12" => assert(info.completions.exists(_.name == "Integer"))
+  it should "find completions at point" in {
+    withJavaCompiler { (_, config, cc, store, search) =>
+      runForPositionInCompiledSource(config, cc,
+        "import java.io.File;",
+        "import java.lang.Str@5@;",
+        "import java.util.Map.E@6@;",
+        "import java.util.Map.E@7@blablabla;",
+        "class Test1 {",
+        "  public static final int MAX_VALUE = 10;",
+        "  public static class TestInner {",
+        "    public int maxValue = 10;",
+        "    private int privateValue = 10;",
+        "    private void main(String foo, String bar) {",
+        "      File f = new File(\".\");",
+        "      f.toSt@0@;",
+        "      System.out.println(f.toStr@1@);",
+        "      System.out.println((f).toStr@2@);",
+        "      System.out.println(f.toString().substr@3@);",
+        "      f.@4@;",
+        "      new Fi@8@",
+        "      System.out.println(fo@9@ + bar);",
+        "      System.out.println(maxV@10@);",
+        "      System.out.println(MAX_@11@);",
+        "      System.out.println(new Inte@12@);",
+        "      int testinner = 5;",
+        "      System.out.println(f.toStr@1@);",
+        "      System.out.@14@",
+        "      privateVa@15@",
+        "      int hashCode = \"Blah\".has@16@;",
+        "    }",
+        "  }",
+        "}") { (sf, offset, label, cc) =>
+          val info = cc.askCompletionsAtPoint(sf, offset, 0, false)
+          label match {
+            case "0" => forAtLeast(1, info.completions)(_.name shouldBe "toString")
+            case "1" => forAtLeast(1, info.completions)(_.name shouldBe "toString")
+            case "2" => forAtLeast(1, info.completions)(_.name shouldBe "toString")
+            case "3" => forAtLeast(1, info.completions)(_.name shouldBe "substring")
+            case "4" =>
+              forAtLeast(1, info.completions)(_.name shouldBe "createTempFile")
+              forAtLeast(1, info.completions)(_.name shouldBe "wait")
+            case "5" => forAtLeast(1, info.completions)(_.name shouldBe "String")
+            case "6" => forAtLeast(1, info.completions)(_.name shouldBe "Entry")
+            case "7" => forAtLeast(1, info.completions)(_.name shouldBe "Entry")
+            case "8" => forAtLeast(1, info.completions)(_.name shouldBe "File")
+            case "9" => forAtLeast(1, info.completions)(_.name shouldBe "foo")
+            case "10" => forAtLeast(1, info.completions)(_.name shouldBe "maxValue")
+            case "11" => forAtLeast(1, info.completions)(_.name shouldBe "MAX_VALUE")
+            case "12" => forAtLeast(1, info.completions)(_.name shouldBe "Integer")
 
-          case "13" =>
-            // exact matches should be preferred
-            assert(info.completions(0).name == "TestInner")
-            assert(info.completions(1).name == "testinner")
+            case "13" =>
+              // exact matches should be preferred
+              info.completions(0).name shouldBe "TestInner"
+              info.completions(1).name shouldBe "testinner"
 
-          case "14" => assert(info.completions.exists(_.name == "println"))
+            case "14" => forAtLeast(1, info.completions)(_.name shouldBe "println")
+            case "15" => forAtLeast(1, info.completions)(_.name shouldBe "privateValue")
+            case "16" => forAll(info.completions)(_.name shouldNot be("hash"))
+          }
         }
-      }
+    }
   }
 
-  it should "find completion at beginning of file" in withJavaCompiler { (_, config, cc, store, search) =>
-    runForPositionInCompiledSource(config, cc, "Sys@0@") { (sf, offset, label, cc) =>
-      val info = cc.askCompletionsAtPoint(sf, offset, 0, false)
-      label match {
-        case "0" => assert(info.completions.exists(_.name == "System"))
+  it should "find completion at beginning of file" in {
+    withJavaCompiler { (_, config, cc, store, search) =>
+      runForPositionInCompiledSource(config, cc, "Sys@0@") { (sf, offset, label, cc) =>
+        val info = cc.askCompletionsAtPoint(sf, offset, 0, false)
+        label match {
+          case "0" => forAtLeast(1, info.completions)(_.name shouldBe "System")
+        }
       }
     }
   }

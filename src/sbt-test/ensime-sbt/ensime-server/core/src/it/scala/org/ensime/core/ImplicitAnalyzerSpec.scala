@@ -2,13 +2,12 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.core
 
-import org.ensime.fixture._
 import org.ensime.api._
-import org.scalatest._
-
+import org.ensime.fixture._
+import org.ensime.util.EnsimeSpec
 import scala.reflect.internal.util.{ OffsetPosition, RangePosition }
 
-class ImplicitAnalyzerSpec extends WordSpec with Matchers
+class ImplicitAnalyzerSpec extends EnsimeSpec
     with IsolatedRichPresentationCompilerFixture
     with RichPresentationCompilerTestUtils
     with ReallyRichPresentationCompilerFixture {
@@ -36,8 +35,8 @@ class ImplicitAnalyzerSpec extends WordSpec with Matchers
     }
   }
 
-  "ImplicitAnalyzer" should {
-    "render implicit conversions" in withPresCompiler { (config, cc) =>
+  "ImplicitAnalyzer" should "render implicit conversions" in {
+    withPresCompiler { (config, cc) =>
       val dets = getImplicitDetails(
         cc,
         """
@@ -49,12 +48,14 @@ class ImplicitAnalyzerSpec extends WordSpec with Matchers
             }
         """
       )
-      assert(dets === List(
+      dets should ===(List(
         ("conversion", "\"sample\"", "StringToTest")
       ))
     }
+  }
 
-    "render implicit parameters passed to implicit conversion functions" in withPresCompiler { (config, cc) =>
+  it should "render implicit parameters passed to implicit conversion functions" in {
+    withPresCompiler { (config, cc) =>
       val dets = getImplicitDetails(
         cc,
         """
@@ -68,13 +69,15 @@ class ImplicitAnalyzerSpec extends WordSpec with Matchers
             }
         """
       )
-      assert(dets === List(
+      dets should ===(List(
         ("param", "\"sample\"", "StringToTest", List("myThing"), true),
         ("conversion", "\"sample\"", "StringToTest")
       ))
     }
+  }
 
-    "render implicit parameters" in withPresCompiler { (config, cc) =>
+  it should "render implicit parameters" in {
+    withPresCompiler { (config, cc) =>
       val dets = getImplicitDetails(
         cc,
         """
@@ -91,13 +94,15 @@ class ImplicitAnalyzerSpec extends WordSpec with Matchers
             }
         """
       )
-      assert(dets === List(
+      dets should ===(List(
         ("param", "zz(1)(\"abc\")", "zz", List("myThing", "myThong"), false),
         ("param", "yy", "yy", List("myThing"), false)
       ))
     }
+  }
 
-    "work with offset positions" in withPresCompiler { (config, cc) =>
+  it should "work with offset positions" in {
+    withPresCompiler { (config, cc) =>
 
       val content = """
             package com.example
@@ -114,11 +119,11 @@ class ImplicitAnalyzerSpec extends WordSpec with Matchers
 
       val pos = new OffsetPosition(file, implicitPos)
       val dets = new ImplicitAnalyzer(cc).implicitDetails(pos)
-      assert(dets.length === 1)
+      dets should have length 1
 
       val pos1 = new OffsetPosition(file, implicitPos + 1)
       val dets1 = new ImplicitAnalyzer(cc).implicitDetails(pos1)
-      assert(dets1.length === 0)
+      dets1 shouldBe empty
     }
   }
 }

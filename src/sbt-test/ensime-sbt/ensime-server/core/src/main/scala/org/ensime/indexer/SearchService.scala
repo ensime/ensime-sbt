@@ -2,17 +2,17 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.indexer
 
-import java.sql.SQLException
-
 import akka.actor._
+import akka.dispatch.MessageDispatcher
 import akka.event.slf4j.SLF4JLogging
 import org.apache.commons.vfs2._
 import org.ensime.api._
+import org.ensime.vfs._
 import org.ensime.indexer.DatabaseService._
 import org.ensime.util.file._
+
 import scala.util.Failure
 import scala.util.Success
-
 import scala.concurrent._
 import scala.concurrent.duration._
 
@@ -35,10 +35,16 @@ class SearchService(
     with FileChangeListener
     with SLF4JLogging {
 
+  private[indexer] def isUserFile(file: FileName): Boolean = {
+    (config.allTargets map (vfs.vfile)) exists (file isAncestor _.getName)
+  }
+
   private val QUERY_TIMEOUT = 30 seconds
 
   /**
    * Changelog:
+   *
+   * 1.2 - added foreign key to FqnSymbols.file with cascade delete
    *
    * 1.0 - reverted index due to negative impact to startup time. The
    *       workaround to large scale deletions is to just nuke the
@@ -48,14 +54,14 @@ class SearchService(
    *
    * 1.0 - initial schema
    */
-  private val version = "1.0"
+  private val version = "1.2"
 
   private val index = new IndexService(config.cacheDir / ("index-" + version))
   private val db = new DatabaseService(config.cacheDir / ("sql-" + version))
 
-  implicit val workerEC = actorSystem.dispatchers.lookup("akka.search-service-dispatcher")
+  implicit val workerEC: MessageDispatcher = actorSystem.dispatchers.lookup("akka.search-service-dispatcher")
 
-  private def scan(f: FileObject) = f.findFiles(EnsimeVFS.ClassfileSelector) match {
+  private def scan(f: FileObject) = f.findFiles(ClassfileSelector) match {
     case null => Nil
     case res => res.toList
   }
@@ -92,11 +98,11 @@ class SearchService(
       log.info("findBases")
       config.modules.flatMap {
         case (name, m) =>
-          m.targetDirs.flatMap {
+          m.targets.flatMap {
             case d if !d.exists() => Nil
             case d if d.isJar => List(vfs.vfile(d))
             case d => scan(vfs.vfile(d))
-          } ::: m.testTargetDirs.flatMap {
+          } ::: m.testTargets.flatMap {
             case d if !d.exists() => Nil
             case d if d.isJar => List(vfs.vfile(d))
             case d => scan(vfs.vfile(d))
@@ -109,8 +115,9 @@ class SearchService(
       val outOfDate = fileCheck.map(_.changed).getOrElse(true)
       if (!outOfDate) Future.successful(None)
       else {
+        val boost = isUserFile(base.getName())
         val check = FileCheck(base)
-        extractSymbolsFromClassOrJar(base).flatMap(persist(check, _, commitIndex = false))
+        extractSymbolsFromClassOrJar(base).flatMap(persist(check, _, commitIndex = false, boost = boost))
       }
     }
 
@@ -145,8 +152,8 @@ class SearchService(
 
   def refreshResolver(): Unit = resolver.update()
 
-  def persist(check: FileCheck, symbols: List[FqnSymbol], commitIndex: Boolean): Future[Option[Int]] = {
-    val iwork = Future { blocking { index.persist(check, symbols, commitIndex) } }
+  def persist(check: FileCheck, symbols: List[FqnSymbol], commitIndex: Boolean, boost: Boolean): Future[Option[Int]] = {
+    val iwork = Future { blocking { index.persist(check, symbols, commitIndex, boost) } }
     val dwork = db.persist(check, symbols)
     iwork.flatMap { _ => dwork }
   }
@@ -168,13 +175,13 @@ class SearchService(
         blocking {
           val vJar = vfs.vjar(jar)
           try scan(vJar) flatMap (extractSymbols(jar, _))
-          finally vJar.close()
+          finally vfs.nuke(vJar)
         }
       }
   }
 
   private val blacklist = Set("sun/", "sunw/", "com/sun/")
-  private val ignore = Set("$$anon$", "$$anonfun$", "$worker$")
+  private val ignore = Set("$$", "$worker$")
   import org.ensime.util.RichFileObject._
   private def extractSymbols(container: FileObject, f: FileObject): List[FqnSymbol] = {
     f.pathWithinArchive match {
@@ -189,7 +196,6 @@ class SearchService(
         val source = resolver.resolve(clazz.name.pack, clazz.source)
         val sourceUri = source.map(_.getName.getURI)
 
-        // TODO: other types of visibility when we get more sophisticated
         if (clazz.access != Public) Nil
         else FqnSymbol(None, name, path, clazz.name.fqnString, None, None, sourceUri, clazz.source.line) ::
           clazz.methods.toList.filter(_.access == Public).map { method =>
@@ -205,7 +211,6 @@ class SearchService(
     }
   }.filterNot(sym => ignore.exists(sym.fqn.contains))
 
-  // TODO: provide context (user's current module and main/test)
   /** free-form search for classes */
   def searchClasses(query: String, max: Int): List[FqnSymbol] = {
     val fqns = index.searchClasses(query, max)
@@ -259,7 +264,7 @@ class SearchService(
   }
 }
 
-case class IndexFile(f: FileObject)
+final case class IndexFile(f: FileObject)
 
 class IndexingQueueActor(searchService: SearchService) extends Actor with ActorLogging {
   import context.system
@@ -312,7 +317,8 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
             case Success(_) => indexed.collect {
               case (file, syms) if syms.isEmpty =>
               case (file, syms) =>
-                searchService.persist(FileCheck(file), syms, commitIndex = true).onComplete {
+                val boost = searchService.isUserFile((file.getName))
+                searchService.persist(FileCheck(file), syms, commitIndex = true, boost = boost).onComplete {
                   case Failure(t) => log.error(s"failed to persist entries in $file", t)
                   case Success(_) =>
                 }

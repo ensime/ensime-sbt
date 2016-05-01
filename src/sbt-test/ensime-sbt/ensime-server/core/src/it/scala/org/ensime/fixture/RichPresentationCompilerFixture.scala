@@ -7,6 +7,7 @@ import java.io.File
 import akka.actor.ActorSystem
 import akka.testkit.TestProbe
 import org.ensime.api._
+import org.ensime.vfs._
 import org.ensime.core._
 import org.ensime.indexer._
 import org.slf4j.LoggerFactory

@@ -25,3 +25,7 @@ object Foo extends App {
 case class CaseClassWithCamelCaseName()
 case class Bloo()
 case object Blue
+
+class Qux {
+  List(1, 2, 3).head + 2
+}

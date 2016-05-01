@@ -9,65 +9,66 @@ import org.ensime.sexp._
 class SexpFormatUtilsSpec extends FormatSpec with SexpFormats {
   import SexpFormatUtils._
 
-  describe("SexpFormatUtils") {
-    it("should lift writers") {
-      val lifted = lift(new SexpWriter[SexpString] {
-        def write(o: SexpString) = o
-      })
-      assert(foo.toSexp(lifted) === foo)
-      intercept[UnsupportedOperationException] {
-        foo.convertTo[SexpString](lifted)
-      }
+  val foo = SexpString("foo")
+  val bar = SexpSymbol("bar")
+
+  "SexpFormatUtils" should "lift writers" in {
+    val lifted = lift(new SexpWriter[SexpString] {
+      def write(o: SexpString) = o
+    })
+    foo.toSexp(lifted) should ===(foo)
+    intercept[UnsupportedOperationException] {
+      foo.convertTo[SexpString](lifted)
+    }
+  }
+
+  it should "lift readers" in {
+    val lifted = lift(new SexpReader[SexpString] {
+      def read(o: Sexp) = o.asInstanceOf[SexpString]
+    })
+    foo.convertTo[SexpString](lifted) should ===(foo)
+    intercept[UnsupportedOperationException] {
+      foo.toSexp(lifted)
+    }
+  }
+
+  it should "combine readers and writers" in {
+    val reader = new SexpReader[SexpString] {
+      def read(o: Sexp) = o.asInstanceOf[SexpString]
+    }
+    val writer = new SexpWriter[SexpString] {
+      def write(o: SexpString) = o
+    }
+    val combo = sexpFormat(reader, writer)
+
+    foo.convertTo[SexpString](combo) should ===(foo)
+    foo.toSexp(combo) should ===(foo)
+  }
+
+  it should "support lazy formats" in {
+    var init = false
+    val lazyF = lazyFormat {
+      init = true
+      SexpStringFormat
     }
 
-    it("should lift readers") {
-      val lifted = lift(new SexpReader[SexpString] {
-        def read(o: Sexp) = o.asInstanceOf[SexpString]
-      })
-      assert(foo.convertTo[SexpString](lifted) === foo)
-      intercept[UnsupportedOperationException] {
-        foo.toSexp(lifted)
-      }
-    }
+    assert(!init)
+    SexpString("foo").convertTo[SexpString](lazyF) should ===(SexpString("foo"))
+    assert(init)
+    SexpString("foo").toSexp(lazyF) should ===(SexpString("foo"))
+  }
 
-    it("should combine readers and writers") {
-      val reader = new SexpReader[SexpString] {
-        def read(o: Sexp) = o.asInstanceOf[SexpString]
-      }
-      val writer = new SexpWriter[SexpString] {
-        def write(o: SexpString) = o
-      }
-      val combo = sexpFormat(reader, writer)
-
-      assert(foo.convertTo[SexpString](combo) === foo)
-      assert(foo.toSexp(combo) === foo)
-    }
-
-    it("should support lazy formats") {
-      var init = false
-      val lazyF = lazyFormat {
-        init = true
-        SexpStringFormat
-      }
-
-      assert(!init)
-      assert(SexpString("foo").convertTo[SexpString](lazyF) === SexpString("foo"))
-      assert(init)
-      assert(SexpString("foo").toSexp(lazyF) === SexpString("foo"))
-    }
-
-    it("should support safe readers") {
-      val safe = safeReader(
-        new SexpReader[SexpString] {
-          def read(value: Sexp) = value match {
-            case s: SexpString => s
-            case x => deserializationError(x)
-          }
+  it should "support safe readers" in {
+    val safe = safeReader(
+      new SexpReader[SexpString] {
+        def read(value: Sexp) = value match {
+          case s: SexpString => s
+          case x => deserializationError(x)
         }
-      )
+      }
+    )
 
-      assert(foo.convertTo[Try[SexpString]](safe) === Success(foo))
-      assert(bar.convertTo[Try[SexpString]](safe).isInstanceOf[Failure[_]])
-    }
+    foo.convertTo[Try[SexpString]](safe) should ===(Success(foo))
+    bar.convertTo[Try[SexpString]](safe) shouldBe a[Failure[_]]
   }
 }

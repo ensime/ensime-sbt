@@ -3,9 +3,9 @@
 package org.ensime.core
 
 import org.ensime.fixture._
-import org.scalatest._
+import org.ensime.util.EnsimeSpec
 
-class DocJarReadingSpec extends FlatSpec with Matchers with SharedEnsimeConfigFixture {
+class DocJarReadingSpec extends EnsimeSpec with SharedEnsimeConfigFixture {
 
   val original = EnsimeConfigFixture.DocsTestProject
 

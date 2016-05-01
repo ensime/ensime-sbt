@@ -8,9 +8,6 @@ import java.nio.charset.Charset
 
 import org.apache.commons.vfs2.FileObject
 
-import scala.collection.mutable
-import scala.reflect.internal.util.{ BatchSourceFile, SourceFile }
-
 import org.ensime.api._
 import org.ensime.util.file._
 
@@ -45,20 +42,20 @@ object FileUtils {
   }
 
   // prefer file.readString()
-  def readFile(f: File, cs: Charset): Either[IOException, String] =
+  def readFile(f: File)(implicit cs: Charset): Either[IOException, String] =
     try Right(f.readString()(cs))
     catch {
       case e: IOException => Left(e)
     }
 
-  def writeChanges(changes: List[FileEdit], cs: Charset): Either[Exception, List[File]] = {
+  def writeChanges(changes: List[FileEdit])(implicit cs: Charset): Either[Exception, List[File]] = {
     val editsByFile = changes.collect { case ed: TextEdit => ed }.groupBy(_.file)
     val newFiles = changes.collect { case ed: NewFile => ed }
     try {
       val rewriteList = newFiles.map { ed => (ed.file, ed.text) } ++
         editsByFile.map {
           case (file, fileChanges) =>
-            readFile(file, cs) match {
+            readFile(file)(cs) match {
               case Right(contents) =>
                 val newContents = FileEditHelper.applyEdits(fileChanges.toList, contents)
                 (file, newContents)
@@ -84,14 +81,13 @@ object FileUtils {
     }
   }
 
-  def writeDiffChanges(changes: List[FileEdit], cs: Charset): Either[Exception, File] = {
-    //TODO: add support for NewFile and DeleteFile
+  def writeDiffChanges(changes: List[FileEdit])(implicit cs: Charset): Either[Exception, File] = {
     val editsByFile = changes.collect { case ed: TextEdit => ed }.groupBy(_.file)
     try {
       val diffContents =
         editsByFile.map {
           case (file, fileChanges) =>
-            readFile(file, cs) match {
+            readFile(file)(cs) match {
               case Right(contents) =>
                 FileEditHelper.diffFromTextEdits(fileChanges, contents, file, file)
               case Left(e) => throw e
@@ -100,7 +96,7 @@ object FileUtils {
 
       Right({
         val diffFile = java.io.File.createTempFile("ensime-diff-", ".tmp").canon
-        diffFile.writeString(diffContents)
+        diffFile.writeString(diffContents)(cs)
         diffFile
       })
     } catch {

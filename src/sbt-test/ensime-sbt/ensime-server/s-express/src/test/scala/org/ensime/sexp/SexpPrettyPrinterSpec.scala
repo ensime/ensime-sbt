@@ -2,9 +2,9 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.sexp
 
-import org.scalatest.FunSpec
+import org.ensime.util.EnsimeSpec
 
-class SexpPrettyPrinterSpec extends FunSpec {
+class SexpPrettyPrinterSpec extends EnsimeSpec {
 
   private val foo = SexpString("foo")
   private val foosym = SexpSymbol("foo")
@@ -14,46 +14,45 @@ class SexpPrettyPrinterSpec extends FunSpec {
   private def assertPrinter(sexp: Sexp, expect: String): Unit = {
     //    println("GOT\n" + SexpPrettyPrinter(sexp))
     //    println("EXPECT\n" + expect)
-    assert(SexpPrettyPrinter(sexp) === expect.replace("\r", ""))
+    SexpPrettyPrinter(sexp) should ===(expect.replace("\r", ""))
   }
 
-  describe("CompactPrinter") {
-    it("should handle nil or empty lists/data") {
-      assertPrinter(SexpNil, "nil")
-      assertPrinter(SexpList(Nil), "nil")
-    }
+  "CompactPrinter" should "handle nil or empty lists/data" in {
+    assertPrinter(SexpNil, "nil")
+    assertPrinter(SexpList(Nil), "nil")
+  }
 
-    it("should output lists of atoms") {
-      assertPrinter(
-        SexpList(foo, SexpNumber(13), foosym),
-        """("foo"
+  it should "output lists of atoms" in {
+    assertPrinter(
+      SexpList(foo, SexpNumber(13), foosym),
+      """("foo"
           |  13
           |  foo)""".stripMargin
-      )
-    }
+    )
+  }
 
-    it("should output lists of lists") {
-      assertPrinter(
-        SexpList(SexpList(foo), SexpList(foo)),
-        """(("foo")
+  it should "output lists of lists" in {
+    assertPrinter(
+      SexpList(SexpList(foo), SexpList(foo)),
+      """(("foo")
           |  ("foo"))""".stripMargin
-      )
-    }
+    )
+  }
 
-    it("should output data") {
-      assertPrinter(
-        SexpData(fookey -> foosym, barkey -> foosym),
-        """(
+  it should "output data" in {
+    assertPrinter(
+      SexpData(fookey -> foosym, barkey -> foosym),
+      """(
   :foo foo
   :bar foo
 )"""
-      )
+    )
 
-      val datum = SexpData(fookey -> foo, barkey -> foo)
-      assertPrinter(SexpData(
-        fookey -> datum,
-        barkey -> datum
-      ), """(
+    val datum = SexpData(fookey -> foo, barkey -> foo)
+    assertPrinter(SexpData(
+      fookey -> datum,
+      barkey -> datum
+    ), """(
   :foo (
     :foo "foo"
     :bar "foo"
@@ -63,11 +62,11 @@ class SexpPrettyPrinterSpec extends FunSpec {
     :bar "foo"
   )
 )""")
-    }
-
-    it("should output cons") {
-      assertPrinter(SexpCons(foosym, barsym), "(foo .\n  bar)")
-    }
-
   }
+
+  it should "output cons" in {
+    assertPrinter(SexpCons(foosym, barsym), "(foo .\n  bar)")
+  }
+
 }
+

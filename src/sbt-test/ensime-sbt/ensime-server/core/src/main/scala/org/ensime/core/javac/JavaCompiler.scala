@@ -5,12 +5,9 @@ package org.ensime.core.javac
 import akka.actor.ActorRef
 import akka.event.slf4j.SLF4JLogging
 import com.sun.source.tree.Scope
-import com.sun.source.tree.Tree
 import com.sun.source.tree.{ IdentifierTree, MemberSelectTree }
-import com.sun.source.util.{ JavacTask, TreePath, Trees }
+import com.sun.source.util.{ JavacTask, TreePath }
 import java.io.{ File, FileInputStream, InputStream }
-import java.net.URI
-import java.nio.charset.Charset
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import javax.lang.model.`type`.TypeKind
@@ -18,20 +15,12 @@ import javax.lang.model.`type`.TypeMirror
 import javax.tools._
 import org.ensime.api._
 import org.ensime.core.DocSigPair
-import org.ensime.model.LineSourcePositionHelper
-import org.ensime.indexer.{ EnsimeVFS, SearchService }
+import org.ensime.vfs._
+import org.ensime.indexer.SearchService
 import org.ensime.util.ReportHandler
 import org.ensime.util.file._
 import scala.collection.JavaConverters._
-import scala.reflect.internal.util.{ BatchSourceFile, RangePosition, SourceFile }
-import scala.tools.nsc.Settings
-import scala.tools.nsc.interactive.CompilerControl
-import scala.tools.nsc.io.AbstractFile
-import scala.tools.nsc.reporters.Reporter
-import scala.tools.refactoring.analysis.GlobalIndexes
-import javax.lang.model.element.ElementKind
-import javax.lang.model.element.ExecutableElement
-import javax.lang.model.element.TypeElement
+import com.sun.tools.javac.util.Abort
 
 class JavaCompiler(
     val config: EnsimeConfig,
@@ -67,7 +56,6 @@ class JavaCompiler(
     val fileManager = sharedFileManager match {
       case Some(fm) => fm
       case _ =>
-        // TODO: take a charset for each invocation
         val fm = compiler.getStandardFileManager(listener, null, DefaultCharset)
         sharedFileManager = Some(fm)
         fm
@@ -94,26 +82,28 @@ class JavaCompiler(
 
   def askLinkPos(fqn: JavaFqn, file: SourceFileInfo): Option[SourcePosition] = {
     val infos = typecheckForUnits(List(file))
-    infos.headOption.flatMap { info => findInCompiledUnit(info, fqn) }
+    infos.headOption.flatMap { c => findInCompiledUnit(c, fqn) }
   }
 
   def askTypeAtPoint(file: SourceFileInfo, offset: Int): Option[TypeInfo] = {
     pathToPoint(file, offset) flatMap {
-      case (info: CompilationInfo, path: TreePath) =>
-        getTypeMirror(info, offset).map(typeMirrorToTypeInfo)
+      case (c: Compilation, path: TreePath) =>
+        getTypeMirror(c, offset).map(typeMirrorToTypeInfo)
     }
   }
 
   def askSymbolAtPoint(file: SourceFileInfo, offset: Int): Option[SymbolInfo] = {
     pathToPoint(file, offset) flatMap {
-      case (info: CompilationInfo, path: TreePath) =>
+      case (c: Compilation, path: TreePath) =>
         def withName(name: String): Option[SymbolInfo] = {
-          val tpeMirror = Option(info.getTrees().getTypeMirror(path))
+
+          val tpeMirror = Option(c.trees.getTypeMirror(path))
           val nullTpe = new BasicTypeInfo("NA", DeclaredAs.Nil, "NA", List.empty, List.empty, None)
+
           Some(SymbolInfo(
-            fqn(info, path).map(_.toFqnString).getOrElse(name),
+            fqn(c, path).map(_.toFqnString).getOrElse(name),
             name,
-            findDeclPos(info, path),
+            findDeclPos(c, path),
             tpeMirror.map(typeMirrorToTypeInfo).getOrElse(nullTpe),
             tpeMirror.map(_.getKind == TypeKind.EXECUTABLE).getOrElse(false)
           ))
@@ -128,8 +118,8 @@ class JavaCompiler(
 
   def askDocSignatureAtPoint(file: SourceFileInfo, offset: Int): Option[DocSigPair] = {
     pathToPoint(file, offset) flatMap {
-      case (info: CompilationInfo, path: TreePath) =>
-        docSignature(info, path)
+      case (c: Compilation, path: TreePath) =>
+        docSignature(c, path)
     }
   }
 
@@ -139,19 +129,19 @@ class JavaCompiler(
     completionsAt(file, offset, maxResults, caseSens)
   }
 
-  protected def pathToPoint(file: SourceFileInfo, offset: Int): Option[(CompilationInfo, TreePath)] = {
+  protected def pathToPoint(file: SourceFileInfo, offset: Int): Option[(Compilation, TreePath)] = {
     val infos = typecheckForUnits(List(file))
-    infos.headOption.flatMap { info =>
-      val path = Option(new TreeUtilities(info).pathFor(offset))
-      path.map { p => (info, p) }
+    infos.headOption.flatMap { c =>
+      val path: Option[TreePath] = PathFor(c, offset)
+      path.map { p => (c, p) }
     }
   }
 
-  protected def scopeForPoint(file: SourceFileInfo, offset: Int): Option[(CompilationInfo, Scope)] = {
+  protected def scopeForPoint(file: SourceFileInfo, offset: Int): Option[(Compilation, Scope)] = {
     val infos = typecheckForUnits(List(file))
-    infos.headOption.flatMap { info =>
-      val path = Option(new TreeUtilities(info).scopeFor(offset))
-      path.map { p => (info, p) }
+    infos.headOption.flatMap { c =>
+      val path: Option[Scope] = ScopeFor(c, offset)
+      path.map { p => (c, p) }
     }
   }
 
@@ -159,32 +149,43 @@ class JavaCompiler(
     BasicTypeInfo(tm.toString, DeclaredAs.Class, tm.toString, List(), List(), Some(EmptySourcePosition()))
   }
 
-  private def getTypeMirror(info: CompilationInfo, offset: Int): Option[TypeMirror] = {
-    val path = Option(new TreeUtilities(info).pathFor(offset))
+  private def getTypeMirror(c: Compilation, offset: Int): Option[TypeMirror] = {
+    val path: Option[TreePath] = PathFor(c, offset)
     // Uncomment to debug the AST path.
     //for (p <- path) { for (t <- p) { System.err.println(t.toString()) } }
-    path.flatMap { p => Option(info.getTrees().getTypeMirror(p)) }
+    path.flatMap { p => Option(c.trees.getTypeMirror(p)) }
   }
 
   private def typecheckAll(): Unit = {
     val task = getTask("all", listener, workingSet.values)
     val t = System.currentTimeMillis()
-    task.parse()
-    task.analyze()
-    log.info("Parsed and analyzed: " + (System.currentTimeMillis() - t) + "ms")
+    try {
+      task.parse()
+      task.analyze()
+      log.info("Parsed and analyzed: " + (System.currentTimeMillis() - t) + "ms")
+    } catch {
+      case e @ (_: Abort | _: ArrayIndexOutOfBoundsException | _: AssertionError) =>
+        log.error("Javac error: " + e.getMessage())
+    }
   }
 
-  private def typecheckForUnits(inputs: List[SourceFileInfo]): Vector[CompilationInfo] = {
+  private def typecheckForUnits(inputs: List[SourceFileInfo]): Vector[Compilation] = {
     // We only want the compilation units for inputs, but we need to typecheck them w.r.t
     // the full working set.
     val inputJfos = inputs.map { sf => internSource(sf).toUri }.toSet
     val task = getTask("none", silencer, workingSet.values)
     val t = System.currentTimeMillis()
-    val units = task.parse().asScala.filter { unit => inputJfos.contains(unit.getSourceFile.toUri) }
-      .map(new CompilationInfo(task, _)).toVector
-    task.analyze()
-    log.info("Parsed and analyzed for trees: " + (System.currentTimeMillis() - t) + "ms")
-    units
+    try {
+      val units = task.parse().asScala.filter { unit => inputJfos.contains(unit.getSourceFile.toUri) }
+        .map(Compilation(task, _)).toVector
+      task.analyze()
+      log.info("Parsed and analyzed for trees: " + (System.currentTimeMillis() - t) + "ms")
+      units
+    } catch {
+      case e @ (_: Abort | _: ArrayIndexOutOfBoundsException | _: AssertionError) =>
+        log.error("Javac error: " + e.getMessage())
+        Vector()
+    }
   }
 
   private class JavaObjectWithContents(val f: File, val contents: String)
@@ -231,5 +232,4 @@ class JavaCompiler(
   private class SilencedDiagnosticListener extends DiagnosticListener[JavaFileObject] with ReportHandler {
     def report(diag: Diagnostic[_ <: JavaFileObject]): Unit = {}
   }
-
 }

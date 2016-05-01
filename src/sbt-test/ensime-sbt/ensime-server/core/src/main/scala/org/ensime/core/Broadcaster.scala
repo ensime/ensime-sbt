@@ -61,7 +61,7 @@ class Broadcaster extends Actor with ActorLogging {
 object Broadcaster {
   object Register
   object Unregister
-  case class Persist(message: Any)
+  final case class Persist(message: Any)
 
   def apply(): Props = Props(new Broadcaster)
 }

@@ -10,7 +10,7 @@ import scalariform.formatter.preferences.FormattingPreferences
 // needed, we should move the functionality into a higher layer
 // RichConfig to keep the API clean.
 
-case class EnsimeConfig(
+final case class EnsimeConfig(
     rootDir: File,
     cacheDir: File,
     javaHome: File,
@@ -21,7 +21,6 @@ case class EnsimeConfig(
     subprojects: List[EnsimeModule],
     formattingPrefs: FormattingPreferences,
     sourceMode: Boolean,
-    debugArgs: List[String],
     javaLibs: List[File],
     // WORKAROUND: https://github.com/ensime/ensime-server/issues/1042
     disableSourceMonitoring: Boolean = false,
@@ -33,22 +32,18 @@ case class EnsimeConfig(
 
   /* Proposed alternatives to the legacy wire format field names */
   def root = rootDir
-  def debugVMArgs = debugArgs
   val referenceSourceJars =
     (referenceSourceRoots ++ subprojects.flatMap(_.referenceSourceRoots)).toSet
 
   // some marshalling libs (e.g. spray-json) might not like extra vals
   val modules = subprojects.map { module => (module.name, module) }.toMap
 
-  def runtimeClasspath: Set[File] =
-    compileClasspath ++ modules.values.flatMap(_.runtimeDeps) ++ targetClasspath
-
   def compileClasspath: Set[File] = modules.values.toSet.flatMap {
     m: EnsimeModule => m.compileDeps ++ m.testDeps
   } ++ (if (sourceMode) List.empty else targetClasspath)
 
   def targetClasspath: Set[File] = modules.values.toSet.flatMap {
-    m: EnsimeModule => m.targetDirs ++ m.testTargetDirs
+    m: EnsimeModule => m.targets ++ m.testTargets
   }
 
   def allJars: Set[File] = {
@@ -57,31 +52,29 @@ case class EnsimeConfig(
     }.toSet
   } ++ javaLibs
 
+  val allTargets: Set[File] =
+    subprojects.flatMap(sm => sm.targets ::: sm.testTargets).toSet
+
   def allDocJars: Set[File] = modules.values.flatMap(_.docJars).toSet
 
   def scalaLibrary: Option[File] = allJars.find(_.getName.startsWith("scala-library"))
 }
 
-case class EnsimeModule(
+final case class EnsimeModule(
     name: String,
-    // FIXME: deprecate target/testTarget
-    target: Option[File],
     targets: List[File],
-    testTarget: Option[File],
     testTargets: List[File],
     dependsOnModules: List[String],
     compileDeps: List[File],
-    runtimeDeps: List[File],
     testDeps: List[File],
     sourceRoots: List[File],
     docJars: List[File],
     referenceSourceRoots: List[File]
 ) {
   // only check the files, not the directories, see below
-  (compileDeps ::: runtimeDeps :::
-    testDeps ::: referenceSourceRoots).foreach { f =>
-      require(f.exists, "" + f + " is required but does not exist")
-    }
+  (compileDeps ::: testDeps ::: referenceSourceRoots).foreach { f =>
+    require(f.exists, "" + f + " is required but does not exist")
+  }
 
   /*
    Proposed alternatives to the legacy wire format field names:
@@ -89,10 +82,6 @@ case class EnsimeModule(
   def compileJars = compileDeps
   def testJars = testDeps
   def referenceSourceJars = referenceSourceRoots
-
-  // prefer these to the raw target(s) until we deprecate `target`
-  val targetDirs = targets ++ target.toIterable
-  val testTargetDirs = testTargets ++ testTarget.toIterable
 
   def dependencies(implicit config: EnsimeConfig): List[EnsimeModule] =
     dependsOnModules.map(config.modules)

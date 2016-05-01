@@ -22,9 +22,9 @@ class BigDecimalConvertor[T](
 
 object BigDecimalConvertor {
   // an implicit already exists from many of these types to BigDecimal
-  implicit val IntBigConv = new BigDecimalConvertor[Int](identity, _.intValue())
-  implicit val LongBigConv = new BigDecimalConvertor[Long](identity, _.longValue())
-  implicit val FloatBigConv = new BigDecimalConvertor[Float](identity, _.floatValue()) {
+  implicit val IntBigConv: BigDecimalConvertor[Int] = new BigDecimalConvertor[Int](identity, _.intValue())
+  implicit val LongBigConv: BigDecimalConvertor[Long] = new BigDecimalConvertor[Long](identity, _.longValue())
+  implicit val FloatBigConv: BigDecimalConvertor[Float] = new BigDecimalConvertor[Float](identity, _.floatValue()) {
     override def isPosInf(t: Float) = t.isPosInfinity
     override def PosInf = Float.PositiveInfinity
     override def isNegInf(t: Float) = t.isNegInfinity
@@ -32,7 +32,7 @@ object BigDecimalConvertor {
     override def isNaN(t: Float) = t.isNaN
     override def NaN = Float.NaN
   }
-  implicit val DoubleBigConv = new BigDecimalConvertor[Double](identity, _.doubleValue()) {
+  implicit val DoubleBigConv: BigDecimalConvertor[Double] = new BigDecimalConvertor[Double](identity, _.doubleValue()) {
     override def isPosInf(t: Double) = t.isPosInfinity
     override def PosInf = Double.PositiveInfinity
     override def isNegInf(t: Double) = t.isNegInfinity
@@ -40,10 +40,10 @@ object BigDecimalConvertor {
     override def isNaN(t: Double) = t.isNaN
     override def NaN = Double.NaN
   }
-  implicit val ByteBigConv = new BigDecimalConvertor[Byte](identity, _.byteValue())
-  implicit val ShortBigConv = new BigDecimalConvertor[Short](identity, _.shortValue())
-  implicit val BigIntBigConv = new BigDecimalConvertor[BigInt](BigDecimal.apply, _.toBigInt())
-  implicit val BigDecimalBigConv = new BigDecimalConvertor[BigDecimal](identity, identity)
+  implicit val ByteBigConv: BigDecimalConvertor[Byte] = new BigDecimalConvertor[Byte](identity, _.byteValue())
+  implicit val ShortBigConv: BigDecimalConvertor[Short] = new BigDecimalConvertor[Short](identity, _.shortValue())
+  implicit val BigIntBigConv: BigDecimalConvertor[BigInt] = new BigDecimalConvertor[BigInt](BigDecimal.apply, _.toBigInt())
+  implicit val BigDecimalBigConv: BigDecimalConvertor[BigDecimal] = new BigDecimalConvertor[BigDecimal](identity, identity)
 }
 
 object BigIntConvertor {

@@ -13,7 +13,7 @@ import java.io.File
  * Also, don't be evil.
  */
 object EscapingStringInterpolation {
-  case class StringContext(parts: String*) {
+  final case class StringContext(parts: String*) {
     private val delegate = new scala.StringContext(parts: _*)
     def s(args: Any*): String = {
       val hijacked = args.map {

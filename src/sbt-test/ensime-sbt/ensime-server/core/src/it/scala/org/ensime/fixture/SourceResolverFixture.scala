@@ -3,7 +3,8 @@
 package org.ensime.fixture
 
 import org.ensime.api._
-import org.ensime.indexer.{ EnsimeVFS, SourceResolver }
+import org.ensime.vfs._
+import org.ensime.indexer._
 
 trait SourceResolverFixture {
   def withSourceResolver(testCode: SourceResolver => Any): Any

@@ -21,7 +21,7 @@ trait FamilyFormats {
 
   // always serialises to Nil, and is differentiated by the TraitFormat
   // scala names https://github.com/milessabin/shapeless/issues/256
-  implicit def singletonFormat[T <: Singleton](implicit w: Witness.Aux[T]) = new SexpFormat[T] {
+  implicit def singletonFormat[T <: Singleton](implicit w: Witness.Aux[T]): SexpFormat[T] = new SexpFormat[T] {
     def write(t: T) = SexpNil
     def read(v: Sexp) =
       if (v == SexpNil) w.value

@@ -179,10 +179,12 @@ trait CollectionFormats {
   // note that the type has to be im.NumericRange[E]
   // not im.NumericRange.{Inclusive, Exclusive}[E]
   // (same problem as above, but getting the cons is trickier)
-  implicit def numericRangeFormat[E](implicit
+  implicit def numericRangeFormat[E](
+    implicit
     nf: SexpFormat[E],
     n: Numeric[E],
-    int: Integral[E]): SexpFormat[im.NumericRange[E]] = new SexpFormat[im.NumericRange[E]] {
+    int: Integral[E]
+  ): SexpFormat[im.NumericRange[E]] = new SexpFormat[im.NumericRange[E]] {
     def write(r: im.NumericRange[E]) = SexpData(
       start -> r.start.toSexp,
       end -> r.end.toSexp,

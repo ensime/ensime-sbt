@@ -3,6 +3,14 @@
 package org.ensime.api
 
 import java.io.File
+import scala.annotation.StaticAnnotation
+
+/**
+ * Indicates that something will be removed.
+ *
+ * WORKAROUND https://issues.scala-lang.org/browse/SI-7934
+ */
+class deprecating(detail: String = "") extends StaticAnnotation
 
 sealed abstract class DeclaredAs(val symbol: scala.Symbol)
 
@@ -32,15 +40,15 @@ sealed trait FileEdit extends Ordered[FileEdit] {
     (this.file, this.from, this.to, this.text).compare((that.file, that.from, that.to, that.text))
 }
 
-case class TextEdit(file: File, from: Int, to: Int, text: String) extends FileEdit
+final case class TextEdit(file: File, from: Int, to: Int, text: String) extends FileEdit
 
 // the next case classes have weird fields because we need the values in the protocol
-case class NewFile(file: File, from: Int, to: Int, text: String) extends FileEdit
+final case class NewFile(file: File, from: Int, to: Int, text: String) extends FileEdit
 object NewFile {
   def apply(file: File, text: String): NewFile = new NewFile(file, 0, text.length - 1, text)
 }
 
-case class DeleteFile(file: File, from: Int, to: Int, text: String) extends FileEdit
+final case class DeleteFile(file: File, from: Int, to: Int, text: String) extends FileEdit
 object DeleteFile {
   def apply(file: File, text: String): DeleteFile = new DeleteFile(file, 0, text.length - 1, text)
 }
@@ -80,4 +88,13 @@ object RefactorType {
   case object AddImport extends RefactorType('addImport)
 
   def allTypes = Seq(Rename, ExtractMethod, ExtractLocal, InlineLocal, OrganizeImports, AddImport)
+}
+
+final case class SourceFileInfo(
+    file: File,
+    contents: Option[String] = None,
+    contentsIn: Option[File] = None
+) {
+  // keep the log file sane for unsaved files
+  override def toString = s"SourceFileInfo($file,${contents.map(_ => "...")},$contentsIn)"
 }

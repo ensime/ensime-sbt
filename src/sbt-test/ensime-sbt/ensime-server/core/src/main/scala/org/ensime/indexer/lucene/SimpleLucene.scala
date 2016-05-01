@@ -19,6 +19,10 @@ import scala.collection.mutable
 
 object SimpleLucene {
   private val LuceneVersion = Version.LUCENE_47
+  // from DirectDocValuesFormat.MAX_SORTED_SET_ORDS = 2147483391 but
+  // it's kind of an insane number, so let's pick something halfway
+  // sensible.
+  val MaxResults = 10000
 }
 
 /**
@@ -79,8 +83,6 @@ class SimpleLucene(path: File, analyzers: Map[String, Analyzer]) extends SLF4JLo
 
   def search(query: Query, limit: Int): List[Document] = {
     val searcher = new IndexSearcher(reader())
-
-    // TODO: use FieldCacheTermsFilter for fast restriction by module
 
     val collector = TopScoreDocCollector.create(limit, true)
     searcher.search(query, collector)

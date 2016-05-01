@@ -4,14 +4,14 @@ package org.ensime.indexer.lucene
 
 import org.apache.lucene.document.Field._
 import org.apache.lucene.document._
-import org.scalatest.{ FunSpec, Matchers }
+import org.ensime.util.EnsimeSpec
 
-class LuceneSerializationSpec extends FunSpec with Matchers {
+class LuceneSerializationSpec extends EnsimeSpec {
 
   def thereAndBackAgain[T](t: T)(implicit p: DocumentProvider[T], r: DocumentRecovery[T]): Unit = {
     val doc = p.toDocument(t)
     val back = r.toEntity(doc)
-    assert(t === back)
+    t should ===(back)
   }
 
   case class SimpleThing(id: String, b: String) extends Entity
@@ -22,11 +22,9 @@ class LuceneSerializationSpec extends FunSpec with Matchers {
       SimpleThing(doc.get("ID"), doc.get("b"))
   }
 
-  describe("Lucene Entity Serialisation") {
-    it("should serialise and deserialise a simple type") {
-      val t = SimpleThing("hello", "world")
-      thereAndBackAgain(t)
-    }
+  "Lucene Entity Serialisation" should "serialise and deserialise a simple type" in {
+    val t = SimpleThing("hello", "world")
+    thereAndBackAgain(t)
   }
 
 }

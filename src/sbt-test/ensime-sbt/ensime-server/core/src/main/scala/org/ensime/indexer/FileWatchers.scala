@@ -2,18 +2,15 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.indexer
 
+import akka.actor.Actor
 import akka.event.slf4j.SLF4JLogging
 import org.apache.commons.vfs2._
 import org.apache.commons.vfs2.impl.DefaultFileMonitor
 
 import org.ensime.api._
+import org.ensime.vfs._
 
-import scala.collection.Set
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import scala.util.Try
 import org.ensime.util.file._
-import EnsimeVFS._
 
 trait FileChangeListener {
   def fileAdded(f: FileObject): Unit
@@ -42,7 +39,7 @@ class ClassfileWatcher(
 )(
     implicit
     vfs: EnsimeVFS
-) extends Watcher with SLF4JLogging {
+) extends Actor with SLF4JLogging {
 
   private val impls =
     if (config.disableClassMonitoring) Nil
@@ -52,7 +49,14 @@ class ClassfileWatcher(
       new ApachePollingFileWatcher(dir, selector, rec, listeners)
     }
 
-  override def shutdown(): Unit = impls.foreach(_.shutdown())
+  override def receive: Receive = {
+    case _ =>
+  }
+
+  override def postStop(): Unit = {
+    impls.foreach(_.shutdown())
+  }
+
 }
 
 class SourceWatcher(
@@ -68,7 +72,7 @@ class SourceWatcher(
       module <- config.modules.values
       root <- module.sourceRoots
     } yield {
-      new ApachePollingFileWatcher(root, EnsimeVFS.SourceSelector, true, listeners)
+      new ApachePollingFileWatcher(root, SourceSelector, true, listeners)
     }
   override def shutdown(): Unit = impls.foreach(_.shutdown)
 }

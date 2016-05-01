@@ -2,14 +2,11 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.server.protocol.swank
 
-import java.io.File
-import org.scalatest._
-
 import org.ensime.sexp._
 import org.ensime.api._
-import org.ensime.util.EscapingStringInterpolation
+import org.ensime.util.{ EnsimeSpec, EscapingStringInterpolation }
 
-class SwankFormatsSpec extends FlatSpec with Matchers with EnsimeTestData {
+class SwankFormatsSpec extends EnsimeSpec with EnsimeTestData {
   import SwankFormats._
   import SwankTestData._
 
@@ -173,21 +170,6 @@ class SwankFormatsSpec extends FlatSpec with Matchers with EnsimeTestData {
     )
 
     unmarshal(
-      s"""(swank:prepare-refactor 1 ignored (end 100 file "$file1" newName "bar" start 1) nil)""",
-      PrepareRefactorReq(1, 'ignored, RenameRefactorDesc("bar", file1, 1, 100), false): RpcRequest
-    )
-
-    unmarshal(
-      s"""(swank:exec-refactor 1 rename)""",
-      ExecRefactorReq(1, RefactorType.Rename): RpcRequest
-    )
-
-    unmarshal(
-      """(swank:cancel-refactor 1)""",
-      CancelRefactorReq(1): RpcRequest
-    )
-
-    unmarshal(
       s"""(swank:diff-refactor 1 (end 100 file "$file1" newName "bar" start 1) nil)""",
       RefactorReq(1, RenameRefactorDesc("bar", file1, 1, 100), false): RpcRequest
     )
@@ -223,17 +205,16 @@ class SwankFormatsSpec extends FlatSpec with Matchers with EnsimeTestData {
       StructureViewReq(sourceFileInfo): RpcRequest
     )
 
+    unmarshal(
+      s"""(swank:ast-at-point (:file "$file1" :contents "{/* code here */}" :contents-in "$file2") (1 100))""",
+      AstAtPointReq(sourceFileInfo, OffsetRange(1, 100)): RpcRequest
+    )
   }
 
   it should "unmarshal RpcDebugRequests" in {
     unmarshal(
       """(swank:debug-active-vm)""",
       DebugActiveVmReq: RpcRequest
-    )
-
-    unmarshal(
-      """(swank:debug-start "blah blah blah")""",
-      DebugStartReq("blah blah blah"): RpcRequest
     )
 
     unmarshal(
@@ -344,7 +325,7 @@ class SwankFormatsSpec extends FlatSpec with Matchers with EnsimeTestData {
         isFull = false,
         List(new Note("foo.scala", "testMsg", NoteWarn, 50, 55, 77, 5))
       ): EnsimeEvent,
-      """(:scala-notes (:is-full nil :notes ((:file "foo.scala" :msg "testMsg" :severity warn :beg 50 :end 55 :line 77 :col 5))))"""
+      """(:scala-notes (:notes ((:file "foo.scala" :msg "testMsg" :severity warn :beg 50 :end 55 :line 77 :col 5))))"""
     )
 
     marshal(
@@ -383,7 +364,7 @@ class SwankFormatsSpec extends FlatSpec with Matchers with EnsimeTestData {
     )
     marshal(
       DebugExceptionEvent(33L, dtid, "threadNameStr", None, None): EnsimeEvent,
-      """(:debug-event (:type exception :exception 33 :thread-id "13" :thread-name "threadNameStr" :file nil :line nil))"""
+      """(:debug-event (:type exception :exception 33 :thread-id "13" :thread-name "threadNameStr"))"""
     )
 
     marshal(
@@ -510,27 +491,27 @@ class SwankFormatsSpec extends FlatSpec with Matchers with EnsimeTestData {
 
     marshal(
       completionInfo: CompletionInfo,
-      """(:name "name" :type-sig (((("abc" "def") ("hij" "lmn"))) "ABC" nil) :is-callable nil :relevance 90 :to-insert "BAZ")"""
+      """(:name "name" :type-sig (((("abc" "def") ("hij" "lmn"))) "ABC" nil) :relevance 90 :to-insert "BAZ")"""
     )
 
     marshal(
       completionInfo2: CompletionInfo,
-      """(:name "name2" :type-sig (((("abc" "def"))) "ABC" nil) :is-callable t :relevance 91 :to-insert nil)"""
+      """(:name "name2" :type-sig (((("abc" "def"))) "ABC" nil) :is-callable t :relevance 91)"""
     )
 
     marshal(
       CompletionInfoList("fooBar", List(completionInfo)): CompletionInfoList,
-      """(:prefix "fooBar" :completions ((:name "name" :type-sig (((("abc" "def") ("hij" "lmn"))) "ABC" nil) :is-callable nil :relevance 90 :to-insert "BAZ")))"""
+      """(:prefix "fooBar" :completions ((:name "name" :type-sig (((("abc" "def") ("hij" "lmn"))) "ABC" nil) :relevance 90 :to-insert "BAZ")))"""
     )
 
     marshal(
       new SymbolInfo("name", "localName", None, typeInfo, false): SymbolInfo,
-      """(:name "name" :local-name "localName" :decl-pos nil :type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1" :type-args nil :members nil :pos nil) :is-callable nil)"""
+      """(:name "name" :local-name "localName" :type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1"))"""
     )
 
     marshal(
       new NamedTypeMemberInfo("typeX", typeInfo, None, None, DeclaredAs.Method): EntityInfo,
-      """(:name "typeX" :type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1" :type-args nil :members nil :pos nil) :pos nil :signature-string nil :decl-as method)"""
+      """(:name "typeX" :type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1") :decl-as method)"""
     )
 
     marshal(
@@ -545,22 +526,27 @@ class SwankFormatsSpec extends FlatSpec with Matchers with EnsimeTestData {
 
     marshal(
       packageInfo: EntityInfo,
-      """(:info-type package :name "name" :full-name "fullName" :members nil)"""
+      """(:info-type package :name "name" :full-name "fullName")"""
     )
 
     marshal(
       interfaceInfo: InterfaceInfo,
-      """(:type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1" :type-args nil :members nil :pos nil) :via-view "DEF")"""
+      """(:type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1") :via-view "DEF")"""
     )
 
     marshal(
       new TypeInspectInfo(typeInfo, List(interfaceInfo)): TypeInspectInfo,
-      """(:type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1" :type-args nil :members nil :pos nil) :interfaces ((:type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1" :type-args nil :members nil :pos nil) :via-view "DEF")) :info-type typeInspect)"""
+      """(:type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1") :interfaces ((:type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1") :via-view "DEF")) :info-type typeInspect)"""
     )
 
     marshal(
       structureView: StructureView,
-      s"""(:view ((:keyword "class" :name "StructureView" :position (:type line :file "$file1" :line 57) :members nil) (:keyword "object" :name "StructureView" :position (:type line :file "$file1" :line 59) :members ((:keyword "type" :name "BasicType" :position (:type offset :file "$file1" :offset 456) :members nil)))))"""
+      s"""(:view ((:keyword "class" :name "StructureView" :position (:type line :file "$file1" :line 57)) (:keyword "object" :name "StructureView" :position (:type line :file "$file1" :line 59) :members ((:keyword "type" :name "BasicType" :position (:type offset :file "$file1" :offset 456))))))"""
+    )
+
+    marshal(
+      astInfo: AstInfo,
+      """(:ast "List(Apply(Select(Literal(Constant(1)), TermName(\"$plus\")), List(Literal(Constant(1)))))")"""
     )
   }
 
@@ -622,16 +608,6 @@ class SwankFormatsSpec extends FlatSpec with Matchers with EnsimeTestData {
     marshal(
       RefactorFailure(7, "message"): RefactorFailure,
       """(:procedure-id 7 :reason "message" :status failure)"""
-    )
-
-    marshal(
-      refactorEffect: RefactorEffect,
-      s"""(:procedure-id 9 :refactor-type addImport :changes ((:type edit :file "$file3" :from 5 :to 7 :text "aaa")) :status success)"""
-    )
-
-    marshal(
-      refactorResult: RefactorResult,
-      s"""(:procedure-id 7 :refactor-type addImport :touched-files ("$file3" "$file1") :status success)"""
     )
 
     marshal(

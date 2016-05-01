@@ -3,6 +3,7 @@
 package org.ensime.sexp.formats
 
 import org.ensime.sexp._
+import shapeless._
 
 trait BasicFormats {
 
@@ -38,7 +39,7 @@ trait BasicFormats {
   }
 
   // val allows override
-  implicit val SymbolFormat = new SexpFormat[Symbol] {
+  implicit val SymbolFormat: SexpFormat[Symbol] = new SexpFormat[Symbol] {
     def write(x: Symbol): Sexp = SexpString(x.name)
     def read(value: Sexp): Symbol = value match {
       case SexpString(x) => Symbol(x)
@@ -61,7 +62,7 @@ trait BasicFormats {
    * numbers, override this implementation with one that adheres to
    * the arbitrary precision framework of your choice.
    */
-  implicit def ViaBigDecimalFormat[T](implicit c: BigDecimalConvertor[T]) =
+  implicit def ViaBigDecimalFormat[T](implicit c: BigDecimalConvertor[T]): SexpFormat[T] =
     new SexpFormat[T] {
       def write(x: T): Sexp =
         if (c.isNaN(x)) SexpNaN
@@ -79,19 +80,19 @@ trait BasicFormats {
     }
 
   // boilerplate for performance (uses ViaBigDecimal)
-  implicit val IntFormat = SexpFormat[Int]
-  implicit val LongFormat = SexpFormat[Long]
-  implicit val FloatFormat = SexpFormat[Float]
-  implicit val DoubleFormat = SexpFormat[Double]
-  implicit val ByteFormat = SexpFormat[Byte]
-  implicit val ShortFormat = SexpFormat[Short]
-  implicit val BigIntFormat = SexpFormat[BigInt]
-  implicit val BigDecimalFormat = SexpFormat[BigDecimal]
+  implicit val IntFormat: SexpFormat[Int] = cachedImplicit
+  implicit val LongFormat: SexpFormat[Long] = cachedImplicit
+  implicit val FloatFormat: SexpFormat[Float] = cachedImplicit
+  implicit val DoubleFormat: SexpFormat[Double] = cachedImplicit
+  implicit val ByteFormat: SexpFormat[Byte] = cachedImplicit
+  implicit val ShortFormat: SexpFormat[Short] = cachedImplicit
+  implicit val BigIntFormat: SexpFormat[BigInt] = cachedImplicit
+  implicit val BigDecimalFormat: SexpFormat[BigDecimal] = cachedImplicit
 }
 
 trait SymbolAltFormat {
   this: BasicFormats =>
-  override implicit val SymbolFormat = new SexpFormat[Symbol] {
+  override implicit val SymbolFormat: SexpFormat[Symbol] = new SexpFormat[Symbol] {
     def write(x: Symbol): Sexp = SexpSymbol(x.name)
     def read(value: Sexp): Symbol = value match {
       case SexpSymbol(x) => Symbol(x)

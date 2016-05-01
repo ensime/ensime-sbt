@@ -28,14 +28,7 @@ class WebServerImpl(
         case None => Future.successful(FalseResponse)
         case Some(sig: DocSigPair) => handleRpc(sig)
       }
-    case _ =>
-      (project ? Canonised(in)).map {
-        case r: EnsimeServerMessage => r
-        // FIXME: find and eliminate all the Option responses
-        // legacy --- to deal with bad/Optional actor responses
-        case Some(r: RpcResponse) => r
-        case None => FalseResponse
-      }
+    case _ => (project ? Canonised(in)).mapTo[EnsimeServerMessage]
   }
 
   def restHandler(in: RpcRequest): Future[EnsimeServerMessage] = handleRpc(in)

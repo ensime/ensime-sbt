@@ -4,10 +4,10 @@ package org.ensime.core
 
 import org.ensime.fixture._
 import org.ensime.api._
-import org.scalatest._
+import org.ensime.util.EnsimeSpec
 import scala.collection.mutable.ListBuffer
 
-class StructureViewBuilderSpec extends FlatSpec with Matchers
+class StructureViewBuilderSpec extends EnsimeSpec
     with IsolatedRichPresentationCompilerFixture
     with RichPresentationCompilerTestUtils
     with ReallyRichPresentationCompilerFixture {
@@ -39,11 +39,10 @@ class StructureViewBuilderSpec extends FlatSpec with Matchers
     result.toList
   }
 
-  behavior of "StructureViewBuilder"
-
-  it should "show top level classes and objects" in withPresCompiler { (config, cc) =>
-    val structure = getStructure(
-      config, cc, """
+  "StructureViewBuilder" should "show top level classes and objects" in {
+    withPresCompiler { (config, cc) =>
+      val structure = getStructure(
+        config, cc, """
             package com.example
             import org.scalatest._
             class Test {
@@ -53,14 +52,15 @@ class StructureViewBuilderSpec extends FlatSpec with Matchers
               def apply(x: String) { new Test(x) }
             }
           """
-    )
+      )
 
-    structure shouldBe List(
-      "(class)Test",
-      "(def)Test.fun",
-      "(object)Test",
-      "(def)Test.apply"
-    )
+      structure shouldBe List(
+        "(class)Test",
+        "(def)Test.fun",
+        "(object)Test",
+        "(def)Test.apply"
+      )
+    }
   }
 
   it should "show nested members" in withPresCompiler { (config, cc) =>

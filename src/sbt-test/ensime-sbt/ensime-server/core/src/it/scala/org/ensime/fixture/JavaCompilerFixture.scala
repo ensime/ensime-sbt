@@ -4,18 +4,15 @@ package org.ensime.fixture
 
 import java.io.File
 
-import java.nio.charset.Charset
 import akka.actor.ActorSystem
 import akka.testkit.TestProbe
 import org.ensime.api._
 import org.ensime.core.javac.JavaCompiler
+import org.ensime.vfs._
 import org.ensime.indexer._
 import org.ensime.util._
 import org.ensime.util.file._
-import org.slf4j.LoggerFactory
 import scala.collection.immutable.Queue
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
 
 trait JavaCompilerFixture {
   def withJavaCompiler(

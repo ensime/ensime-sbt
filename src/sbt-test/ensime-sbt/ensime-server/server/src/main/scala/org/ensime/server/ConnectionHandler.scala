@@ -4,8 +4,6 @@ package org.ensime.server
 
 import akka.actor._
 import akka.event.LoggingReceive
-import akka.event.slf4j.SLF4JLogging
-import akka.pattern.ask
 import org.ensime.api._
 import org.ensime.core._
 //import shapeless._

@@ -5,7 +5,6 @@ package org.ensime.util
 import Predef.{ any2stringadd => _ }
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
-import java.io.IOException
 
 import org.scalatest._
 

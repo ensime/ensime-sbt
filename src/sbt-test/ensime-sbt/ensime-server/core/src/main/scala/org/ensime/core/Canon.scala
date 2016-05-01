@@ -12,7 +12,7 @@ import org.ensime.util.file._
  */
 object Canon extends Poly1 {
   // people extend File, so we have to handle subtypes
-  implicit def caseFile[F <: File] = at[F](f => f.canon)
+  implicit def caseFile[F <: File]: Case[F] { type Result = File } = at[F](f => f.canon)
 }
 
 object Canonised {

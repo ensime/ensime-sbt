@@ -1,8 +1,9 @@
 target/
-
 *.log
-
 .ensime*
-.sbtopts
 
-TAGS
+# DO NOT ADD ANYTHING TO THIS FILE UNLESS IT IS DIRECTLY
+# RELATED TO THE BUILD.
+#
+# If you want to add something from your personal setup,
+# add it to your ~/.gitignore instead.

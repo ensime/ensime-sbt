@@ -4,9 +4,7 @@ package org.ensime.util
 
 import java.io.File
 
-import org.scalatest._
-
-class EscapingStringInterpolationSpec extends FlatSpec with Matchers {
+class EscapingStringInterpolationSpec extends EnsimeSpec {
 
   import EscapingStringInterpolation._
 

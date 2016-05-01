@@ -3,7 +3,8 @@
 package org.ensime.sexp.formats
 
 import org.ensime.sexp._
-import scala.reflect.ClassTag
+import shapeless._
+import shapeless.syntax.typeable._
 
 trait SexpFormats {
   /**
@@ -14,21 +15,18 @@ trait SexpFormats {
     def read(json: Sexp) = reader.read(json)
   }
 
-  implicit def sexpIdentityFormat[T <: Sexp: ClassTag] = new SexpFormat[T] {
+  implicit def sexpIdentityFormat[T <: Sexp: Typeable]: SexpFormat[T] = new SexpFormat[T] {
     def write(o: T) = o
-    def read(v: Sexp) = v match {
-      case t: T => t
-      case x => deserializationError(x)
-    }
+    def read(v: Sexp) = v.cast[T].getOrElse { deserializationError(v) }
   }
 
   // performance boilerplate
-  implicit val SexpFormat_ = SexpFormat[Sexp]
-  implicit val SexpConsFormat = SexpFormat[SexpCons]
-  implicit val SexpAtomFormat = SexpFormat[SexpAtom]
-  implicit val SexpStringFormat = SexpFormat[SexpString]
-  implicit val SexpNumberFormat = SexpFormat[SexpNumber]
-  implicit val SexpCharFormat = SexpFormat[SexpChar]
-  implicit val SexpSymbolFormat = SexpFormat[SexpSymbol]
+  implicit val SexpFormat_ : SexpFormat[Sexp] = cachedImplicit
+  implicit val SexpConsFormat: SexpFormat[SexpCons] = cachedImplicit
+  implicit val SexpAtomFormat: SexpFormat[SexpAtom] = cachedImplicit
+  implicit val SexpStringFormat: SexpFormat[SexpString] = cachedImplicit
+  implicit val SexpNumberFormat: SexpFormat[SexpNumber] = cachedImplicit
+  implicit val SexpCharFormat: SexpFormat[SexpChar] = cachedImplicit
+  implicit val SexpSymbolFormat: SexpFormat[SexpSymbol] = cachedImplicit
 
 }

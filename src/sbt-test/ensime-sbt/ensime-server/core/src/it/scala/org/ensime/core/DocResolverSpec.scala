@@ -3,15 +3,14 @@
 package org.ensime.core
 
 import akka.actor.ActorSystem
-import akka.event.slf4j.SLF4JLogging
-import akka.pattern.ask
 import akka.testkit.TestActorRef
 import org.ensime.api._
 import org.ensime.fixture._
-import org.scalatest._
+import org.ensime.util.EnsimeSpec
 
-class DocResolverSpec extends FlatSpec with Matchers with SLF4JLogging
-    with IsolatedEnsimeConfigFixture with IsolatedTestKitFixture {
+class DocResolverSpec extends EnsimeSpec
+    with IsolatedEnsimeConfigFixture
+    with IsolatedTestKitFixture {
 
   val original = EnsimeConfigFixture.DocsTestProject
 
@@ -28,6 +27,16 @@ class DocResolverSpec extends FlatSpec with Matchers with SLF4JLogging
         DocSig(DocFqn("scala", "Some"), Some("map[B](f:A=>B):Option[B]")),
         DocSig(DocFqn("scala", "Some"), Some("map(scala.Function1)"))
       )) shouldBe Some("docs/scala-library-" + c.scalaVersion + "-javadoc.jar/index.html#scala.Some@map[B](f:A=>B):Option[B]")
+
+      serv.resolve(DocSigPair(
+        DocSig(DocFqn("scala", "Some"), None),
+        DocSig(DocFqn("scala", "Some"), None)
+      )) shouldBe Some("docs/scala-library-" + c.scalaVersion + "-javadoc.jar/index.html#scala.Some")
+
+      serv.resolve(DocSigPair(
+        DocSig(DocFqn("scala", "Some$"), None),
+        DocSig(DocFqn("scala", "Some"), None)
+      )) shouldBe Some("docs/scala-library-" + c.scalaVersion + "-javadoc.jar/index.html#scala.Some")
 
       serv.resolve(DocSigPair(
         DocSig(DocFqn("com.google.common.io", "Files$"), Some("simplifyPath(x$1:String):String")),
