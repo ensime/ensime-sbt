@@ -207,18 +207,15 @@ object EnsimePlugin extends AutoPlugin {
     def modifiedBinaries = Array()
     def modifiedClasses = Array()
   }
-  private class noopCallback(
-    promise: Promise[Unit],
+  private object noopCallback extends xsbti.AnalysisCallback {
     override val nameHashing: Boolean = true
-  ) extends xsbti.AnalysisCallback {
     def beginSource(source: File): Unit = {}
-    def generatedClass(source: File, module: File, name: String): Unit = promise.trySuccess(())
+    def generatedClass(source: File, module: File, name: String): Unit = {}
     def api(sourceFile: File, source: xsbti.api.SourceAPI): Unit = {}
     def sourceDependency(dependsOn: File, source: File, publicInherited: Boolean): Unit = {}
     def binaryDependency(binary: File, name: String, source: File, publicInherited: Boolean): Unit = {}
     def endSource(sourcePath: File): Unit = {}
-    def problem(what: String, pos: xsbti.Position, msg: String, severity: xsbti.Severity, reported: Boolean): Unit =
-      promise.tryFailure(new IllegalStateException(what))
+    def problem(what: String, pos: xsbti.Position, msg: String, severity: xsbti.Severity, reported: Boolean): Unit = {}
     def usedName(sourceFile: File, names: String): Unit = {}
     override def binaryDependency(file: File, s: String, file1: File, dependencyContext: xsbti.DependencyContext): Unit = {}
     override def sourceDependency(file: File, file1: File, dependencyContext: xsbti.DependencyContext): Unit = {}
@@ -255,14 +252,12 @@ object EnsimePlugin extends AutoPlugin {
               throw new IllegalArgumentException(s"only .scala files are supported: $arg")
 
             if (!out.exists()) IO.createDirectory(out)
-            s.log.info(s"Compiling $input")
+            s.log.info(s"""Compiling $input with ${opts.mkString(" ")}""")
 
-            val promise = Promise[Unit]()
             cs.scalac(
               Seq(input), noChanges, cp.map(_.data), out, opts,
-              new noopCallback(promise), merrs, in.incSetup.cache, s.log
+              noopCallback, merrs, in.incSetup.cache, s.log
             )
-            Await.result(promise.future, Duration.Inf)
           }
         }
     }

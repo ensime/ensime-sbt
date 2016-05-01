@@ -1,4 +1,4 @@
 val a = project
 val b = project.settings(
-  scalacOptions in (Test, EnsimeKeys.compileOnly) += "-Xprint-types"
+  scalacOptions in (Test, EnsimeKeys.compileOnly) ++= Seq("-Xshow-phases")
 )
