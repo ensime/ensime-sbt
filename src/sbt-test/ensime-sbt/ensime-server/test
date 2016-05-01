@@ -6,8 +6,8 @@
 > ensimeExpect .ensime swanky-jerky.gen-ensime.expect
 > gen-ensime-project
 > ensimeExpect project/.ensime gen-ensime-project.expect
-> core/checkJavaOptions -Xss2m -XX:MaxPermSize=256m -Xms1g -Xmx1g -XX:+PerfDisableSharedMem -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode
+> core/checkJavaOptions -Xss2m -XX:MaxPermSize=256m -Xms256m -Xmx256m -Dfile.encoding=UTF8 -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode -XX:+PerfDisableSharedMem
 > debugging
-> core/checkJavaOptions -Xss2m -XX:MaxPermSize=256m -Xms1g -Xmx1g -XX:+PerfDisableSharedMem -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005
+> core/checkJavaOptions -Xss2m -XX:MaxPermSize=256m -Xms256m -Xmx256m -Dfile.encoding=UTF8 -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode -XX:+PerfDisableSharedMem -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005
 > debugging-off
-> core/checkJavaOptions -Xss2m -XX:MaxPermSize=256m -Xms1g -Xmx1g -XX:+PerfDisableSharedMem -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode
+> core/checkJavaOptions -Xss2m -XX:MaxPermSize=256m -Xms256m -Xmx256m -Dfile.encoding=UTF8 -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode -XX:+PerfDisableSharedMem

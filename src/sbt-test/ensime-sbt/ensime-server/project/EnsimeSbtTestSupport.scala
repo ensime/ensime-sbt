@@ -55,6 +55,8 @@ object EnsimeSbtTestSupport extends AutoPlugin {
             replace(baseDir.replace("/private", ""), "BASE_DIR"). // workaround for https://github.com/ensime/ensime-sbt/issues/151
             replace(Properties.userHome + "/.ivy2", "IVY_DIR").
             replace("C:/Users/appveyor/.ivy2", "IVY_DIR").
+            replace(Properties.userHome + "/.coursier", "COURSIER_DIR").
+            replace("C:/Users/appveyor/.coursier", "COURSIER_DIR").
             replaceAll("""/usr/lib/jvm/[^/"]++""", "JDK_HOME").
             replaceAll("""/Library/Java/JavaVirtualMachines/[^/]+/Contents/Home""", "JDK_HOME").
             replaceAll("""C:/Program Files/Java/[^/"]++""", "JDK_HOME").
@@ -63,7 +65,6 @@ object EnsimeSbtTestSupport extends AutoPlugin {
             replaceAll(""""-Xfatal-warnings"""", ""). // ensime-server only has these in CI
             replaceAll(raw"""/[.\d]++(-SNAPSHOT)?/jars/ensime-sbt.jar"""", """/HEAD/jars/ensime-sbt.jar"""").
             replaceAll(raw"""/[.\d]++(-SNAPSHOT)?/srcs/ensime-sbt-sources.jar"""", """/HEAD/srcs/ensime-sbt-sources.jar"""").
-            replaceAll(raw""""IVY_DIR/cache/org.netbeans[^"]*[.]jar"""", ""). // https://github.com/ensime/ensime-emacs/issues/327
             replaceAll(raw""""-Dsbt[.]global[.]base=BASE_DIR/global"""", "").
             replaceAll(raw"\s++", " ").
             replace("( ", "(").replace(" )", ")")
