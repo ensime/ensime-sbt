@@ -743,10 +743,16 @@ object SExpFormatter {
     case None                                => "nil"
     case Some(f) if f.preferencesMap.isEmpty => "nil"
     case Some(f) => f.preferencesMap.map {
-      case (desc, v: Boolean) =>
-        s":${desc.key} ${toSExp(v)}"
-      case (desc, v: Int) =>
-        s":${desc.key} $v"
+      case (desc, value) =>
+        val vs = value match {
+          case b: Boolean => toSExp(b)
+          case i: Int     => i.toString
+          case intent =>
+            // quick fix to serialize intents, until the scalariform dependency is
+            // upgraded (pending #148)
+            toSExp(intent.getClass.getSimpleName.replaceAll("\\$", "").toLowerCase)
+        }
+        s":${desc.key} $vs"
     }.mkString("(", " ", ")")
   }
 
