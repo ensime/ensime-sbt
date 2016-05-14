@@ -172,14 +172,16 @@ object EnsimePlugin extends AutoPlugin {
 
     ivyConfigurations += EnsimeInternal,
     // must be here where the ivy config is defined
-    EnsimeKeys.scalaCompilerJarModuleIDs := Seq(
-      "org.scala-lang" % "scala-compiler" % scalaVersion.value,
-      "org.scala-lang" % "scala-library" % scalaVersion.value,
-      "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-      "org.scala-lang" % "scalap" % scalaVersion.value
-    ).map(_ % EnsimeInternal.name intransitive ()),
+    EnsimeKeys.scalaCompilerJarModuleIDs := {
+      if (organization.value == "org.scala-lang") Nil
+      else Seq(
+        "org.scala-lang" % "scala-compiler" % scalaVersion.value,
+        "org.scala-lang" % "scala-library" % scalaVersion.value,
+        "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+        "org.scala-lang" % "scalap" % scalaVersion.value
+      ).map(_ % EnsimeInternal.name intransitive ())
+    },
     libraryDependencies ++= EnsimeKeys.scalaCompilerJarModuleIDs.value,
-
     aggregate in EnsimeKeys.compileOnly := false
   ) ++ Seq(Compile, Test).flatMap { config =>
       // WORKAROUND https://github.com/sbt/sbt/issues/2580
