@@ -14,7 +14,7 @@ object EnsimeSbtBuild extends Build {
 
   override val settings = super.settings ++ Seq(
     organization := "org.ensime",
-    version := "0.5.1"
+    version := "0.5.2-SNAPSHOT"
   ) ++ sonatype("ensime", "ensime-sbt", Apache2)
 
   lazy val root = Project("sbt-ensime", file(".")).
