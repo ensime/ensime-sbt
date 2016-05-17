@@ -1,0 +1,26 @@
+(
+ :root-dir "BASE_DIR"
+ :cache-dir "BASE_DIR/.ensime_cache"
+ :scala-compiler-jars ("IVY_DIR/cache/org.typelevel/scala-compiler/jars/scala-compiler-2.11.7.jar" "IVY_DIR/cache/org.typelevel/scala-library/jars/scala-library-2.11.7.jar" "IVY_DIR/cache/org.typelevel/scala-reflect/jars/scala-reflect-2.11.7.jar" "IVY_DIR/cache/org.typelevel/scalap/jars/scalap-2.11.7.jar")
+ :name "different-scalaorganization"
+ :java-home "JDK_HOME"
+ :java-flags ("-XX:MaxPermSize=256m" "-Xmx2g" "-Xss2m")
+ :java-compiler-args nil
+ :reference-source-roots ("JDK_HOME/src.zip")
+ :scala-version "2.11.7"
+ :compiler-args ("-Xlog-reflective-calls" "-feature" "-deprecation" "-Xlint" "-Yinline-warnings" "-Yno-adapted-args" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ywarn-unused-import" "-Ymacro-expand:discard")
+ :formatting-prefs nil
+ :disable-source-monitoring nil
+ :disable-class-monitoring nil
+ :subprojects ((
+ :name "different-scalaorganization"
+ :source-roots nil
+ :targets ("BASE_DIR/target/scala-2.11/classes")
+ :test-targets ("BASE_DIR/target/scala-2.11/test-classes")
+ :depends-on-modules nil
+ :compile-deps ("IVY_DIR/cache/org.typelevel/scala-library/jars/scala-library-2.11.7.jar")
+ :runtime-deps nil
+ :test-deps nil
+ :doc-jars ("BASE_DIR/target/scala-2.11/different-scalaorganization_2.11-0.1-SNAPSHOT-javadoc.jar" "IVY_DIR/cache/org.typelevel/scala-library/docs/scala-library-2.11.7-javadoc.jar")
+ :reference-source-roots ("IVY_DIR/cache/org.typelevel/scala-library/srcs/scala-library-2.11.7-sources.jar")))
+)
