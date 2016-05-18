@@ -173,7 +173,7 @@ object EnsimePlugin extends AutoPlugin {
     ivyConfigurations += EnsimeInternal,
     // must be here where the ivy config is defined
     EnsimeKeys.scalaCompilerJarModuleIDs := {
-      if (organization.value == "org.scala-lang") Nil
+      if (organization.value == scalaOrganization.value) Nil
       else Seq(
         scalaOrganization.value % "scala-compiler" % scalaVersion.value,
         scalaOrganization.value % "scala-library" % scalaVersion.value,
