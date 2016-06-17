@@ -5,6 +5,6 @@ object EnsimeProjectSettings extends AutoPlugin {
   override def requires = org.ensime.EnsimePlugin
   override def trigger = allRequirements
   override def projectSettings = Seq(
-    EnsimeKeys.scalariform := ScalariformKeys.preferences.value
+    EnsimeKeys.ensimeScalariform := ScalariformKeys.preferences.value
   )
 }

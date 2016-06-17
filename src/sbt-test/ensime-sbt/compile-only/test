@@ -3,7 +3,7 @@
 $ sleep 1000
 $ touch timestamp
 $ sleep 1000
-> a/compileOnly a/src/main/scala/Foo.scala
+> a/ensimeCompileOnly a/src/main/scala/Foo.scala
 $ newer a/target/scala-2.10/classes/Foo.class timestamp
 $ newer timestamp a/target/scala-2.10/classes/Bar.class
 
@@ -16,16 +16,16 @@ $ newer timestamp a/target/scala-2.10/classes/Bar.class
 > b/compile
 
 # -Xprint-phases disables compilation
--> b/test:compileOnly b/src/test/scala/FooTest.scala
+-> b/test:ensimeCompileOnly b/src/test/scala/FooTest.scala
 # but make sure we haven't broken compilation
 > b/test:compile
 
 # failure modes
 $ sleep 1000
--> compileOnly
--> compileOnly a/src/test/scala/Foo.scala
--> compileOnly b/src/main/scala/Foo.scala
--> compileOnly b/src/main/java/Baz.java
+-> ensimeCompileOnly
+-> ensimeCompileOnly a/src/test/scala/Foo.scala
+-> ensimeCompileOnly b/src/main/scala/Foo.scala
+-> ensimeCompileOnly b/src/main/java/Baz.java
 # aggregation
--> compileOnly a/src/main/scala/Foo.scala
--> test:compileOnly b/src/test/scala/FooTest.scala
+-> ensimeCompileOnly a/src/main/scala/Foo.scala
+-> test:ensimeCompileOnly b/src/test/scala/FooTest.scala
