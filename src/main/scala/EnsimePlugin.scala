@@ -536,6 +536,22 @@ object EnsimePlugin extends AutoPlugin {
       )
     }
 
+    if (sourcesInBase.gimme) {
+      val sources = baseDirectory.gimme.list().filter(_.endsWith(".scala"))
+      if (sources.nonEmpty) {
+        if (System.getProperty("ensime.sbt.debug") != null) {
+          // for testing
+          IO.touch(file("sourcesInBaseDetectedWarning"))
+        }
+
+        log.error(
+          s"""You have .scala files in the base of your project. Such "script style" projects
+             |are not supported by ENSIME. Simply move them into src/main/scala to get support.
+             |Please read https://github.com/ensime/ensime-server/issues/1432""".stripMargin
+        )
+      }
+    }
+
     EnsimeModule(
       project.id, mainSources, testSources, Set(mainTarget), testTargets, deps,
       mainJars, runtimeJars, testJars, jarSrcs, jarDocs

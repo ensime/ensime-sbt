@@ -1,0 +1,3 @@
+> ensimeConfig
+$ absent scalaVersionAtStartupWarning
+$ exists sourcesInBaseDetectedWarning
