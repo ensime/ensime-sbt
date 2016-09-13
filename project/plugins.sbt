@@ -7,4 +7,4 @@ scalacOptions ++= Seq("-unchecked", "-deprecation")
 
 ivyLoggingLevel := UpdateLogging.Quiet
 
-addSbtPlugin("io.get-coursier" % "sbt-coursier-java-6" % "1.0.0-M12-1")
+addSbtPlugin("io.get-coursier" % "sbt-coursier" % "1.0.0-M12-1")
