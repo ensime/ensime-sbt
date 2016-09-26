@@ -142,7 +142,7 @@ object EnsimePlugin extends AutoPlugin {
         val usesCoursier = plugins.exists(_.contains("CoursierPlugin"))
         if (!usesCoursier) {
           log.warn(
-            "SBT is using ivy to resolve dependencies and is known to be slow. " +
+            "SBT is using ivy to resolve dependencies which is known to be slow. " +
               "Coursier is recommended: http://get-coursier.io"
           )
         }
