@@ -5,6 +5,10 @@ package org.ensime
 import sbt._
 import Keys._
 import complete.{DefaultParsers, Parser}
+import scalariform.formatter.ScalaFormatter
+import scalariform.parser.ScalaParserException
+
+import EnsimeKeys._
 
 object EnsimeExtrasKeys {
 
@@ -40,7 +44,10 @@ object EnsimeExtrasKeys {
     "ensimeLaunch",
     "Launch a named application in ensimeLaunchConfigurations"
   )
-
+  val ensimeFormatOnly = InputKey[Unit](
+    "ensimeFormatOnly",
+    "Formats a single scala file"
+  )
 }
 
 object EnsimeExtrasPlugin extends AutoPlugin {
@@ -70,6 +77,7 @@ object EnsimeExtrasPlugin extends AutoPlugin {
       // WORKAROUND https://github.com/sbt/sbt/issues/2580
       inConfig(config) {
         Seq(
+          ensimeFormatOnly <<= formatOnlyTask,
           ensimeCompileOnly <<= compileOnlyTask,
           scalacOptions in ensimeCompileOnly := scalacOptions.value
         )
@@ -138,6 +146,7 @@ object EnsimeExtrasPlugin extends AutoPlugin {
     def modifiedBinaries = Array()
     def modifiedClasses = Array()
   }
+
   private object noopCallback extends xsbti.AnalysisCallback {
     val includeSynthToNameHashing: Boolean = true
     override val nameHashing: Boolean = true
@@ -220,5 +229,39 @@ object EnsimeExtrasPlugin extends AutoPlugin {
     }
     extracted.append(newSettings, state)
   }
+
+  def formatOnlyTask: Def.Initialize[InputTask[Unit]] = InputTask(
+    (s: State) => Def.spaceDelimited()
+  ) { (argTask: TaskKey[Seq[String]]) =>
+      (argTask, sourceDirectories, scalariformPreferences, scalaVersion, streams).map {
+        (files, dirs, preferences, version, s) =>
+          if (files.isEmpty) throw new IllegalArgumentException("needs a file")
+          files.foreach(arg => {
+            val input: File = file(arg).getCanonicalFile
+            val sourceDirs = dirs.map(_.getCanonicalFile)
+
+            val here = sourceDirs.exists { dir => input.getPath.startsWith(dir.getPath) }
+            if (!here || !input.exists())
+              throw new IllegalArgumentException(s"$arg not associated to $sourceDirs")
+
+            if (!input.getName.endsWith(".scala"))
+              throw new IllegalArgumentException(s"only .scala files are supported: $arg")
+
+            try {
+              val contents = IO.read(input)
+              val formatted = ScalaFormatter.format(
+                contents,
+                preferences,
+                scalaVersion = version split "-" head
+              )
+              if (formatted != contents) IO.write(input, formatted)
+              s.log.info(s"Formatted $input")
+            } catch {
+              case e: ScalaParserException =>
+                s.log.warn(s"Scalariform parser error for $input: $e.getMessage")
+            }
+          })
+      }
+    }
 
 }
