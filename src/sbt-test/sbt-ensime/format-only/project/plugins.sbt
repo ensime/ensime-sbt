@@ -1,0 +1,1 @@
+../../scalariform/project/plugins.sbt
