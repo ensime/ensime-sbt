@@ -44,8 +44,8 @@ object EnsimeExtrasKeys {
     "ensimeLaunch",
     "Launch a named application in ensimeLaunchConfigurations"
   )
-  val ensimeFormatOnly = InputKey[Unit](
-    "ensimeFormatOnly",
+  val ensimeScalariformOnly = InputKey[Unit](
+    "ensimeScalariformOnly",
     "Formats a single scala file"
   )
 }
@@ -77,7 +77,7 @@ object EnsimeExtrasPlugin extends AutoPlugin {
       // WORKAROUND https://github.com/sbt/sbt/issues/2580
       inConfig(config) {
         Seq(
-          ensimeFormatOnly <<= formatOnlyTask,
+          ensimeScalariformOnly <<= scalariformOnlyTask,
           ensimeCompileOnly <<= compileOnlyTask,
           scalacOptions in ensimeCompileOnly := scalacOptions.value
         )
@@ -219,7 +219,7 @@ object EnsimeExtrasPlugin extends AutoPlugin {
     extracted.append(newSettings, state)
   }
 
-  def formatOnlyTask: Def.Initialize[InputTask[Unit]] = InputTask(
+  def scalariformOnlyTask: Def.Initialize[InputTask[Unit]] = InputTask(
     (s: State) => Def.spaceDelimited()
   ) { (argTask: TaskKey[Seq[String]]) =>
       (argTask, sourceDirectories, scalariformPreferences, scalaVersion, streams).map {

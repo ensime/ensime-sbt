@@ -3,7 +3,7 @@
 > ensimeExpect a/src/main/scala/FormatMe.scala b/src/main/scala/FormatMe.scala
 
 # Format and match with different settings
-> a/ensimeFormatOnly a/src/main/scala/FormatMe.scala
+> a/ensimeScalariformOnly a/src/main/scala/FormatMe.scala
 > ensimeExpect a/src/main/scala/FormatMe.scala FormatMe.scala.formatted.a
-> b/ensimeFormatOnly b/src/main/scala/FormatMe.scala
+> b/ensimeScalariformOnly b/src/main/scala/FormatMe.scala
 > ensimeExpect b/src/main/scala/FormatMe.scala FormatMe.scala.formatted.b
