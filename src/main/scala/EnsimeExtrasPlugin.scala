@@ -179,18 +179,7 @@ object EnsimeExtrasPlugin extends AutoPlugin {
       ).map { (args, dirs, cp, out, opts, merrs, in, cs, s) =>
           if (args.isEmpty) throw new IllegalArgumentException("needs a file")
           args.foreach { arg =>
-            val input: File = file(arg).getCanonicalFile
-            val sourceDirs = dirs.map(_.getCanonicalFile)
-
-            val here = sourceDirs.exists { dir => input.getPath.startsWith(dir.getPath) }
-            if (!here || !input.exists())
-              throw new IllegalArgumentException(s"$arg not associated to $sourceDirs")
-
-            // there is no reason why we couldn't compileOnly other
-            // languages, but they would require explicit support.
-            // Java shouldn't be too hard if somebody wants it.
-            if (!input.getName.endsWith(".scala"))
-              throw new IllegalArgumentException(s"only .scala files are supported: $arg")
+            val input: File = fileInProject(arg, dirs.map(_.getCanonicalFile))
 
             if (!out.exists()) IO.createDirectory(out)
             s.log.info(s"""Compiling $input with ${opts.mkString(" ")}""")
@@ -237,15 +226,7 @@ object EnsimeExtrasPlugin extends AutoPlugin {
         (files, dirs, preferences, version, s) =>
           if (files.isEmpty) throw new IllegalArgumentException("needs a file")
           files.foreach(arg => {
-            val input: File = file(arg).getCanonicalFile
-            val sourceDirs = dirs.map(_.getCanonicalFile)
-
-            val here = sourceDirs.exists { dir => input.getPath.startsWith(dir.getPath) }
-            if (!here || !input.exists())
-              throw new IllegalArgumentException(s"$arg not associated to $sourceDirs")
-
-            if (!input.getName.endsWith(".scala"))
-              throw new IllegalArgumentException(s"only .scala files are supported: $arg")
+            val input: File = fileInProject(arg, dirs.map(_.getCanonicalFile))
 
             try {
               val contents = IO.read(input)
@@ -263,5 +244,17 @@ object EnsimeExtrasPlugin extends AutoPlugin {
           })
       }
     }
+
+  private def fileInProject(arg: String, sourceDirs: Seq[File]): File = {
+    val input = file(arg).getCanonicalFile
+    val here = sourceDirs.exists { dir => input.getPath.startsWith(dir.getPath) }
+    if (!here || !input.exists())
+      throw new IllegalArgumentException(s"$arg not associated to $sourceDirs")
+
+    if (!input.getName.endsWith(".scala"))
+      throw new IllegalArgumentException(s"only .scala files are supported: $arg")
+
+    input
+  }
 
 }
