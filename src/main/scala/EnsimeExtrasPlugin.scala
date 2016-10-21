@@ -72,6 +72,7 @@ object EnsimeExtrasPlugin extends AutoPlugin {
     ),
     ensimeLaunchConfigurations := Nil,
     ensimeLaunch <<= launchTask,
+    aggregate in ensimeScalariformOnly := false,
     aggregate in ensimeCompileOnly := false
   ) ++ Seq(Compile, Test).flatMap { config =>
       // WORKAROUND https://github.com/sbt/sbt/issues/2580
@@ -222,11 +223,11 @@ object EnsimeExtrasPlugin extends AutoPlugin {
   def scalariformOnlyTask: Def.Initialize[InputTask[Unit]] = InputTask(
     (s: State) => Def.spaceDelimited()
   ) { (argTask: TaskKey[Seq[String]]) =>
-      (argTask, sourceDirectories, scalariformPreferences, scalaVersion, streams).map {
-        (files, dirs, preferences, version, s) =>
+      (argTask, sourceDirectories, scalariformPreferences, scalaVersion, baseDirectory, streams).map {
+        (files, dirs, preferences, version, base, s) =>
           if (files.isEmpty) throw new IllegalArgumentException("needs a file")
           files.foreach(arg => {
-            val input: File = fileInProject(arg, dirs.map(_.getCanonicalFile))
+            val input: File = fileInProject(arg, (dirs.map(_.getCanonicalFile)) :+ new File(base.getPath + "/project"))
 
             try {
               val contents = IO.read(input)
