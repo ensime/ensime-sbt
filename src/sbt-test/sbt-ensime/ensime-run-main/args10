@@ -1,4 +1,4 @@
 testing_default_key1=default_value1 testing_key3=value3
 -Dtesting_default_key1=default_value1 -Dtesting_key3=value3 -Xms2G -Xmx2G
 testing_default_key2=default_value2 testing_key1=value1 testing_key2=value2
-output_args8 -arg1 -arg2
+output_args10 -arg1 -arg2 --param1=foo

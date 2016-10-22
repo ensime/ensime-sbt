@@ -34,6 +34,15 @@ object runMainBuild extends Build {
           )
         ),
         LaunchConfig(
+          "extra",
+          JavaArgs(
+            "runEnsimeMain.printArgs",
+            Map("testing_key1" -> "value1", "testing_key2" -> "value2"),
+            Seq("-Dtesting_key3=value3", "-Xms2G", "-Xmx2G"),
+            Seq("output_args10", "-arg1", "-arg2")
+          )
+        ),
+        LaunchConfig(
           "largeMemory",
           JavaArgs(
             "runEnsimeMain.printArgs",

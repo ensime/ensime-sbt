@@ -22,7 +22,5 @@ $ must-mirror args9 output_args9
 > ensime-run-main/ensimeLaunch hello
 $ must-mirror hello output_hello
 $ delete output_args8 output_args9 output_hello
-> ensime-run-main/ensimeLaunch test largeMemory hello
-$ must-mirror args8 output_args8
-$ must-mirror args9 output_args9
-$ must-mirror hello output_hello
+> ensime-run-main/ensimeLaunch extra --param1=foo
+$ must-mirror args10 output_args10

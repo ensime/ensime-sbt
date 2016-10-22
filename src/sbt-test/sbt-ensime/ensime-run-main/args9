@@ -1,4 +1,4 @@
-
--Xms4G -Xmx4G
-
+testing_default_key1=default_value1
+-Dtesting_default_key1=default_value1 -Xms4G -Xmx4G
+testing_default_key2=default_value2
 output_args9
