@@ -1,1 +1,0 @@
-../../ensime-server/project/testing.sbt

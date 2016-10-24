@@ -287,7 +287,7 @@ object EnsimePlugin extends AutoPlugin {
       root, cacheDir,
       scalaCompilerJars,
       name, scalaVersion, compilerArgs,
-      modules, javaH, javaFlags, javaCompilerArgs, javaSrc, formatting,
+      modules, javaH, javaFlags, javaCompilerArgs, javaSrc,
       disableSourceMonitoring, disableClassMonitoring, sourceMode
     )
 
@@ -503,7 +503,7 @@ object EnsimePlugin extends AutoPlugin {
       root, cacheDir,
       scalaCompilerJars,
       name, scalaV, compilerArgs,
-      Map(module.name -> module), JdkDir, javaFlags, Nil, javaSrc, formatting,
+      Map(module.name -> module), JdkDir, javaFlags, Nil, javaSrc,
       false, false, false
     )
 
@@ -559,7 +559,6 @@ case class EnsimeConfig(
   javaFlags: List[String],
   javaCompilerArgs: List[String],
   javaSrc: List[File],
-  formatting: Option[IFormattingPreferences],
   disableSourceMonitoring: Boolean,
   disableClassMonitoring: Boolean,
   sourceMode: Boolean
@@ -676,7 +675,6 @@ object SExpFormatter {
  :reference-source-roots ${fsToSExp(c.javaSrc)}
  :scala-version ${toSExp(c.scalaVersion)}
  :compiler-args ${ssToSExp(c.compilerArgs)}
- :formatting-prefs ${toSExp(c.formatting)}
  :disable-source-monitoring ${toSExp(c.disableSourceMonitoring)}
  :disable-class-monitoring ${toSExp(c.disableClassMonitoring)}
  :source-mode ${toSExp(c.sourceMode)}
