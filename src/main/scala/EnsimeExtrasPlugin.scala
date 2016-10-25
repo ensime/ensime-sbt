@@ -65,7 +65,7 @@ object EnsimeExtrasPlugin extends AutoPlugin {
       extraArgs = Seq(s"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005")
     ),
     ensimeLaunchConfigurations := Nil,
-    ensimeLaunch <<= launchTask(),
+    ensimeLaunch in Compile <<= launchTask(Compile),
     aggregate in ensimeScalariformOnly := false,
     aggregate in ensimeCompileOnly := false
   ) ++ Seq(Compile, Test).flatMap { config =>
@@ -115,21 +115,22 @@ object EnsimeExtrasPlugin extends AutoPlugin {
     }
   }
 
-  def launchTask(extraArgs: Seq[String] = Nil): Def.Initialize[InputTask[Unit]] = Def.inputTask {
+  def launchTask(config: Configuration, extraArgs: Seq[String] = Nil): Def.Initialize[InputTask[Unit]] = Def.inputTask {
     val (name :: additionalParams) = Def.spaceDelimited().parsed
-    val configByName = ensimeLaunchConfigurations.value.find(_.name == name)
-    configByName.fold(
+    val launcherByName = ensimeLaunchConfigurations.value.find(_.name == name)
+    launcherByName.fold(
       streams.value.log.warn(s"No launch configuration '$name'")
-    ) { config =>
-        val args = config.javaArgs
+    ) { launcher =>
+        val args = launcher.javaArgs
         val options = ForkOptions(
-          runJVMOptions = javaOptions.value ++ args.jvmArgs ++ extraArgs,
-          envVars = envVars.value ++ args.envArgs
+          runJVMOptions = (javaOptions in config).value ++ args.jvmArgs ++ extraArgs,
+          envVars = (envVars in config).value ++ args.envArgs
         )
+        streams.value.log.info(s"launching $options -cp CLASSPATH ${args.mainClass} ${args.classArgs ++ additionalParams}")
         toError(
           new ForkRun(options).run(
             args.mainClass,
-            Attributed.data((fullClasspath in Compile).value),
+            Attributed.data((fullClasspath in config).value),
             args.classArgs ++ additionalParams,
             streams.value.log
           )
