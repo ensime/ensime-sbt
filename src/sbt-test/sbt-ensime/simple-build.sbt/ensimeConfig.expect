@@ -9,9 +9,6 @@
  :reference-source-roots ("JDK_HOME/src.zip")
  :scala-version "2.11.8"
  :compiler-args ("-Xlog-reflective-calls" "-feature" "-deprecation" "-Xlint" "-Yno-adapted-args" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ywarn-unused-import" "-Ymacro-expand:discard")
- :disable-source-monitoring nil
- :disable-class-monitoring nil
- :source-mode nil
  :subprojects ((
  :name "simple-build-sbt"
  :source-roots nil

@@ -42,17 +42,6 @@ object EnsimeKeys {
       "Note that `proj/compile` does not produce the jar, change your workflow to use `proj/packageBin`."
   )
 
-  // this cluster of settings will be removed in https://github.com/ensime/ensime-sbt/issues/234
-  val ensimeDisableSourceMonitoring = settingKey[Boolean](
-    "Workaround temporary performance problems on large projects."
-  )
-  val ensimeDisableClassMonitoring = settingKey[Boolean](
-    "Workaround temporary performance problems on large projects."
-  )
-  val ensimeSourceMode = settingKey[Boolean](
-    "Start up ensime in source mode only. For very small projects, scala or dotty."
-  )
-
   // used to start the REPL and assembly jar bundles of ensime-server.
   // intransitive because we don't need parser combinators, scala.xml or jline
   val ensimeScalaCompilerJarModuleIDs = settingKey[Seq[ModuleID]](
@@ -116,9 +105,6 @@ object EnsimePlugin extends AutoPlugin {
     ensimeJavaFlags := JavaFlags,
     // unable to infer the user's scalac options: https://github.com/ensime/ensime-sbt/issues/98
     ensimeProjectScalacOptions := ensimeSuggestedScalacOptions(Properties.versionNumberString),
-    ensimeDisableSourceMonitoring := false,
-    ensimeDisableClassMonitoring := false,
-    ensimeSourceMode := false,
     ensimeMegaUpdate <<= Keys.state.flatMap { implicit s =>
 
       def checkCoursier(): Unit = {
@@ -278,17 +264,13 @@ object EnsimePlugin extends AutoPlugin {
     val javaFlags = ensimeJavaFlags.run.toList
 
     val formatting = scalariformPreferences.gimmeOpt
-    val disableSourceMonitoring = (ensimeDisableSourceMonitoring).gimme
-    val disableClassMonitoring = (ensimeDisableClassMonitoring).gimme
-    val sourceMode = (ensimeSourceMode in ThisBuild).gimme
     val scalaVersion = (ensimeScalaVersion in ThisBuild).gimme
 
     val config = EnsimeConfig(
       root, cacheDir,
       scalaCompilerJars,
       name, scalaVersion, compilerArgs,
-      modules, javaH, javaFlags, javaCompilerArgs, javaSrc,
-      disableSourceMonitoring, disableClassMonitoring, sourceMode
+      modules, javaH, javaFlags, javaCompilerArgs, javaSrc
     )
 
     val transformedConfig = ensimeConfigTransformer.gimme.apply(config)
@@ -503,8 +485,7 @@ object EnsimePlugin extends AutoPlugin {
       root, cacheDir,
       scalaCompilerJars,
       name, scalaV, compilerArgs,
-      Map(module.name -> module), JdkDir, javaFlags, Nil, javaSrc,
-      false, false, false
+      Map(module.name -> module), JdkDir, javaFlags, Nil, javaSrc
     )
 
     val transformedConfig = ensimeConfigTransformerProject.gimme.apply(config)
@@ -558,10 +539,7 @@ case class EnsimeConfig(
   javaHome: File,
   javaFlags: List[String],
   javaCompilerArgs: List[String],
-  javaSrc: List[File],
-  disableSourceMonitoring: Boolean,
-  disableClassMonitoring: Boolean,
-  sourceMode: Boolean
+  javaSrc: List[File]
 )
 
 case class EnsimeModule(
@@ -675,9 +653,6 @@ object SExpFormatter {
  :reference-source-roots ${fsToSExp(c.javaSrc)}
  :scala-version ${toSExp(c.scalaVersion)}
  :compiler-args ${ssToSExp(c.compilerArgs)}
- :disable-source-monitoring ${toSExp(c.disableSourceMonitoring)}
- :disable-class-monitoring ${toSExp(c.disableClassMonitoring)}
- :source-mode ${toSExp(c.sourceMode)}
  :subprojects ${msToSExp(c.modules.values)}
 )"""
 
