@@ -234,9 +234,6 @@ object EnsimePlugin extends AutoPlugin {
       val deps = m.dependencies
       // restrict jars to immediate deps at each module
       m.copy(
-        compileJars = m.compileJars -- deps.flatMap(_.compileJars),
-        testJars = m.testJars -- deps.flatMap(_.testJars),
-        runtimeJars = m.runtimeJars -- deps.flatMap(_.runtimeJars),
         sourceJars = m.sourceJars -- deps.flatMap(_.sourceJars),
         docJars = m.docJars -- deps.flatMap(_.docJars)
       )
@@ -365,19 +362,27 @@ object EnsimePlugin extends AutoPlugin {
       artifact = artifactFilter(classifier = Artifact.DocClassifier)
     ).toSet ++ (ensimeUnmanagedJavadocArchives in projectRef).gimme
 
-    val sbv = scalaBinaryVersion.gimme
-    val mainSources = filteredSources(sourcesFor(Compile) ++ sourcesFor(Provided) ++ sourcesFor(Optional), sbv)
-    val testSources = filteredSources(testPhases.flatMap(sourcesFor), sbv)
-    val mainTarget = targetForOpt(Compile).get
-    val testTargets = testPhases.flatMap(targetForOpt).toSet
-    val deps = project.dependencies.map(_.project.project).toSet
-    val mainJars = jarsFor(Compile) ++ unmanagedJarsFor(Compile) ++ jarsFor(Provided) ++ jarsFor(Optional)
-    val runtimeJars = jarsFor(Runtime) ++ unmanagedJarsFor(Runtime) -- mainJars
-    val testJars = {
-      testPhases.flatMap {
-        phase => jarsFor(phase) ++ unmanagedJarsFor(phase)
+    def configDataFor(config: Configuration): EnsimeConfiguration = {
+      val sbv = scalaBinaryVersion.gimme
+      val sources = config match {
+        case Compile =>
+          filteredSources(sourcesFor(Compile) ++ sourcesFor(Provided) ++ sourcesFor(Optional), sbv)
+        case _ =>
+          filteredSources(sourcesFor(config), sbv)
       }
-    } -- mainJars
+      val target = targetForOpt(config).get
+      val compilerArgs = ((scalacOptions in config).run ++
+        ensimeSuggestedScalacOptions((ensimeScalaVersion in ThisBuild).gimme)).toList
+      val javaCompilerArgs = (javacOptions in config).run.toList
+      val jars = config match {
+        case Compile => jarsFor(Compile) ++ unmanagedJarsFor(Compile) ++ jarsFor(Provided) ++ jarsFor(Optional)
+        case _       => jarsFor(config) ++ unmanagedJarsFor(config)
+      }
+
+      EnsimeConfiguration(config.name, sources, Set(target), compilerArgs, javaCompilerArgs, jars)
+    }
+
+    val deps = project.dependencies.map(_.project.project).toSet
     val jarSrcs = testPhases.flatMap(jarSrcsFor) ++ jarSrcsFor(Provided)
     val jarDocs = testPhases.flatMap(jarDocsFor) ++ jarDocsFor(Provided) ++ myDoc
 
@@ -413,10 +418,12 @@ object EnsimePlugin extends AutoPlugin {
       }
     }
 
-    EnsimeModule(
-      project.id, mainSources, testSources, Set(mainTarget), testTargets, deps,
-      mainJars, runtimeJars, testJars, jarSrcs, jarDocs
-    )
+    val compileConfig = configDataFor(Compile)
+
+    val configs: Map[String, EnsimeConfiguration] = Map(compileConfig.name -> compileConfig) ++
+      { for (test <- testPhases) yield (test.name -> configDataFor(test)) }.toMap
+
+    EnsimeModule(project.id, deps, jarSrcs, jarDocs, configs)
   }
 
   def ensimeConfigProject: State => State = { implicit state: State =>
@@ -468,10 +475,9 @@ object EnsimePlugin extends AutoPlugin {
 
     val formatting = scalariformPreferences.gimmeOpt
 
-    val module = EnsimeModule(
-      name, Set(root), Set.empty, targets.toSet, Set.empty, Set.empty,
-      jars.toSet, Set.empty, Set.empty, srcs.toSet, docs.toSet
-    )
+    val conf = EnsimeConfiguration(name, Set(root), targets.toSet, Nil, Nil, jars.toSet)
+
+    val module = EnsimeModule(name, Set.empty, srcs.toSet, docs.toSet, Map(conf.name -> conf))
 
     val scalaCompilerJars = jars.filter { file =>
       val f = file.getName
@@ -544,22 +550,25 @@ case class EnsimeConfig(
 
 case class EnsimeModule(
   name: String,
-  mainRoots: Set[File],
-  testRoots: Set[File],
-  targets: Set[File],
-  testTargets: Set[File],
   dependsOnNames: Set[String],
-  compileJars: Set[File],
-  runtimeJars: Set[File],
-  testJars: Set[File],
   sourceJars: Set[File],
-  docJars: Set[File]
+  docJars: Set[File],
+  configurations: Map[String, EnsimeConfiguration]
 ) {
 
   def dependencies(implicit lookup: String => EnsimeModule): Set[EnsimeModule] =
     dependsOnNames map lookup
 
 }
+
+case class EnsimeConfiguration(
+  name: String,
+  roots: Set[File],
+  targets: Set[File],
+  compilerArgs: List[String],
+  javaCompilerArgs: List[String],
+  jars: Set[File]
+)
 
 object CommandSupport {
   private def fail(errorMessage: String)(implicit state: State): Nothing = {
@@ -616,6 +625,10 @@ object SExpFormatter {
     if (ss.isEmpty) "nil"
     else ss.toSeq.sortBy(_.name).map(toSExp).mkString("(", " ", ")")
 
+  def csToSExp(ss: Iterable[EnsimeConfiguration]): String =
+    if (ss.isEmpty) "nil"
+    else ss.toSeq.sortBy(_.name).map(toSExp).mkString("(", " ", ")")
+
   def fToSExp(key: String, op: Option[File]): String =
     op.map { f => s":$key ${toSExp(f)}" }.getOrElse("")
 
@@ -659,13 +672,16 @@ object SExpFormatter {
   // a lot of legacy key names and conventions
   def toSExp(m: EnsimeModule): String = s"""(
    :name ${toSExp(m.name)}
-   :source-roots ${fsToSExp((m.mainRoots ++ m.testRoots))}
-   :targets ${fsToSExp(m.targets)}
-   :test-targets ${fsToSExp(m.testTargets)}
    :depends-on-modules ${ssToSExp(m.dependsOnNames.toList.sorted)}
-   :compile-deps ${fsToSExp(m.compileJars)}
-   :runtime-deps ${fsToSExp(m.runtimeJars)}
-   :test-deps ${fsToSExp(m.testJars)}
    :doc-jars ${fsToSExp(m.docJars)}
-   :reference-source-roots ${fsToSExp(m.sourceJars)})"""
+   :reference-source-roots ${fsToSExp(m.sourceJars)}
+   :configurations ${csToSExp(m.configurations.values)})"""
+
+  def toSExp(f: EnsimeConfiguration): String = s"""
+    (:name ${f.name}
+     :source-roots ${fsToSExp(f.roots)}
+     :targets ${fsToSExp(f.targets)}
+     :compiler-args ${ssToSExp(f.compilerArgs)}
+     :java-compiler-args ${ssToSExp(f.javaCompilerArgs)}
+     :deps ${fsToSExp(f.jars)})"""
 }
