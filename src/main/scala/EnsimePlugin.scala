@@ -371,7 +371,7 @@ object EnsimePlugin extends AutoPlugin {
           filteredSources(sourcesFor(config), sbv)
       }
       val target = targetForOpt(config).get
-      val compilerArgs = ((scalacOptions in config).run ++
+      val scalaCompilerArgs = ((scalacOptions in config).run ++
         ensimeSuggestedScalacOptions((ensimeScalaVersion in ThisBuild).gimme)).toList
       val javaCompilerArgs = (javacOptions in config).run.toList
       val jars = config match {
@@ -379,7 +379,7 @@ object EnsimePlugin extends AutoPlugin {
         case _       => jarsFor(config) ++ unmanagedJarsFor(config)
       }
 
-      EnsimeConfiguration(config.name, sources, Set(target), compilerArgs, javaCompilerArgs, jars)
+      EnsimeConfiguration(config.name, sources, Set(target), scalaCompilerArgs, javaCompilerArgs, jars)
     }
 
     val deps = project.dependencies.map(_.project.project).toSet
@@ -565,7 +565,7 @@ case class EnsimeConfiguration(
   name: String,
   roots: Set[File],
   targets: Set[File],
-  compilerArgs: List[String],
+  scalaCompilerArgs: List[String],
   javaCompilerArgs: List[String],
   jars: Set[File]
 )
@@ -681,7 +681,7 @@ object SExpFormatter {
     (:name ${f.name}
      :source-roots ${fsToSExp(f.roots)}
      :targets ${fsToSExp(f.targets)}
-     :compiler-args ${ssToSExp(f.compilerArgs)}
-     :java-compiler-args ${ssToSExp(f.javaCompilerArgs)}
+     :scalac-options ${ssToSExp(f.scalaCompilerArgs)}
+     :javac-options ${ssToSExp(f.javaCompilerArgs)}
      :deps ${fsToSExp(f.jars)})"""
 }
