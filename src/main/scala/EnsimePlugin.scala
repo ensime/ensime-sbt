@@ -234,6 +234,9 @@ object EnsimePlugin extends AutoPlugin {
       val deps = m.dependencies
       // restrict jars to immediate deps at each module
       m.copy(
+        compileJars = m.compileJars -- deps.flatMap(_.compileJars),
+        testJars = m.testJars -- deps.flatMap(_.testJars),
+        runtimeJars = m.runtimeJars -- deps.flatMap(_.runtimeJars),
         sourceJars = m.sourceJars -- deps.flatMap(_.sourceJars),
         docJars = m.docJars -- deps.flatMap(_.docJars)
       )
@@ -362,6 +365,10 @@ object EnsimePlugin extends AutoPlugin {
       artifact = artifactFilter(classifier = Artifact.DocClassifier)
     ).toSet ++ (ensimeUnmanagedJavadocArchives in projectRef).gimme
 
+    val deps = project.dependencies.map(_.project.project).toSet
+    val jarSrcs = testPhases.flatMap(jarSrcsFor) ++ jarSrcsFor(Provided)
+    val jarDocs = testPhases.flatMap(jarDocsFor) ++ jarDocsFor(Provided) ++ myDoc
+
     def configDataFor(config: Configuration): EnsimeConfiguration = {
       val sbv = scalaBinaryVersion.gimme
       val sources = config match {
@@ -381,10 +388,6 @@ object EnsimePlugin extends AutoPlugin {
 
       EnsimeConfiguration(config.name, sources, Set(target), scalaCompilerArgs, javaCompilerArgs, jars)
     }
-
-    val deps = project.dependencies.map(_.project.project).toSet
-    val jarSrcs = testPhases.flatMap(jarSrcsFor) ++ jarSrcsFor(Provided)
-    val jarDocs = testPhases.flatMap(jarDocsFor) ++ jarDocsFor(Provided) ++ myDoc
 
     if (scalaVersion.gimme != ensimeScalaV) {
       if (System.getProperty("ensime.sbt.debug") != null) {
@@ -419,11 +422,24 @@ object EnsimePlugin extends AutoPlugin {
     }
 
     val compileConfig = configDataFor(Compile)
+    val testConfigs: List[EnsimeConfiguration] =
+      { for (test <- testPhases) yield configDataFor(test) }.toList
 
-    val configs: Map[String, EnsimeConfiguration] = Map(compileConfig.name -> compileConfig) ++
-      { for (test <- testPhases) yield (test.name -> configDataFor(test)) }.toMap
+    val configs = Map(compileConfig.name -> compileConfig) ++
+      { for (test <- testConfigs) yield (test.name -> test) }.toMap
 
-    EnsimeModule(project.id, deps, jarSrcs, jarDocs, configs)
+    val mainSources = compileConfig.roots
+    val testSources = testConfigs.flatMap(_.roots).toSet
+    val mainTarget = compileConfig.targets
+    val testTargets = testConfigs.flatMap(_.targets).toSet
+    val mainJars = compileConfig.jars
+    val runtimeJars = jarsFor(Runtime) ++ unmanagedJarsFor(Runtime) -- mainJars
+    val testJars = testConfigs.flatMap(_.jars).toSet -- mainJars
+
+    EnsimeModule(
+      project.id, mainSources, testSources, mainTarget, testTargets, deps,
+      mainJars, runtimeJars, testJars, jarSrcs, jarDocs, configs
+    )
   }
 
   def ensimeConfigProject: State => State = { implicit state: State =>
@@ -477,7 +493,10 @@ object EnsimePlugin extends AutoPlugin {
 
     val conf = EnsimeConfiguration(name, Set(root), targets.toSet, Nil, Nil, jars.toSet)
 
-    val module = EnsimeModule(name, Set.empty, srcs.toSet, docs.toSet, Map(conf.name -> conf))
+    val module = EnsimeModule(
+      name, Set(root), Set.empty, targets.toSet, Set.empty, Set.empty,
+      jars.toSet, Set.empty, Set.empty, srcs.toSet, docs.toSet, Map(conf.name -> conf)
+    )
 
     val scalaCompilerJars = jars.filter { file =>
       val f = file.getName
@@ -550,7 +569,14 @@ case class EnsimeConfig(
 
 case class EnsimeModule(
   name: String,
+  mainRoots: Set[File],
+  testRoots: Set[File],
+  targets: Set[File],
+  testTargets: Set[File],
   dependsOnNames: Set[String],
+  compileJars: Set[File],
+  runtimeJars: Set[File],
+  testJars: Set[File],
   sourceJars: Set[File],
   docJars: Set[File],
   configurations: Map[String, EnsimeConfiguration]
@@ -672,7 +698,13 @@ object SExpFormatter {
   // a lot of legacy key names and conventions
   def toSExp(m: EnsimeModule): String = s"""(
    :name ${toSExp(m.name)}
+   :source-roots ${fsToSExp((m.mainRoots ++ m.testRoots))}
+   :targets ${fsToSExp(m.targets)}
+   :test-targets ${fsToSExp(m.testTargets)}
    :depends-on-modules ${ssToSExp(m.dependsOnNames.toList.sorted)}
+   :compile-deps ${fsToSExp(m.compileJars)}
+   :runtime-deps ${fsToSExp(m.runtimeJars)}
+   :test-deps ${fsToSExp(m.testJars)}
    :doc-jars ${fsToSExp(m.docJars)}
    :reference-source-roots ${fsToSExp(m.sourceJars)}
    :configurations ${csToSExp(m.configurations.values)})"""
