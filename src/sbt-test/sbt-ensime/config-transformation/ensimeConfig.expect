@@ -19,7 +19,8 @@
    :runtime-deps nil
    :test-deps nil
    :doc-jars nil
-   :reference-source-roots nil) (
+   :reference-source-roots nil
+   :configurations nil) (
    :name "config-transformation"
    :source-roots nil
    :targets ("BASE_DIR/target/scala-2.11/classes")
@@ -29,5 +30,18 @@
    :runtime-deps nil
    :test-deps nil
    :doc-jars ("BASE_DIR/target/scala-2.11/config-transformation_2.11-0.1-SNAPSHOT-javadoc.jar" "IVY_DIR/cache/org.scala-lang/scala-library/docs/scala-library-2.11.8-javadoc.jar")
-   :reference-source-roots ("IVY_DIR/cache/org.scala-lang/scala-library/srcs/scala-library-2.11.8-sources.jar")))
+   :reference-source-roots ("IVY_DIR/cache/org.scala-lang/scala-library/srcs/scala-library-2.11.8-sources.jar")
+   :configurations (
+   (:name compile
+    :source-roots nil
+ :targets ("BASE_DIR/target/scala-2.11/classes")
+ :scalac-options ("-feature" "-deprecation" "-Xlint" "-Yno-adapted-args" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ywarn-unused-import" "-Ymacro-expand:discard")
+ :javac-options nil
+ :deps ("IVY_DIR/cache/org.scala-lang/scala-library/jars/scala-library-2.11.8.jar")) 
+ (:name test
+ :source-roots nil
+ :targets ("BASE_DIR/target/scala-2.11/test-classes")
+ :scalac-options ("-feature" "-deprecation" "-Xlint" "-Yno-adapted-args" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ywarn-unused-import" "-Ymacro-expand:discard")
+ :javac-options nil
+ :deps ("IVY_DIR/cache/org.scala-lang/scala-library/jars/scala-library-2.11.8.jar")))))
 )

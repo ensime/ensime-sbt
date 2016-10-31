@@ -425,9 +425,6 @@ object EnsimePlugin extends AutoPlugin {
     val testConfigs: List[EnsimeConfiguration] =
       { for (test <- testPhases) yield configDataFor(test) }.toList
 
-    val configs = Map(compileConfig.name -> compileConfig) ++
-      { for (test <- testConfigs) yield (test.name -> test) }.toMap
-
     val mainSources = compileConfig.roots
     val testSources = testConfigs.flatMap(_.roots).toSet
     val mainTarget = compileConfig.targets
@@ -438,7 +435,7 @@ object EnsimePlugin extends AutoPlugin {
 
     EnsimeModule(
       project.id, mainSources, testSources, mainTarget, testTargets, deps,
-      mainJars, runtimeJars, testJars, jarSrcs, jarDocs, configs
+      mainJars, runtimeJars, testJars, jarSrcs, jarDocs, compileConfig +: testConfigs
     )
   }
 
@@ -495,7 +492,7 @@ object EnsimePlugin extends AutoPlugin {
 
     val module = EnsimeModule(
       name, Set(root), Set.empty, targets.toSet, Set.empty, Set.empty,
-      jars.toSet, Set.empty, Set.empty, srcs.toSet, docs.toSet, Map(conf.name -> conf)
+      jars.toSet, Set.empty, Set.empty, srcs.toSet, docs.toSet, List(conf)
     )
 
     val scalaCompilerJars = jars.filter { file =>
@@ -579,7 +576,7 @@ case class EnsimeModule(
   testJars: Set[File],
   sourceJars: Set[File],
   docJars: Set[File],
-  configurations: Map[String, EnsimeConfiguration]
+  configurations: List[EnsimeConfiguration]
 ) {
 
   def dependencies(implicit lookup: String => EnsimeModule): Set[EnsimeModule] =
@@ -707,7 +704,7 @@ object SExpFormatter {
    :test-deps ${fsToSExp(m.testJars)}
    :doc-jars ${fsToSExp(m.docJars)}
    :reference-source-roots ${fsToSExp(m.sourceJars)}
-   :configurations ${csToSExp(m.configurations.values)})"""
+   :configurations ${csToSExp(m.configurations)})"""
 
   def toSExp(f: EnsimeConfiguration): String = s"""
     (:name ${f.name}

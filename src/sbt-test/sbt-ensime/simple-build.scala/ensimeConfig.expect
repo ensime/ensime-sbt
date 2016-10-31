@@ -19,5 +19,18 @@
  :runtime-deps nil
  :test-deps nil
  :doc-jars ("IVY_DIR/cache/org.scala-lang/scala-library/docs/scala-library-2.11.8-javadoc.jar" "BASE_DIR/target/scala-2.11/simple-build-scala_2.11-0.1-SNAPSHOT-javadoc.jar")
- :reference-source-roots ("IVY_DIR/cache/org.scala-lang/scala-library/srcs/scala-library-2.11.8-sources.jar")))
+ :reference-source-roots ("IVY_DIR/cache/org.scala-lang/scala-library/srcs/scala-library-2.11.8-sources.jar")
+ :configurations (
+ (:name compile
+ :source-roots nil
+ :targets ("BASE_DIR/target/scala-2.11/classes")
+ :scalac-options ("-Xlog-reflective-calls" "-feature" "-deprecation" "-Xlint" "-Yno-adapted-args" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ywarn-unused-import" "-Ymacro-expand:discard")
+ :javac-options ("-source" "1.6" "-target" "1.6")
+ :deps ("IVY_DIR/cache/org.scala-lang/scala-library/jars/scala-library-2.11.8.jar")) 
+ (:name test
+ :source-roots nil
+ :targets ("BASE_DIR/target/scala-2.11/test-classes")
+ :scalac-options ("-Xlog-reflective-calls" "-feature" "-deprecation" "-Xlint" "-Yno-adapted-args" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ywarn-unused-import" "-Ymacro-expand:discard")
+ :javac-options ("-source" "1.6" "-target" "1.6")
+ :deps ("IVY_DIR/cache/org.scala-lang/scala-library/jars/scala-library-2.11.8.jar")))))
 )
