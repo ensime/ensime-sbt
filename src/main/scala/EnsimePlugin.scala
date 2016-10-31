@@ -707,7 +707,7 @@ object SExpFormatter {
    :configurations ${csToSExp(m.configurations)})"""
 
   def toSExp(f: EnsimeConfiguration): String = s"""
-    (:name ${f.name}
+    (:name ${toSExp(f.name)}
      :source-roots ${fsToSExp(f.roots)}
      :targets ${fsToSExp(f.targets)}
      :scalac-options ${ssToSExp(f.scalaCompilerArgs)}

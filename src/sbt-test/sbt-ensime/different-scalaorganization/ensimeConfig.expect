@@ -21,13 +21,13 @@
  :doc-jars ("BASE_DIR/target/scala-2.11/different-scalaorganization_2.11-0.1-SNAPSHOT-javadoc.jar" "IVY_DIR/cache/org.typelevel/scala-library/docs/scala-library-2.11.7-javadoc.jar")
  :reference-source-roots ("IVY_DIR/cache/org.typelevel/scala-library/srcs/scala-library-2.11.7-sources.jar")
  :configurations (
- (:name compile
+ (:name "compile"
  :source-roots nil
  :targets ("BASE_DIR/target/scala-2.11/classes")
  :scalac-options ("-Xlog-reflective-calls" "-feature" "-deprecation" "-Xlint" "-Yno-adapted-args" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ywarn-unused-import" "-Ymacro-expand:discard")
  :javac-options nil
  :deps ("IVY_DIR/cache/org.typelevel/scala-library/jars/scala-library-2.11.7.jar")) 
- (:name test
+ (:name "test"
  :source-roots nil
  :targets ("BASE_DIR/target/scala-2.11/test-classes")
  :scalac-options ("-Xlog-reflective-calls" "-feature" "-deprecation" "-Xlint" "-Yno-adapted-args" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ywarn-unused-import" "-Ymacro-expand:discard")

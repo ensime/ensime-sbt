@@ -21,13 +21,13 @@
  :doc-jars ("BASE_DIR/target/scala-2.10/bad-build-scala_2.10-0.1-SNAPSHOT-javadoc.jar" "IVY_DIR/cache/org.scala-lang/scala-library/docs/scala-library-2.10.6-javadoc.jar")
  :reference-source-roots ("IVY_DIR/cache/org.scala-lang/scala-library/srcs/scala-library-2.10.6-sources.jar")
  :configurations (
- (:name compile
+ (:name "compile"
  :source-roots nil
  :targets ("BASE_DIR/target/scala-2.10/classes")
  :scalac-options ("-feature" "-deprecation" "-Xlint" "-Yno-adapted-args" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture")
  :javac-options nil
  :deps ("BASE_DIR/global/boot/scala-2.10.6/lib/scala-library.jar")) 
- (:name test
+ (:name "test"
  :source-roots nil
  :targets ("BASE_DIR/target/scala-2.10/test-classes")
  :scalac-options ("-feature" "-deprecation" "-Xlint" "-Yno-adapted-args" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture")
@@ -44,13 +44,13 @@
  :doc-jars ("BASE_DIR/root/target/scala-2.11/root_2.11-0.1-SNAPSHOT-javadoc.jar" "IVY_DIR/cache/org.scala-lang/scala-library/docs/scala-library-2.11.8-javadoc.jar")
  :reference-source-roots ("IVY_DIR/cache/org.scala-lang/scala-library/srcs/scala-library-2.11.8-sources.jar")
  :configurations (
- (:name compile
+ (:name "compile"
  :source-roots nil
  :targets ("BASE_DIR/root/target/scala-2.11/classes")
  :scalac-options ("-Xlog-reflective-calls" "-feature" "-deprecation" "-Xlint" "-Yno-adapted-args" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture")
  :javac-options nil
  :deps ("IVY_DIR/cache/org.scala-lang/scala-library/jars/scala-library-2.11.8.jar")) 
- (:name test
+ (:name "test"
  :source-roots nil
  :targets ("BASE_DIR/root/target/scala-2.11/test-classes")
  :scalac-options ("-Xlog-reflective-calls" "-feature" "-deprecation" "-Xlint" "-Yno-adapted-args" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture")
