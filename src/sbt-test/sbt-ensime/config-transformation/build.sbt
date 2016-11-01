@@ -18,8 +18,7 @@ ensimeConfigTransformer := {(cfg: EnsimeConfig) => {
     runtimeJars = Set.empty,
     testJars = Set.empty,
     sourceJars = Set.empty,
-    docJars = Set.empty,
-    configurations = List.empty
+    docJars = Set.empty
   )
   c.copy(modules = c.modules ++ Map("dummy" -> dummyModule))
 }}
