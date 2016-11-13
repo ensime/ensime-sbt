@@ -58,7 +58,7 @@ object EnsimeSbtTestSupport extends AutoPlugin {
             replace(Properties.userHome + "/.coursier", "COURSIER_DIR").
             replace("C:/Users/appveyor/.coursier", "COURSIER_DIR").
             replaceAll("""/usr/lib/jvm/[^/"]++""", "JDK_HOME").
-            replaceAll("""/opt/zulu/[^/"]++""", "JDK_HOME").
+            replaceAll("""/opt/zulu[/]?[^/"]++""", "JDK_HOME").
             replaceAll("""/Library/Java/JavaVirtualMachines/[^/]+/Contents/Home""", "JDK_HOME").
             replaceAll("""C:/Program Files/Java/[^/"]++""", "JDK_HOME").
             replace(jdkHome, "JDK_HOME").

@@ -177,6 +177,7 @@ object EnsimePlugin extends AutoPlugin {
     "-Xfuture"
   ) ++ {
       CrossVersion.partialVersion(scalaVersion) match {
+        case Some((2, 10))           => Seq("-Ymacro-no-expand")
         case Some((2, v)) if v >= 11 => Seq("-Ywarn-unused-import", "-Ymacro-expand:discard")
         case _                       => Nil
       }
