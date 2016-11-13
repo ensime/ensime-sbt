@@ -10,6 +10,9 @@ import scalariform.formatter.ScalaFormatter
 import scalariform.formatter.preferences._
 import scalariform.parser.ScalaParserException
 
+import sbt.complete.Parsers._
+import sbt.complete.Parser._
+
 object EnsimeExtrasKeys {
 
   case class JavaArgs(mainClass: String, envArgs: Map[String, String], jvmArgs: Seq[String], classArgs: Seq[String])
@@ -102,51 +105,75 @@ object EnsimeExtrasPlugin extends AutoPlugin {
     config: Configuration,
     extraEnv: Map[String, String] = Map.empty,
     extraArgs: Seq[String] = Seq.empty
-  ): Def.Initialize[InputTask[Unit]] = {
-    val parser = (s: State) => ensimeRunMainTaskParser
-    Def.inputTask {
-      val log = (streams in config).value.log
-      val args = parser.parsed
-      val newJvmArgs = ((javaOptions in config).value ++ extraArgs ++ args.jvmArgs).distinct
-      val newEnvArgs = (envVars in config).value ++ extraEnv ++ args.envArgs
-      val options = ForkOptions(
-        runJVMOptions = newJvmArgs,
-        envVars = newEnvArgs,
-        workingDirectory = Some((baseDirectory in config).value)
-      )
-      log.debug(s"launching $options ${args.mainClass} $newJvmArgs ${args.classArgs}")
-      toError(new ForkRun(options).run(
-        args.mainClass,
-        Attributed.data((fullClasspath in config).value),
-        args.classArgs,
-        log
-      ))
+  ): Def.Initialize[InputTask[Unit]] =
+    InputTask((s: State) => ensimeRunMainTaskParser) {
+      (argTask: TaskKey[JavaArgs]) =>
+        (
+          argTask,
+          (fullClasspath in config),
+          (javaOptions in config),
+          (envVars in config),
+          (baseDirectory in config),
+          (streams in config)
+        ).map {
+            (args, classpath, javaOps, eVars, baseDir, s) =>
+              {
+                val cp = Attributed.data(classpath)
+                val newJvmArgs = (javaOps ++ extraArgs ++ args.jvmArgs).distinct
+                val newEnvArgs = eVars ++ extraEnv ++ args.envArgs
+                val options = ForkOptions(
+                  runJVMOptions = newJvmArgs,
+                  envVars = newEnvArgs,
+                  workingDirectory = Some(baseDir)
+                )
+                s.log.debug(s"launching $options ${args.mainClass} $newJvmArgs ${args.classArgs}")
+                toError(new ForkRun(options).run(
+                  args.mainClass,
+                  cp,
+                  args.classArgs,
+                  s.log
+                ))
+              }
+          }
     }
-  }
 
-  def launchTask(config: Configuration, extraArgs: Seq[String] = Nil): Def.Initialize[InputTask[Unit]] = Def.inputTask {
-    val (name :: additionalParams) = Def.spaceDelimited().parsed
-    val launcherByName = ensimeLaunchConfigurations.value.find(_.name == name)
-    launcherByName.fold(
-      streams.value.log.warn(s"No launch configuration '$name'")
-    ) { launcher =>
-        val args = launcher.javaArgs
-        val options = ForkOptions(
-          runJVMOptions = (javaOptions in config).value ++ args.jvmArgs ++ extraArgs,
-          envVars = (envVars in config).value ++ args.envArgs,
-          workingDirectory = Some((baseDirectory in config).value)
-        )
-        streams.value.log.info(s"launching $options -cp CLASSPATH ${args.mainClass} ${args.classArgs ++ additionalParams}")
-        toError(
-          new ForkRun(options).run(
-            args.mainClass,
-            Attributed.data((fullClasspath in config).value),
-            args.classArgs ++ additionalParams,
-            streams.value.log
-          )
-        )
-      }
-  }
+  def launchTask(
+    config: Configuration,
+    extraArgs: Seq[String] = Nil
+  ): Def.Initialize[InputTask[Unit]] =
+    InputTask((s: State) => spaceDelimited("args")) {
+      (argTask: TaskKey[Seq[String]]) =>
+        (
+          argTask,
+          (ensimeLaunchConfigurations in config),
+          (javaOptions in config),
+          (envVars in config),
+          (fullClasspath in config),
+          streams
+        ).map {
+            case (taskName :: additionalParams, configs, javaOps, eVars, classpath, s) =>
+              val launcherByName = configs.find(_.name == taskName)
+              launcherByName.fold(
+                s.log.warn(s"No launch configuration '$taskName'")
+              ) { launcher =>
+                  val args = launcher.javaArgs
+                  val options = ForkOptions(
+                    runJVMOptions = javaOps ++ args.jvmArgs ++ extraArgs,
+                    envVars = eVars ++ args.envArgs
+                  )
+                  val cp = Attributed.data(classpath)
+                  s.log.info(s"launching $options -cp CLASSPATH ${args.mainClass} ${args.classArgs ++ additionalParams}")
+                  toError(
+                    new ForkRun(options).run(
+                      args.mainClass,
+                      cp,
+                      args.classArgs ++ additionalParams,
+                      s.log
+                    )
+                  )
+                }
+          }
+    }
 
   private val noChanges = new xsbti.compile.DependencyChanges {
     def isEmpty = true
