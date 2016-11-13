@@ -19,11 +19,7 @@ object runMainBuild extends Build {
       fork := true,
       javaOptions += "-Dtesting_default_key1=default_value1",
       envVars += ("testing_default_key2", "default_value2"),
-      ensimeRunDebug in Compile <<= EnsimeExtrasPlugin.parseAndRunMainWithSettings(
-        Compile,
-        // suspend=n otherwise we hang forever...
-        extraArgs = Seq(s"-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005")
-      ),
+      ensimeDebuggingFlag := "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=",
       ensimeLaunchConfigurations := Seq(
         LaunchConfig(
           "test",

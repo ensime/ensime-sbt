@@ -25,6 +25,10 @@ object EnsimeExtrasKeys {
     "Port for remote debugging of forked tasks."
   )
 
+  val ensimeDebuggingArgs = settingKey[Seq[String]](
+    "Java args for for debugging"
+  )
+
   val ensimeCompileOnly = inputKey[Unit](
     "Compiles a single scala file"
   )
@@ -62,11 +66,11 @@ object EnsimeExtrasPlugin extends AutoPlugin {
   override lazy val projectSettings = Seq(
     ensimeDebuggingFlag := "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=",
     ensimeDebuggingPort := 5005,
-    ensimeRunMain in Compile := parseAndRunMainWithSettings(Compile).evaluated,
-    ensimeRunDebug in Compile := parseAndRunMainWithSettings(
+    ensimeDebuggingArgs := Seq(s"${ensimeDebuggingFlag.value}${ensimeDebuggingPort.value}"),
+    ensimeRunMain in Compile := parseAndRunMainWithStaticSettings(Compile).evaluated,
+    ensimeRunDebug in Compile := parseAndRunMainWithDynamicSettings(
       Compile,
-      // use ensimeDebugging{Flag,Port} https://github.com/ensime/ensime-sbt/issues/228
-      extraArgs = Seq(s"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005")
+      extraArgsO = Some(ensimeDebuggingArgs)
     ).evaluated,
     ensimeLaunchConfigurations := Nil,
     ensimeLaunch in Compile := launchTask(Compile).evaluated,
@@ -101,7 +105,34 @@ object EnsimeExtrasPlugin extends AutoPlugin {
     }
   }
 
-  def parseAndRunMainWithSettings(
+  private def runMain(
+    javaArgs: JavaArgs,
+    classpath: Keys.Classpath,
+    javaOptions: Seq[String],
+    envVars: Map[String, String],
+    baseDir: File,
+    s: Keys.TaskStreams,
+    extraArgs: Seq[String] = Seq.empty,
+    extraEnv: Map[String, String] = Map.empty
+  ): Unit = {
+    val cp = Attributed.data(classpath)
+    val newJvmArgs = (javaOptions ++ extraArgs ++ javaArgs.jvmArgs).distinct
+    val newEnvArgs = envVars ++ extraEnv ++ javaArgs.envArgs
+    val options = ForkOptions(
+      runJVMOptions = newJvmArgs,
+      envVars = newEnvArgs,
+      workingDirectory = Some(baseDir)
+    )
+    s.log.debug(s"launching $options ${javaArgs.mainClass} $newJvmArgs ${javaArgs.classArgs}")
+    toError(new ForkRun(options).run(
+      javaArgs.mainClass,
+      cp,
+      javaArgs.classArgs,
+      s.log
+    ))
+  }
+
+  def parseAndRunMainWithStaticSettings(
     config: Configuration,
     extraEnv: Map[String, String] = Map.empty,
     extraArgs: Seq[String] = Seq.empty
@@ -117,24 +148,67 @@ object EnsimeExtrasPlugin extends AutoPlugin {
           (streams in config)
         ).map {
             (args, classpath, javaOps, eVars, baseDir, s) =>
-              {
-                val cp = Attributed.data(classpath)
-                val newJvmArgs = (javaOps ++ extraArgs ++ args.jvmArgs).distinct
-                val newEnvArgs = eVars ++ extraEnv ++ args.envArgs
-                val options = ForkOptions(
-                  runJVMOptions = newJvmArgs,
-                  envVars = newEnvArgs,
-                  workingDirectory = Some(baseDir)
-                )
-                s.log.debug(s"launching $options ${args.mainClass} $newJvmArgs ${args.classArgs}")
-                toError(new ForkRun(options).run(
-                  args.mainClass,
-                  cp,
-                  args.classArgs,
-                  s.log
-                ))
-              }
+              runMain(args, classpath, javaOps, eVars, baseDir, s, extraArgs, extraEnv)
           }
+    }
+
+  def parseAndRunMainWithDynamicSettings(
+    config: Configuration,
+    extraEnvO: Option[SettingKey[Map[String, String]]] = None,
+    extraArgsO: Option[SettingKey[Seq[String]]] = None
+  ): Def.Initialize[InputTask[Unit]] =
+    InputTask((s: State) => ensimeRunMainTaskParser) {
+      (argTask: TaskKey[JavaArgs]) =>
+        (extraArgsO, extraEnvO) match {
+          case (Some(extraArgs), Some(extraEnv)) => (
+            argTask,
+            (fullClasspath in config),
+            (javaOptions in config),
+            (envVars in config),
+            (baseDirectory in config),
+            (streams in config),
+            extraArgs,
+            extraEnv
+          ).map(
+              (args, classpath, javaOps, eVars, baseDir, s, extArgs, extEnv) =>
+                runMain(args, classpath, javaOps, eVars, baseDir, s, extArgs, extEnv)
+            )
+          case (Some(extraArgs), None) => (
+            argTask,
+            (fullClasspath in config),
+            (javaOptions in config),
+            (envVars in config),
+            (baseDirectory in config),
+            (streams in config),
+            extraArgs
+          ).map(
+              (args, classpath, javaOps, eVars, baseDir, s, extArgs) =>
+                runMain(args, classpath, javaOps, eVars, baseDir, s, extraArgs = extArgs)
+            )
+          case (None, Some(extraEnv)) => (
+            argTask,
+            (fullClasspath in config),
+            (javaOptions in config),
+            (envVars in config),
+            (baseDirectory in config),
+            (streams in config),
+            extraEnv
+          ).map(
+              (args, classpath, javaOps, eVars, baseDir, s, extEnv) =>
+                runMain(args, classpath, javaOps, eVars, baseDir, s, extraEnv = extEnv)
+            )
+          case (None, None) => (
+            argTask,
+            (fullClasspath in config),
+            (javaOptions in config),
+            (envVars in config),
+            (baseDirectory in config),
+            (streams in config)
+          ).map(
+              (args, classpath, javaOps, eVars, baseDir, s) =>
+                runMain(args, classpath, javaOps, eVars, baseDir, s)
+            )
+        }
     }
 
   def launchTask(
