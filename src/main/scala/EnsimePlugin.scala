@@ -400,7 +400,7 @@ object EnsimePlugin extends AutoPlugin {
            |  scalaVersion in ThisBuild := "${scalaVersion.gimme}"
            |in your build.sbt or add
            |  ensimeScalaVersion in ThisBuild := "${scalaVersion.gimme}"
-           |to a local ensime.sbt""".stripMargin
+           |to a local ensime.sbt: http://ensime.org/build_tools/sbt/#customise""".stripMargin
       )
     }
 
