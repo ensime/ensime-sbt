@@ -169,35 +169,30 @@ object EnsimeExtrasPlugin extends AutoPlugin {
     override def sourceDependency(file: File, file1: File, dependencyContext: xsbti.DependencyContext): Unit = {}
   }
 
-  // DEPRECATED with no alternative https://github.com/sbt/sbt/issues/2417
-  def compileOnlyTask: Def.Initialize[InputTask[Unit]] = InputTask(
-    (s: State) => Def.spaceDelimited()
-  ) { (argTask: TaskKey[Seq[String]]) =>
-      (
-        argTask,
-        sourceDirectories,
-        dependencyClasspath,
-        classDirectory,
-        scalacOptions in ensimeCompileOnly,
-        maxErrors,
-        compileInputs in compile,
-        compilers,
-        streams
-      ).map { (args, dirs, cp, out, opts, merrs, in, cs, s) =>
-          if (args.isEmpty) throw new IllegalArgumentException("needs a file")
-          args.foreach { arg =>
-            val input: File = fileInProject(arg, dirs.map(_.getCanonicalFile))
+  def compileOnlyTask: Def.Initialize[InputTask[Unit]] = Def.inputTask {
+    val args = Def.spaceDelimited().parsed
+    val dirs = sourceDirectories.value
+    val cp = dependencyClasspath.value
+    val out = classDirectory.value
+    val opts = (scalacOptions in ensimeCompileOnly).value
+    val merrs = maxErrors.value
+    val in = (compileInputs in compile).value
+    val cs = compilers.value
+    val s = streams.value
 
-            if (!out.exists()) IO.createDirectory(out)
-            s.log.info(s"""Compiling $input with ${opts.mkString(" ")}""")
+    if (args.isEmpty) throw new IllegalArgumentException("needs a file")
+    args.foreach { arg =>
+      val input: File = fileInProject(arg, dirs.map(_.getCanonicalFile))
 
-            cs.scalac(
-              Seq(input), noChanges, cp.map(_.data) :+ out, out, opts,
-              noopCallback, merrs, in.incSetup.cache, s.log
-            )
-          }
-        }
+      if (!out.exists()) IO.createDirectory(out)
+      s.log.info(s"""Compiling $input with ${opts.mkString(" ")}""")
+
+      cs.scalac(
+        Seq(input), noChanges, cp.map(_.data) :+ out, out, opts,
+        noopCallback, merrs, in.incSetup.cache, s.log
+      )
     }
+  }
 
   // it would be good if debuggingOff was automatically triggered
   // https://stackoverflow.com/questions/32350617
@@ -226,30 +221,24 @@ object EnsimeExtrasPlugin extends AutoPlugin {
     extracted.append(newSettings, state)
   }
 
-  def scalariformOnlyTask: Def.Initialize[InputTask[Unit]] = InputTask(
-    (s: State) => Def.spaceDelimited()
-  ) { (argTask: TaskKey[Seq[String]]) =>
-      (argTask, scalariformPreferences, scalaVersion, streams).map {
-        (files, preferences, version, s) =>
-          files.foreach { arg =>
-            val input: File = file(arg) // don't demand it to be in a source dir
+  def scalariformOnlyTask: Def.Initialize[InputTask[Unit]] = Def.inputTask {
+    val files = Def.spaceDelimited().parsed
+    val preferences = scalariformPreferences.value
+    val version = scalaVersion.value
+    val s = streams.value
 
-            try {
-              val contents = IO.read(input)
-              val formatted = ScalaFormatter.format(
-                contents,
-                preferences,
-                scalaVersion = version split "-" head
-              )
-              if (formatted != contents) IO.write(input, formatted)
-              s.log.info(s"Formatted $input")
-            } catch {
-              case e: ScalaParserException =>
-                s.log.warn(s"Scalariform parser error for $input: $e.getMessage")
-            }
-          }
-      }
+    files.foreach { arg =>
+      val input: File = file(arg) // don't demand it to be in a source dir
+      s.log.info(s"Formatting $input")
+      val contents = IO.read(input)
+      val formatted = ScalaFormatter.format(
+        contents,
+        preferences,
+        scalaVersion = version split "-" head
+      )
+      if (formatted != contents) IO.write(input, formatted)
     }
+  }
 
   private def fileInProject(arg: String, sourceDirs: Seq[File]): File = {
     val input = file(arg).getCanonicalFile
