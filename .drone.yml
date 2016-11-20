@@ -6,7 +6,7 @@ build:
     - SONATYPE_PASSWORD=$$SONATYPE_PASSWORD
     - SCALA_VERSION=2.10.6
   commands:
-    - git log | head -n 20
+    - git log | head -n 20 ; git fetch --tags
     - if $(git grep -qE "TODO|FIXME" -- `git ls-files | grep -v .drone.yml`) ; then
         echo "Please remove TODO or FIXME. Create an issue at GitHub instead." ;
         exit 1 ;

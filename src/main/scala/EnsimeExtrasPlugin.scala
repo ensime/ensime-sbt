@@ -2,13 +2,13 @@
 // Licence: Apache-2.0
 package org.ensime
 
-import sbt._
-import Keys._
-import complete.{DefaultParsers, Parser}
-import scalariform.formatter.ScalaFormatter
-import scalariform.parser.ScalaParserException
-
 import EnsimeKeys._
+import sbt._
+import sbt.Keys._
+import sbt.complete.{DefaultParsers, Parser}
+import scalariform.formatter.ScalaFormatter
+import scalariform.formatter.preferences.IFormattingPreferences
+import scalariform.parser.ScalaParserException
 
 object EnsimeExtrasKeys {
 
@@ -220,6 +220,11 @@ object EnsimeExtrasPlugin extends AutoPlugin {
     }
     extracted.append(newSettings, state)
   }
+
+  // exploiting a single namespace to workaround https://github.com/ensime/ensime-sbt/issues/148
+  private val scalariformPreferences = settingKey[IFormattingPreferences](
+    "Scalariform formatting preferences, e.g. indentation"
+  )
 
   def scalariformOnlyTask: Def.Initialize[InputTask[Unit]] = Def.inputTask {
     val files = Def.spaceDelimited().parsed

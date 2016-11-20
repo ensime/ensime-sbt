@@ -13,7 +13,6 @@ import scala.collection.JavaConverters._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Promise}
 import scala.util._
-import scalariform.formatter.preferences._
 
 /**
  * Conventional way to define importable keys for an AutoPlugin.
@@ -74,11 +73,6 @@ object EnsimeKeys {
     "A function that is applied to a generated ENSIME project config. Equivalent of 'configTransformer' task, " +
       "on the build level."
   )
-
-  // exploiting a single namespace to workaround https://github.com/ensime/ensime-sbt/issues/148
-  val scalariformPreferences = settingKey[IFormattingPreferences](
-    "Scalariform formatting preferences, e.g. indentation"
-  )
 }
 
 object EnsimePlugin extends AutoPlugin {
@@ -95,11 +89,6 @@ object EnsimePlugin extends AutoPlugin {
   override lazy val buildSettings = Seq(
     commands += Command.args("ensimeConfig", ("", ""), "Generate a .ensime for the project.", "proj1 proj2")(ensimeConfig),
     commands += Command.command("ensimeConfigProject", "", "Generate a project/.ensime for the project definition.")(ensimeConfigProject),
-
-    // WORKAROUND https://github.com/ensime/ensime-sbt/issues/148
-    scalariformPreferences := scalariformPreferences.?.value.getOrElse {
-      FormattingPreferences()
-    },
 
     // would be nice to infer by majority vote
     // https://github.com/ensime/ensime-sbt/issues/235
@@ -264,7 +253,6 @@ object EnsimePlugin extends AutoPlugin {
 
     val javaFlags = ensimeJavaFlags.run.toList
 
-    val formatting = scalariformPreferences.gimmeOpt
     val scalaVersion = (ensimeScalaVersion in ThisBuild).gimme
 
     val modules = subProjects.mapValues(ensimeProjectToModule)
@@ -502,8 +490,6 @@ object EnsimePlugin extends AutoPlugin {
     }
     val javaFlags = ensimeJavaFlags.run.toList
 
-    val formatting = scalariformPreferences.gimmeOpt
-
     val conf = EnsimeConfiguration(name, Set(root), targets.toSet, Nil, Nil, jars.toSet)
 
     val subProject = EnsimeProject(
@@ -695,23 +681,6 @@ object SExpFormatter {
     op.map { f => s":$key ${toSExp(f)}" }.getOrElse("")
 
   def toSExp(b: Boolean): String = if (b) "t" else "nil"
-
-  def toSExp(o: Option[IFormattingPreferences]): String = o match {
-    case None                                => "nil"
-    case Some(f) if f.preferencesMap.isEmpty => "nil"
-    case Some(f) => f.preferencesMap.map {
-      case (desc, value) =>
-        val vs = value match {
-          case b: Boolean => toSExp(b)
-          case i: Int     => i.toString
-          case intent =>
-            // quick fix to serialize intents, until the scalariform dependency is
-            // upgraded (pending #148)
-            toSExp(intent.getClass.getSimpleName.replaceAll("\\$", "").toLowerCase)
-        }
-        s":${desc.key} $vs"
-    }.mkString("(", " ", ")")
-  }
 
   // a lot of legacy key names and conventions
   def toSExp(c: EnsimeConfig): String = s"""(
