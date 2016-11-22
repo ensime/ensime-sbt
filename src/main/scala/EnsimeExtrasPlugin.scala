@@ -7,7 +7,7 @@ import sbt._
 import sbt.Keys._
 import sbt.complete.{DefaultParsers, Parser}
 import scalariform.formatter.ScalaFormatter
-import scalariform.formatter.preferences.IFormattingPreferences
+import scalariform.formatter.preferences._
 import scalariform.parser.ScalaParserException
 
 object EnsimeExtrasKeys {
@@ -228,7 +228,9 @@ object EnsimeExtrasPlugin extends AutoPlugin {
 
   def scalariformOnlyTask: Def.Initialize[InputTask[Unit]] = Def.inputTask {
     val files = Def.spaceDelimited().parsed
-    val preferences = scalariformPreferences.value
+    // WORKAROUND https://github.com/ensime/ensime-sbt/issues/148
+    val preferences = scalariformPreferences.?.value.getOrElse(FormattingPreferences())
+
     val version = scalaVersion.value
     val s = streams.value
 
