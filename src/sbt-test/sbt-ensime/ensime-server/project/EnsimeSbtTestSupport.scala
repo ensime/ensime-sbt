@@ -62,10 +62,10 @@ object EnsimeSbtTestSupport extends AutoPlugin {
             replaceAll("""/Library/Java/JavaVirtualMachines/[^/]+/Contents/Home""", "JDK_HOME").
             replaceAll("""C:/Program Files/Java/[^/"]++""", "JDK_HOME").
             replace(jdkHome, "JDK_HOME").
-            replaceAll(raw""""-Dplugin[.]version=[.\d]++(-SNAPSHOT)?"""", "").
+            replaceAll(raw""""-Dplugin[.]version=[^"]++"""", "").
             replaceAll(""""-Xfatal-warnings"""", ""). // ensime-server only has these in CI
-            replaceAll(raw"""/[.\d]++(-SNAPSHOT)?/jars/sbt-ensime.jar"""", """/HEAD/jars/sbt-ensime.jar"""").
-            replaceAll(raw"""/[.\d]++(-SNAPSHOT)?/srcs/sbt-ensime-sources.jar"""", """/HEAD/srcs/sbt-ensime-sources.jar"""").
+            replaceAll(raw"""/[^/]++/jars/sbt-ensime.jar"""", """/HEAD/jars/sbt-ensime.jar"""").
+            replaceAll(raw"""/[^/]++/srcs/sbt-ensime-sources.jar"""", """/HEAD/srcs/sbt-ensime-sources.jar"""").
             replaceAll(raw""""-Dsbt[.]global[.]base=BASE_DIR/global"""", "").
             replaceAll(raw"\s++", " ").
             replace("0.13.11", "0.13.12"). // upgraded sbt
