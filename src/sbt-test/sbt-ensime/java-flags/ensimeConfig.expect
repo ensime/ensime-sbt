@@ -22,22 +22,22 @@
  :doc-jars ("BASE_DIR/target/scala-2.11/java-flags_2.11-0.1-SNAPSHOT-javadoc.jar" "IVY_DIR/cache/org.scala-lang/scala-library/docs/scala-library-2.11.8-javadoc.jar")
  :reference-source-roots ("IVY_DIR/cache/org.scala-lang/scala-library/srcs/scala-library-2.11.8-sources.jar")))
  :projects ((
- :name "java-flags"
- :depends-on-projects nil
- :runtime-jars nil
- :doc-jars ("BASE_DIR/target/scala-2.11/java-flags_2.11-0.1-SNAPSHOT-javadoc.jar" "IVY_DIR/cache/org.scala-lang/scala-library/docs/scala-library-2.11.8-javadoc.jar")
- :reference-sources ("IVY_DIR/cache/org.scala-lang/scala-library/srcs/scala-library-2.11.8-sources.jar")
- :configurations (
- (:name "compile"
+ :id (:project "java-flags" :config "compile")
+ :depends nil
  :sources ("BASE_DIR/src/main/java" "BASE_DIR/target/scala-2.11/src_managed/main" "BASE_DIR/src/main/scala-2.11" "BASE_DIR/src/main/scala")
  :targets ("BASE_DIR/target/scala-2.11/classes")
  :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ywarn-unused-import" "-Ymacro-expand:discard")
  :javac-options nil
- :library-dependencies ("IVY_DIR/cache/org.scala-lang/scala-library/jars/scala-library-2.11.8.jar")) 
- (:name "test"
+ :library-jars ("IVY_DIR/cache/org.scala-lang/scala-library/jars/scala-library-2.11.8.jar")
+ :library-sources ("IVY_DIR/cache/org.scala-lang/scala-library/srcs/scala-library-2.11.8-sources.jar")
+ :library-docs ("BASE_DIR/target/scala-2.11/java-flags_2.11-0.1-SNAPSHOT-javadoc.jar" "IVY_DIR/cache/org.scala-lang/scala-library/docs/scala-library-2.11.8-javadoc.jar")) (
+ :id (:project "java-flags" :config "test")
+ :depends nil
  :sources ("BASE_DIR/src/test/java" "BASE_DIR/src/test/scala-2.11" "BASE_DIR/src/test/scala" "BASE_DIR/target/scala-2.11/src_managed/test")
  :targets ("BASE_DIR/target/scala-2.11/test-classes")
  :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ywarn-unused-import" "-Ymacro-expand:discard")
  :javac-options nil
- :library-dependencies ("IVY_DIR/cache/org.scala-lang/scala-library/jars/scala-library-2.11.8.jar")))))
+ :library-jars ("IVY_DIR/cache/org.scala-lang/scala-library/jars/scala-library-2.11.8.jar")
+ :library-sources ("IVY_DIR/cache/org.scala-lang/scala-library/srcs/scala-library-2.11.8-sources.jar")
+ :library-docs ("IVY_DIR/cache/org.scala-lang/scala-library/docs/scala-library-2.11.8-javadoc.jar")))
 )
