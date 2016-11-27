@@ -13,8 +13,8 @@ scalacOptions -= "-Xfatal-warnings"
 libraryDependencies += "org.scalariform" %% "scalariform" % "0.1.4"
 
 libraryDependencies ++= Seq(
-  "io.get-coursier" %% "coursier-java-6" % "1.0.0-M12-1",
-  "io.get-coursier" %% "coursier-cache-java-6" % "1.0.0-M12-1"
+  "io.get-coursier" %% "coursier" % "1.0.0-M15",
+  "io.get-coursier" %% "coursier-cache" % "1.0.0-M15"
 )
 
 scriptedSettings
