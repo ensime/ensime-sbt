@@ -1,7 +1,6 @@
-// really to test the ensimeConfigProject code
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 ivyLoggingLevel := UpdateLogging.Quiet
+addSbtPlugin("com.fommil" % "sbt-sensible" % "1.1.0")
 
 libraryDependencies += "org.scala-sbt" % "scripted-plugin" % sbtVersion.value
 
-addSbtPlugin("com.fommil" % "sbt-sensible" % "1.0.7")
