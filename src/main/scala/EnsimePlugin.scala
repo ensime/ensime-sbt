@@ -37,7 +37,7 @@ object EnsimeKeys {
     "ENSIME requires declared source directories to exist. If you find this noisy, ignore them."
   )
   val ensimeIgnoreScalaMismatch = settingKey[Boolean](
-    "ENSIME can only use one version of scala per project. If you have mixed scala versions (e.g. lib and sbt plugin), set this to acknowledge."
+    "ENSIME can only use one version of scala for the entire build. If you have mixed scala versions (e.g. lib and sbt plugin), set this to acknowledge."
   )
 
   val ensimeJavaFlags = taskKey[Seq[String]](
@@ -410,7 +410,7 @@ object EnsimePlugin extends AutoPlugin {
       )
       if (!ensimeIgnoreScalaMismatch.gimme)
         throw new IllegalStateException(
-          """To ignore this error (i.e. have have multiple scala versions), customise `ensimeIgnoreScalaMismatch`"""
+          """To ignore this error (i.e. you have multiple scala versions), customise `ensimeIgnoreScalaMismatch`"""
         ) with NoStackTrace
     }
 
