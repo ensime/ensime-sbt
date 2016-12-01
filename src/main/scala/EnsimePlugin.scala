@@ -228,8 +228,9 @@ object EnsimePlugin extends AutoPlugin {
 
     val updateReports = ensimeMegaUpdate.run
 
+    val javaH = (ensimeJavaHome).gimme
     val scalaCompilerJars = ensimeScalaJars.run.toSet
-    val serverJars = ensimeServerJars.run.toSet -- scalaCompilerJars
+    val serverJars = ensimeServerJars.run.toSet -- scalaCompilerJars + javaH / "tools.jar"
 
     // for some reason this gives the wrong number in projectData
     val ensimeScalaV = (ensimeScalaVersion in ThisBuild).run
@@ -261,7 +262,6 @@ object EnsimePlugin extends AutoPlugin {
     }
     val compilerArgs = (ensimeScalacOptions).run.toList
     val javaCompilerArgs = (ensimeJavacOptions).run.toList
-    val javaH = (ensimeJavaHome).gimme
     val javaSrc = {
       file(javaH.getAbsolutePath + "/src.zip") match {
         case f if f.exists => Set(f)
@@ -493,7 +493,8 @@ object EnsimePlugin extends AutoPlugin {
 
     val compilerArgs = ensimeProjectScalacOptions.run.toList
     val scalaV = Properties.versionNumberString
-    val javaSrc = JdkDir / "src.zip" match {
+    val javaH = ensimeJavaHome.gimme
+    val javaSrc = javaH / "src.zip" match {
       case f if f.exists => Set(f)
       case _             => Set.empty[File]
     }
@@ -504,13 +505,13 @@ object EnsimePlugin extends AutoPlugin {
     val module = ensimeProjectsToModule(Set(proj))
 
     val scalaCompilerJars = ensimeScalaProjectJars.run.toSet
-    val serverJars = ensimeServerProjectJars.run.toSet -- scalaCompilerJars
+    val serverJars = ensimeServerProjectJars.run.toSet -- scalaCompilerJars + javaH / "tools.jar"
 
     val config = EnsimeConfig(
       root, cacheDir,
       scalaCompilerJars, serverJars,
       name, scalaV, compilerArgs,
-      Map(module.name -> module), JdkDir, javaFlags, Nil, javaSrc,
+      Map(module.name -> module), javaH, javaFlags, Nil, javaSrc,
       Seq(proj)
     )
 
