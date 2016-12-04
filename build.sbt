@@ -12,8 +12,8 @@ scalacOptions -= "-Xfatal-warnings"
 libraryDependencies ++= Seq(
   // intentionally old version of scalariform: do not force an upgrade upon users
   "org.scalariform" %% "scalariform" % "0.1.4",
-  "io.get-coursier" %% "coursier" % "1.0.0-M15",
-  "io.get-coursier" %% "coursier-cache" % "1.0.0-M15"
+  "io.get-coursier" %% "coursier" % "1.0.0-M15-1",
+  "io.get-coursier" %% "coursier-cache" % "1.0.0-M15-1"
 )
 
 scriptedSettings
