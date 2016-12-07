@@ -230,7 +230,7 @@ object EnsimePlugin extends AutoPlugin {
 
     val javaH = (ensimeJavaHome).gimme
     val scalaCompilerJars = ensimeScalaJars.run.toSet
-    val serverJars = ensimeServerJars.run.toSet -- scalaCompilerJars + javaH / "tools.jar"
+    val serverJars = ensimeServerJars.run.toSet -- scalaCompilerJars + javaH / "lib/tools.jar"
 
     // for some reason this gives the wrong number in projectData
     val ensimeScalaV = (ensimeScalaVersion in ThisBuild).run
@@ -505,7 +505,7 @@ object EnsimePlugin extends AutoPlugin {
     val module = ensimeProjectsToModule(Set(proj))
 
     val scalaCompilerJars = ensimeScalaProjectJars.run.toSet
-    val serverJars = ensimeServerProjectJars.run.toSet -- scalaCompilerJars + javaH / "tools.jar"
+    val serverJars = ensimeServerProjectJars.run.toSet -- scalaCompilerJars + javaH / "lib/tools.jar"
 
     val config = EnsimeConfig(
       root, cacheDir,
