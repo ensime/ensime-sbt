@@ -18,6 +18,6 @@ pipeline:
           exit 1 ;
         fi
       - sbt ++$SCALA_VERSION scripted ;
-      - if [ -z "$CI_PULL_REQUEST" ] ; then
+      - if [ -z "$DRONE_PULL_REQUEST" ] ; then
           sbt ++$SCALA_VERSION publish ;
         fi
