@@ -3,15 +3,17 @@
 package org.ensime
 
 import EnsimeKeys._
+import sbt.Defaults.{loadForParser => _, toError => _, _}
 import sbt._
 import sbt.Keys._
 import sbt.complete.{DefaultParsers, Parser}
+
 import scalariform.formatter.ScalaFormatter
 import scalariform.formatter.preferences._
 import scalariform.parser.ScalaParserException
-
 import sbt.complete.Parsers._
 import sbt.complete.Parser._
+import sbt.testing.{Framework, Runner}
 
 object EnsimeExtrasKeys {
 
@@ -48,6 +50,10 @@ object EnsimeExtrasKeys {
   )
   val ensimeScalariformOnly = inputKey[Unit](
     "Formats a single scala file"
+  )
+
+  val ensimeTestOnlyDebug = inputKey[Unit](
+    "The equivalent of ensimeRunDebug for testOnly command"
   )
 }
 
@@ -103,6 +109,14 @@ object EnsimeExtrasPlugin extends AutoPlugin {
     (Space ~> envArg.*.map(_.toMap) ~ jvmArg.* ~ mainClass ~ spaceDelimited("<arg>")) map {
       case envArgs ~ jvmArgs ~ mainClass ~ classArgs => JavaArgs(mainClass, envArgs, jvmArgs, classArgs)
     }
+  }
+
+  val ensimeTestOnlyParser: Parser[(String, Seq[String])] = {
+    import DefaultParsers._
+
+    val selectTest = token(Space) ~> token(NotSpace - "--")
+    val options = (token(Space) ~> token("--") ~> spaceDelimited("<option>")) ?? Nil
+    selectTest ~ options
   }
 
   private def runMain(
@@ -247,6 +261,51 @@ object EnsimeExtrasPlugin extends AutoPlugin {
                   )
                 }
           }
+    }
+
+  private def testOnlyWithSettings(
+    config: Configuration,
+    extraArgs: Seq[String] = Seq.empty,
+    extraEnv: Map[String, String] = Map.empty
+   ): Def.Initialize[InputTask[Unit]] =
+    InputTask((s: State) => ensimeTestOnlyParser) {
+      (argTask: TaskKey[(String, Seq[String])]) => (
+        argTask,
+        testExecution,
+        //loadedTestFrameworks,
+        definedTests,
+        (fullClasspath in config),
+        javaOptions,
+        envVars,
+        baseDirectory,
+        state,
+        resolvedScoped,
+        testResultLogger,
+        streams
+        ).map {
+          case ((selected, frameworkOptions), exec/*, frameworks*/, tests, cp, javaOps, eVars, baseDir, state, scoped, trl, s) =>
+            implicit val display = Project.showContextKey(state)
+            val modifiedOpts = Tests.Argument(frameworkOptions: _*) +: exec.options
+            val newConfig = exec.copy(options = modifiedOpts)
+
+            val runners = createTestRunners(frameworks, loader, newConfig)
+            val test = tests.find(_.name == selected)
+            if (test.isDefined) {
+              val forkOpts = ForkOptions(
+                runJVMOptions = javaOps ++ extraArgs,
+                envVars = eVars ++ extraEnv,
+                workingDirectory = Some(baseDir)
+              )
+              ForkTests.getClass.getDeclaredMethods.find(_.getName == "apply").get
+              val output = ForkTests(runners, List(test.get), newConfig, cp.files, forkOpts, s.log, Tags.ForkedTestGroup)
+
+              val taskName = display(scoped)
+              val processed = output.map(out => trl.run(s.log, out, taskName))
+              Def.value(processed)
+            } else {
+              s.log.warn(s"There's no test with name \"$selected\"")
+            }
+        }
     }
 
   private val noChanges = new xsbti.compile.DependencyChanges {
