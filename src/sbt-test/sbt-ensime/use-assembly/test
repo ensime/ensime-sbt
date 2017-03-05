@@ -1,0 +1,11 @@
+# Here we need to create the assembly jar in the user's home directoy, but the
+# builtin touch/delete command can only handle files relative to the project
+# dir. Using the "exec" command provided by sbt scripted plugin is also not an
+# option, beause we can't find a command that could work in both unix and
+# windows.
+> ensimeTouch HOME/.ensime/ensime_2.10-1.0.0-assembly.jar
+> ensimeConfig
+> ensimeExpect .ensime ensimeConfig.expect
+> ensimeConfigProject
+> ensimeExpect project/.ensime ensimeConfigProject.expect
+> ensimeDelete HOME/.ensime/ensime_2.10-1.0.0-assembly.jar

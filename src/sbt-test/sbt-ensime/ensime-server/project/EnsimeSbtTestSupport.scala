@@ -15,7 +15,13 @@ object EnsimeSbtTestSupport extends AutoPlugin {
 
   private lazy val parser = complete.Parsers.spaceDelimited("<arg>")
   override lazy val buildSettings = Seq(
-    commands += Command.args("ensimeExpect", "<args>")(ensimeExpect)
+    commands += Command.args("ensimeExpect", "<args>")(ensimeExpect),
+    // The builtin touch/delete commands of sbt scripted plugin would prepend
+    // the current project dir to the path, but sometimes the file we need to
+    // touch/delete is outside of the project, e.g. in the users's home
+    // directory.
+    commands += Command.args("ensimeTouch", "<args>")(ensimeTouch),
+    commands += Command.args("ensimeDelete", "<args>")(ensimeDelete)
   )
 
   override lazy val projectSettings = Seq(
@@ -62,6 +68,7 @@ object EnsimeSbtTestSupport extends AutoPlugin {
             replaceAll("""/Library/Java/JavaVirtualMachines/[^/]+/Contents/Home""", "JDK_HOME").
             replaceAll("""C:/Program Files/Java/[^/"]++""", "JDK_HOME").
             replace(jdkHome, "JDK_HOME").
+            replace(Properties.userHome, "HOME"). // HOME must come after JDK_HOME
             replaceAll(""""-Dplugin[.]src=[^"]++"""", "").
             replaceAll(""""-Dplugin[.]version=[^"]++"""", "").
             replaceAll(""""-Xfatal-warnings"""", ""). // ensime-server only has these in CI
@@ -81,5 +88,31 @@ object EnsimeSbtTestSupport extends AutoPlugin {
 
     state
   }
+
+  def ensimeTouch: (State, Seq[String]) => State = { (state, args) =>
+    args.foreach { filename =>
+      val extracted = Project.extract(state)
+      implicit val s = state
+
+      val expandedFileName = expandUserHome(filename)
+      log.info(s"touching file $expandedFileName")
+      IO.touch(file(expandedFileName), true)
+    }
+    state
+  }
+
+  def ensimeDelete: (State, Seq[String]) => State = { (state, args) =>
+    args.foreach { filename =>
+      val extracted = Project.extract(state)
+      implicit val s = state
+
+      val expandedFileName = expandUserHome(filename)
+      log.info(s"deleting file $expandedFileName")
+      IO.delete(file(expandedFileName))
+    }
+    state
+  }
+
+  def expandUserHome(path: String) = path.replace("HOME", Properties.userHome)
 
 }

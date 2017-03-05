@@ -99,7 +99,7 @@ object EnsimeCoursierPlugin extends AutoPlugin {
     org % "scala-library" % version intransitive
   )
 
-  def resolveEnsimeJars(org: String, scala: String, ensime: String)(implicit repos: Seq[coursier.Repository]): Seq[File] = {
+  def resolveEnsimeJarsNoAssembly(org: String, scala: String, ensime: String)(implicit repos: Seq[coursier.Repository]): Seq[File] = {
     val Some((major, minor)) = CrossVersion.partialVersion(scala)
     resolve(
       "org.ensime" % s"server_$major.$minor" % ensime,
@@ -107,4 +107,15 @@ object EnsimeCoursierPlugin extends AutoPlugin {
     )
   }
 
+  def getAssemblyJar(ensimeScalaVersion: String, ensimeServerVersion: String): Option[File] = {
+    // The assembly jar path is like ~/.ensime/ensime_2.11-2.0.0-SNAPSHOT-assembly.jar
+    val scalaMajorVersion = ensimeScalaVersion.split("\\.").take(2).mkString(".")
+    val jar = file(s"${sys.env("HOME")}/.ensime/ensime_${scalaMajorVersion}-${ensimeServerVersion}-assembly.jar")
+    println(s"assembly jar is ${jar}")
+    if (jar.exists) Some(jar) else None
+  }
+
+  def resolveEnsimeJars(org: String, scala: String, ensime: String)(implicit repos: Seq[coursier.Repository]): Seq[File] = {
+    getAssemblyJar(scala, ensime).map(List(_)).getOrElse(resolveEnsimeJarsNoAssembly(org, scala, ensime))
+  }
 }
