@@ -42,7 +42,7 @@ object EnsimeCoursierPlugin extends AutoPlugin {
   val autoImport = EnsimeCoursierKeys
 
   override lazy val buildSettings = Seq(
-    ensimeServerVersion := "1.0.0",
+    ensimeServerVersion := "2.0.0-SNAPSHOT", // 1.0 clients don't support this style of launch, so why not...
     ensimeRepositoryUrls := Seq(
       // intentionally not using the ivy cache because it's very unreliable
       "https://repo1.maven.org/maven2/",

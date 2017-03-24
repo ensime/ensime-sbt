@@ -7,14 +7,17 @@ import Keys._
 import collection.JavaConverters._
 import util.Properties
 import org.ensime.CommandSupport
+import org.ensime.EnsimeCoursierKeys._
 
 object EnsimeSbtTestSupport extends AutoPlugin {
   import CommandSupport._
 
+  override def requires = org.ensime.EnsimeCoursierPlugin
   override def trigger = allRequirements
 
   private lazy val parser = complete.Parsers.spaceDelimited("<arg>")
   override lazy val buildSettings = Seq(
+    ensimeServerVersion := "1.0.0", // our CI needs stable jars
     commands += Command.args("ensimeExpect", "<args>")(ensimeExpect)
   )
 
