@@ -120,6 +120,9 @@ object EnsimePlugin extends AutoPlugin {
   import autoImport._
 
   override lazy val buildSettings = Seq(
+    // WORKAROUND: https://github.com/sbt/sbt/issues/2814
+    scalaOrganization in updateSbtClassifiers := (scalaOrganization in Global).value,
+
     commands += Command.args("ensimeConfig", ("", ""), "Generate a .ensime for the project.", "proj1 proj2")(ensimeConfig),
     commands += Command.command("ensimeConfigProject", "", "Generate a project/.ensime for the project definition.")(ensimeConfigProject),
 
