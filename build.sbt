@@ -24,9 +24,9 @@ libraryDependencies ++= Seq(
   // directly depending on some of coursier's transitives (not shading)
   // https://github.com/alexarchambault/coursier/issues/25
   "org.scalamacros" %% "quasiquotes" % "2.1.0",
-  "org.scalaz" %% "scalaz-concurrent" % "7.2.9",
+  "org.scalaz" %% "scalaz-concurrent" % "7.2.10",
   "com.lihaoyi" %% "fastparse" % "0.4.2",
-  "org.jsoup" % "jsoup" % "1.9.2"
+  "org.jsoup" % "jsoup" % "1.10.2"
 )
 
 scriptedSettings
