@@ -24,7 +24,7 @@ private[ensime] object CoursierHelper {
 
   private[this] def resolvers(urls: Seq[String]) = urls.map(coursier.MavenRepository(_))
 
-  private[this] def resolveScalaJarsImpl(org: String, version: String)(implicit repos: Seq[coursier.Repository]): Seq[File] = resolve(
+  private[this] def resolveScalaJarsImpl(org: String, version: String)(implicit repos: Seq[coursier.Repository]): Seq[File] = resolve()(
     org % "scalap" % version intransitive,
     org % "scala-compiler" % version intransitive,
     org % "scala-reflect" % version intransitive,
@@ -34,9 +34,14 @@ private[ensime] object CoursierHelper {
   private[this] def resolveEnsimeJarsImpl(org: String, scala: String, ensime: String)(implicit repos: Seq[coursier.Repository]): Seq[File] = {
     val Some((major, minor)) = CrossVersion.partialVersion(scala)
     resolve(
-      "org.ensime" % s"server_$major.$minor" % ensime,
-      org % "scalap" % scala intransitive
-    )
+      "org.scala-lang" -> "scalap",
+      "org.scala-lang" -> "scala-compiler",
+      "org.scala-lang" -> "scala-reflect",
+      "org.scala-lang" -> "scala-library"
+    )(
+        "org.ensime" % s"server_$major.$minor" % ensime,
+        org % "scalap" % scala intransitive
+      )
   }
 
   private[this] def resolveSingleJarImpl(module: ModuleID, scalaVersion: String)(implicit repos: Seq[coursier.Repository]): File = {
@@ -44,10 +49,14 @@ private[ensime] object CoursierHelper {
       scalaVersion,
       CrossVersion.binaryScalaVersion(scalaVersion)
     )(module.intransitive)
-    resolve(mod).head.getCanonicalFile
+    resolve()(mod).head.getCanonicalFile
   }
 
-  private[this] def resolve(modules: ModuleID*)(implicit repos: Seq[coursier.Repository]): Seq[File] = {
+  private[this] def resolve(
+    exclusions: (String, String)*
+  )(
+    modules: ModuleID*
+  )(implicit repos: Seq[coursier.Repository]): Seq[File] = {
     val resolution = coursier.Resolution(
       modules.map { module =>
       coursier.Dependency(
@@ -57,7 +66,8 @@ private[ensime] object CoursierHelper {
         ),
         module.revision,
         configuration = module.configurations.getOrElse(""),
-        transitive = module.isTransitive
+        transitive = module.isTransitive,
+        exclusions = exclusions.toSet
       )
     }.toSet
     )
