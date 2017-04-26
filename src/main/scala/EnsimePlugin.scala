@@ -8,6 +8,7 @@ import java.lang.management.ManagementFactory
 import scala.collection.JavaConverters._
 import scala.util._
 import scala.util.control.NoStackTrace
+import scala.util.matching._
 
 import SExpFormatter._
 import sbt._
@@ -400,9 +401,16 @@ object EnsimePlugin extends AutoPlugin {
       artifact = artifactFilter(classifier = Artifact.DocClassifier)
     ).toSet ++ (ensimeUnmanagedJavadocArchives in config in projectRef).gimme
 
-    // needs to take configurations into account
-    // https://github.com/ensime/ensime-sbt/issues/247
-    val deps = project.dependencies.map(_.project.project).map { n => EnsimeProjectId(n, "compile") }
+    val pattern = "([A-Za-z]+)->([A-Za-z]+)".r
+
+    val deps = project.dependencies.map { d =>
+      val name = d.project.project
+      val config = d.configuration.getOrElse("compile") match {
+        case pattern(from, to) => to
+        case _                 => "compile"
+      }
+      (name, config)
+    }.map(t => EnsimeProjectId(t._1, t._2))
 
     def configDataFor(config: Configuration): EnsimeProject = {
       val sbv = scalaBinaryVersion.gimme
