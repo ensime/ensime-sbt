@@ -401,14 +401,11 @@ object EnsimePlugin extends AutoPlugin {
       artifact = artifactFilter(classifier = Artifact.DocClassifier)
     ).toSet ++ (ensimeUnmanagedJavadocArchives in config in projectRef).gimme
 
-    val pattern = "([A-Za-z]+)->([A-Za-z]+)".r
+    val IvyConfig = "([A-Za-z]+)->([A-Za-z]+)".r
 
     val deps = project.dependencies.map { d =>
       val name = d.project.project
-      val config = d.configuration.getOrElse("compile") match {
-        case pattern(from, to) => to
-        case _                 => "compile"
-      }
+      val config = d.configuration.collect { case IvyConfig(_, to) => to }.getOrElse("compile")
       (name, config)
     }.map(t => EnsimeProjectId(t._1, t._2))
 
