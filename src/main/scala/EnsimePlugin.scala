@@ -589,6 +589,7 @@ object EnsimePlugin extends AutoPlugin {
   lazy val JavaFlags = {
     // WORKAROUND https://github.com/ensime/ensime-sbt/issues/91
     val raw = ManagementFactory.getRuntimeMXBean.getInputArguments.asScala.toList.map {
+      case "-Xmx2g" => "-Xmx4g"
       case "-Xss1M" => "-Xss2m"
       case flag     => flag
     }
@@ -596,6 +597,14 @@ object EnsimePlugin extends AutoPlugin {
       case Some(has) => raw
       case None      => "-Xss2m" :: raw
     }
+    if (sys.props.get("java.version").exists(_.startsWith("1.8"))) {
+      raw ++ Seq(
+        //"-XX:+PrintStringTableStatistics",
+        "-XX:StringTableSize=1000003",
+        "-XX:+UnlockExperimentalVMOptions",
+        "-XX:SymbolTableSize=1000003"
+      )
+    } else raw
   }
 
   private def cacheDir(prefix: Option[File], base: File): File = prefix match {
