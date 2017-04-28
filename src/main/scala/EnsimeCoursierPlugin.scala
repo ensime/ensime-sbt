@@ -47,7 +47,7 @@ object EnsimeCoursierPlugin extends AutoPlugin {
 
   override lazy val buildSettings = Seq(
     ensimeServerVersion := "2.0.0-SNAPSHOT", // 1.0 clients don't support this style of launch, so why not...
-    ensimeProjectServerVersion := "2.0.0-SNAPSHOT",
+    ensimeProjectServerVersion := "2.0.0-M1",
     ensimeRepositoryUrls := Seq(
       // intentionally not using the ivy cache because it's very unreliable
       "https://repo1.maven.org/maven2/",
