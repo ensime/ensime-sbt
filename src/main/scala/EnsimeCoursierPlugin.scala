@@ -15,6 +15,10 @@ object EnsimeCoursierKeys {
     "The ensime server version"
   )
 
+  val ensimeProjectServerVersion = settingKey[String](
+    "The ensime server version for the build project"
+  )
+
   // can't include Coursier keys in our public API because it is shaded
   val ensimeRepositoryUrls = settingKey[Seq[String]](
     "The maven repositories to download the scala compiler, ensime-server and ensime-plugins jars"
@@ -43,6 +47,7 @@ object EnsimeCoursierPlugin extends AutoPlugin {
 
   override lazy val buildSettings = Seq(
     ensimeServerVersion := "2.0.0-SNAPSHOT", // 1.0 clients don't support this style of launch, so why not...
+    ensimeProjectServerVersion := "2.0.0-SNAPSHOT",
     ensimeRepositoryUrls := Seq(
       // intentionally not using the ivy cache because it's very unreliable
       "https://repo1.maven.org/maven2/",
@@ -53,7 +58,7 @@ object EnsimeCoursierPlugin extends AutoPlugin {
     ensimeScalaJars := resolveScalaJars(scalaOrganization.value, ensimeScalaVersion.value, ensimeRepositoryUrls.value),
     ensimeScalaProjectJars := resolveScalaJars("org.scala-lang", sbtScalaVersion, ensimeRepositoryUrls.value),
     ensimeServerJars := resolveEnsimeJars(scalaOrganization.value, ensimeScalaVersion.value, ensimeServerVersion.value, ensimeRepositoryUrls.value),
-    ensimeServerProjectJars := resolveEnsimeJars("org.scala-lang", sbtScalaVersion, ensimeServerVersion.value, ensimeRepositoryUrls.value)
+    ensimeServerProjectJars := resolveEnsimeJars("org.scala-lang", sbtScalaVersion, ensimeProjectServerVersion.value, ensimeRepositoryUrls.value)
   )
 
 }

@@ -272,6 +272,7 @@ object EnsimePlugin extends AutoPlugin {
     val javaH = (ensimeJavaHome).gimme
     val scalaCompilerJars = ensimeScalaJars.run.toSet
     val serverJars = ensimeServerJars.run.toSet -- scalaCompilerJars + javaH / "lib/tools.jar"
+    val serverVersion = EnsimeCoursierKeys.ensimeServerVersion.gimme
 
     // for some reason this gives the wrong number in projectData
     val ensimeScalaV = (ensimeScalaVersion in ThisBuild).run
@@ -319,7 +320,7 @@ object EnsimePlugin extends AutoPlugin {
 
     val config = EnsimeConfig(
       root, cacheDir(ensimeCachePrefix.gimme, root),
-      scalaCompilerJars, serverJars,
+      scalaCompilerJars, serverJars, serverVersion,
       name, scalaVersion, compilerArgs,
       modules, javaH, javaFlags, javaCompilerArgs, javaSrc, subProjects
     )
@@ -549,10 +550,11 @@ object EnsimePlugin extends AutoPlugin {
 
     val scalaCompilerJars = ensimeScalaProjectJars.run.toSet
     val serverJars = ensimeServerProjectJars.run.toSet -- scalaCompilerJars + javaH / "lib/tools.jar"
+    val serverVersion = EnsimeCoursierKeys.ensimeProjectServerVersion.gimme
 
     val config = EnsimeConfig(
       root, cacheDir(ensimeCachePrefix.gimme, root),
-      scalaCompilerJars, serverJars,
+      scalaCompilerJars, serverJars, serverVersion,
       name, scalaV, compilerArgs,
       Map(module.name -> module), javaH, javaFlags, Nil, javaSrc,
       Seq(proj)
@@ -617,6 +619,7 @@ case class EnsimeConfig(
   cacheDir: File,
   scalaCompilerJars: Set[File],
   ensimeServerJars: Set[File],
+  ensimeServerVersion: String,
   name: String,
   scalaVersion: String,
   scalacOptions: List[String], // 1.0
@@ -738,6 +741,7 @@ object SExpFormatter {
  :cache-dir ${toSExp(c.cacheDir)}
  :scala-compiler-jars ${fsToSExp(c.scalaCompilerJars)}
  :ensime-server-jars ${fsToSExp(c.ensimeServerJars)}
+ :ensime-server-version ${toSExp(c.ensimeServerVersion)}
  :name "${c.name}"
  :java-home ${toSExp(c.javaHome)}
  :java-flags ${ssToSExp(c.javaFlags)}
