@@ -148,7 +148,7 @@ object EnsimePlugin extends AutoPlugin {
     ensimeCachePrefix := None,
 
     // WORKAROUND: https://github.com/scala/scala/pull/5592
-    ensimeJavaFlags := JavaFlags :+ "-Dscala.classpath.closeZip=true",
+    ensimeJavaFlags := JavaFlags ++: Seq("-Xmx4g", "-Dscala.classpath.closeZip=true"),
     ensimeJavaHome := javaHome.value.getOrElse(JdkDir),
     // unable to infer the user's scalac options: https://github.com/ensime/ensime-sbt/issues/98
     ensimeProjectScalacOptions := ensimeSuggestedScalacOptions(Properties.versionNumberString),
@@ -589,7 +589,6 @@ object EnsimePlugin extends AutoPlugin {
   lazy val JavaFlags = {
     // WORKAROUND https://github.com/ensime/ensime-sbt/issues/91
     val raw = ManagementFactory.getRuntimeMXBean.getInputArguments.asScala.toList.map {
-      case "-Xmx2g" => "-Xmx4g"
       case "-Xss1M" => "-Xss2m"
       case flag     => flag
     }
