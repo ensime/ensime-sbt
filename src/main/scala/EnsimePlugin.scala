@@ -619,11 +619,9 @@ object EnsimePlugin extends AutoPlugin {
     val server = serverVersion.substring(0, 3)
     val java = sys.props("java.version").substring(0, 3)
     val versioned = (java, server) match {
-      case ("1.6", "1.0") => Seq(
+      case (_, "1.0") => Seq(
+        // our CI assertions fail if we try to switch on java version
         "-XX:MaxPermSize=256m"
-      )
-      case ("1.7", "1.0") => Seq(
-        "-XX:MaxMetaspaceSize=256m"
       )
       case _ => List(
         "-XX:MaxMetaspaceSize=256m",
