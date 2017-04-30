@@ -1,12 +1,12 @@
 install:
   - ps: |
       Add-Type -AssemblyName System.IO.Compression.FileSystem
-      if (!(Test-Path -Path "C:\sbt\sbt-launcher-packaging-0.13.13" )) {
+      if (!(Test-Path -Path "C:\sbt\lib\local-preloaded\org.scala-sbt\sbt\0.13.15\jars\sbt.jar")) {
         (new-object System.Net.WebClient).DownloadFile(
-          'https://dl.bintray.com/sbt/native-packages/sbt/0.13.13/sbt-0.13.13.zip',
-          'C:\sbt-0.13.13.zip'
+          'https://dl.bintray.com/sbt/native-packages/sbt/0.13.15/sbt-0.13.15.zip',
+          'C:\sbt-0.13.15.zip'
         )
-        [System.IO.Compression.ZipFile]::ExtractToDirectory("C:\sbt-0.13.13.zip", "C:\sbt")
+        [System.IO.Compression.ZipFile]::ExtractToDirectory("C:\sbt-0.13.15.zip", "C:\")
       }
   - ps: |
       if (!(Test-Path -Path "C:\Program Files\Java\jdk1.7.0\src.zip")) {
@@ -17,7 +17,7 @@ install:
       }
   - cmd: SET JDK_HOME=C:\Program Files\Java\jdk1.7.0
   - cmd: SET JAVA_HOME=C:\Program Files\Java\jdk1.7.0
-  - cmd: SET PATH=C:\sbt\sbt-launcher-packaging-0.13.13\bin;%JAVA_HOME%\bin;%PATH%
+  - cmd: SET PATH=C:\sbt\bin;%JAVA_HOME%\bin;%PATH%
   - cmd: SET SBT_HOME=C:\Users\appveyor\.sbt
   - cmd: SET COURSIER_VERBOSITY=-1
   - cmd: SET GC_LOGGING=true
@@ -29,7 +29,7 @@ test_script:
   - sbt scripted
 cache:
   - C:\Program Files\Java\jdk1.7.0\src.zip
-  - C:\sbt\sbt-launcher-packaging-0.13.13
+  - C:\sbt -> appveyor.yml
   - C:\Users\appveyor\.sbt -> appveyor.yml
   - C:\Users\appveyor\.ivy2 -> appveyor.yml
   - C:\Users\appveyor\.coursier -> appveyor.yml

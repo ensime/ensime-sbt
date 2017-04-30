@@ -12,5 +12,5 @@ ensimeScalaVersion in ThisBuild := "2.11.8"
 ensimeIgnoreScalaMismatch := true
 
 // WORKAROUND https://github.com/ensime/ensime-sbt/issues/239
-// (apparently fixed in sbt 0.13.13)
+// (apparently fixed in sbt 0.13.15)
 ivyScala ~= (_ map (_ copy (overrideScalaVersion = false)))
