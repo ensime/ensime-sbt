@@ -24,9 +24,12 @@ libraryDependencies ++= Seq(
   // directly depending on some of coursier's transitives (not shading)
   // https://github.com/alexarchambault/coursier/issues/25
   "org.scalamacros" %% "quasiquotes" % "2.1.0",
-  "org.scalaz" %% "scalaz-concurrent" % "7.2.10",
+  "org.scalaz" %% "scalaz-concurrent" % "7.2.12",
   "org.jsoup" % "jsoup" % "1.10.2"
 )
+
+// sbt-shading needs custom slf4j jars
+excludeDependencies := Nil
 
 scriptedSettings
 scriptedBufferLog := false
