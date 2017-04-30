@@ -80,7 +80,7 @@ private[ensime] object CoursierHelper {
     )
 
     val resolved = resolution.process.run(fetch).unsafePerformSync
-    resolved.errors.foreach { err =>
+    resolved.metadataErrors.foreach { err =>
       throw new RuntimeException(s"failed to resolve $err")
     }
 

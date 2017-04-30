@@ -20,12 +20,11 @@ libraryDependencies ++= Seq(
   // intentionally old version of scalariform: do not force an upgrade upon users
   "org.scalariform" %% "scalariform" % "0.1.4",
   // shade coursier, i.e. don't force binary compatibility on downstream
-  "io.get-coursier" %% "coursier-cache" % "1.0.0-M15-5" % "shaded",
+  "io.get-coursier" %% "coursier-cache" % "1.0.0-RC1" % "shaded",
   // directly depending on some of coursier's transitives (not shading)
   // https://github.com/alexarchambault/coursier/issues/25
   "org.scalamacros" %% "quasiquotes" % "2.1.0",
   "org.scalaz" %% "scalaz-concurrent" % "7.2.10",
-  "com.lihaoyi" %% "fastparse" % "0.4.2",
   "org.jsoup" % "jsoup" % "1.10.2"
 )
 
