@@ -24,7 +24,13 @@ object EnsimeKeys {
     "Start up the ENSIME server and index your project."
   )
 
-  // for ensimeConfig
+  val ensimeServerVersion = settingKey[String](
+    "The ensime server version"
+  )
+  val ensimeProjectServerVersion = settingKey[String](
+    "The ensime server version for the build project"
+  )
+
   val ensimeName = settingKey[String](
     "Name of the ENSIME project"
   )
@@ -80,7 +86,6 @@ object EnsimeKeys {
     "The artefacts to resolve for :scala-compiler-jars in ensimeConfig."
   )
 
-  // for ensimeConfigProject
   val ensimeProjectScalacOptions = taskKey[Seq[String]](
     "Arguments for the project definition presentation compiler (not possible to extract)."
   )
@@ -141,6 +146,9 @@ object EnsimePlugin extends AutoPlugin {
       scalaVersions.sortWith { case ((_, c1), (_, c2)) => c1 < c2 }.head._1
     }.value,
 
+    ensimeServerVersion := "2.0.0-SNAPSHOT", // 1.0 clients don't support this style of launch, so why not...
+    ensimeProjectServerVersion := "2.0.0-M1", // 2.0 dropped scala 2.10 support
+
     ensimeIgnoreSourcesInBase := false,
     ensimeIgnoreMissingDirectories := false,
     ensimeIgnoreScalaMismatch := false,
@@ -148,7 +156,7 @@ object EnsimePlugin extends AutoPlugin {
     ensimeCachePrefix := None,
 
     // WORKAROUND: https://github.com/scala/scala/pull/5592
-    ensimeJavaFlags := JavaFlags ++: Seq("-Xmx4g", "-Dscala.classpath.closeZip=true"),
+    ensimeJavaFlags := baseJavaFlags(ensimeServerVersion.value) :+ "-Dscala.classpath.closeZip=true",
     ensimeJavaHome := javaHome.value.getOrElse(JdkDir),
     // unable to infer the user's scalac options: https://github.com/ensime/ensime-sbt/issues/98
     ensimeProjectScalacOptions := ensimeSuggestedScalacOptions(Properties.versionNumberString),
@@ -272,7 +280,7 @@ object EnsimePlugin extends AutoPlugin {
     val javaH = (ensimeJavaHome).gimme
     val scalaCompilerJars = ensimeScalaJars.run.toSet
     val serverJars = ensimeServerJars.run.toSet -- scalaCompilerJars + javaH / "lib/tools.jar"
-    val serverVersion = EnsimeCoursierKeys.ensimeServerVersion.gimme
+    val serverVersion = ensimeServerVersion.gimme
 
     // for some reason this gives the wrong number in projectData
     val ensimeScalaV = (ensimeScalaVersion in ThisBuild).run
@@ -550,7 +558,7 @@ object EnsimePlugin extends AutoPlugin {
 
     val scalaCompilerJars = ensimeScalaProjectJars.run.toSet
     val serverJars = ensimeServerProjectJars.run.toSet -- scalaCompilerJars + javaH / "lib/tools.jar"
-    val serverVersion = EnsimeCoursierKeys.ensimeProjectServerVersion.gimme
+    val serverVersion = ensimeProjectServerVersion.gimme
 
     val config = EnsimeConfig(
       root, cacheDir(ensimeCachePrefix.gimme, root),
@@ -586,24 +594,47 @@ object EnsimePlugin extends AutoPlugin {
       )
     )
 
-  lazy val JavaFlags = {
+  def baseJavaFlags(serverVersion: String) = {
+    val raw = ManagementFactory.getRuntimeMXBean.getInputArguments.asScala.toList
+
     // WORKAROUND https://github.com/ensime/ensime-sbt/issues/91
-    val raw = ManagementFactory.getRuntimeMXBean.getInputArguments.asScala.toList.map {
-      case "-Xss1M" => "-Xss2m"
-      case flag     => flag
+    // WORKAROUND https://github.com/ensime/ensime-server/issues/1756
+    val StackSize = "-Xss[^ ]+".r
+    val MinHeap = "-Xms[^ ]+".r
+    val MaxHeap = "-Xmx[^ ]+".r
+    val MaxPerm = "-XX:MaxPermSize=[^ ]+".r
+    val corrected = raw.filter {
+      case StackSize() => false
+      case MinHeap()   => false
+      case MaxHeap()   => false
+      case MaxPerm()   => false
+      case other       => true
     }
-    raw.find { flag => flag.startsWith("-Xss") } match {
-      case Some(has) => raw
-      case None      => "-Xss2m" :: raw
-    }
-    if (sys.props.get("java.version").exists(_.startsWith("1.8"))) {
-      raw ++ Seq(
-        //"-XX:+PrintStringTableStatistics",
+    val memory = Seq(
+      "-Xss2m",
+      "-Xms512m",
+      "-Xmx4g"
+    )
+
+    val server = serverVersion.substring(0, 3)
+    val java = sys.props("java.version").substring(0, 3)
+    val versioned = (java, server) match {
+      case ("1.6", "1.0") => Seq(
+        "-XX:MaxPermSize=256m"
+      )
+      case ("1.7", "1.0") => Seq(
+        "-XX:MaxMetaspaceSize=256m"
+      )
+      case _ => List(
+        "-XX:MaxMetaspaceSize=256m",
+        // these improve ensime-server performance
         "-XX:StringTableSize=1000003",
         "-XX:+UnlockExperimentalVMOptions",
         "-XX:SymbolTableSize=1000003"
       )
-    } else raw
+    }
+
+    corrected ++ memory ++ versioned
   }
 
   private def cacheDir(prefix: Option[File], base: File): File = prefix match {

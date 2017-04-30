@@ -6,7 +6,7 @@
  :ensime-server-version "1.0.0"
  :name "different-scalaorganization"
  :java-home "JDK_HOME"
- :java-flags ("-XX:MaxPermSize=256m" "-Xmx2g" "-Xss2m" "-Dscala.classpath.closeZip=true")
+ :java-flags ("-Xss2m" "-Xms512m" "-Xmx4g" "-XX:MaxPermSize=256m" "-Dscala.classpath.closeZip=true")
  :java-sources ("JDK_HOME/src.zip")
  :java-compiler-args nil
  :reference-source-roots ("JDK_HOME/src.zip")

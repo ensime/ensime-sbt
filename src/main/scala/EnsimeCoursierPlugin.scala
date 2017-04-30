@@ -11,14 +11,6 @@ import sbt._
 import sbt.Keys._
 
 object EnsimeCoursierKeys {
-  val ensimeServerVersion = settingKey[String](
-    "The ensime server version"
-  )
-
-  val ensimeProjectServerVersion = settingKey[String](
-    "The ensime server version for the build project"
-  )
-
   // can't include Coursier keys in our public API because it is shaded
   val ensimeRepositoryUrls = settingKey[Seq[String]](
     "The maven repositories to download the scala compiler, ensime-server and ensime-plugins jars"
@@ -45,9 +37,9 @@ object EnsimeCoursierPlugin extends AutoPlugin {
   override def trigger = allRequirements
   val autoImport = EnsimeCoursierKeys
 
+  import EnsimeKeys._
+
   override lazy val buildSettings = Seq(
-    ensimeServerVersion := "2.0.0-SNAPSHOT", // 1.0 clients don't support this style of launch, so why not...
-    ensimeProjectServerVersion := "2.0.0-M1",
     ensimeRepositoryUrls := Seq(
       // intentionally not using the ivy cache because it's very unreliable
       "https://repo1.maven.org/maven2/",

@@ -7,12 +7,12 @@ import Keys._
 import collection.JavaConverters._
 import util.Properties
 import org.ensime.CommandSupport
-import org.ensime.EnsimeCoursierKeys._
+import org.ensime.EnsimeKeys._
 
 object EnsimeSbtTestSupport extends AutoPlugin {
   import CommandSupport._
 
-  override def requires = org.ensime.EnsimeCoursierPlugin
+  override def requires = org.ensime.EnsimePlugin
   override def trigger = allRequirements
 
   private lazy val parser = complete.Parsers.spaceDelimited("<arg>")
