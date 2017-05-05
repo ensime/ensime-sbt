@@ -5,6 +5,7 @@ package org.ensime
 import sbt._
 import scalaz._
 import scalaz.concurrent.Task
+import coursier.CachePolicy
 
 /**
  * Ideally we'd put these in the EnsimeCoursierPlugin file, but we
@@ -84,12 +85,14 @@ private[ensime] object CoursierHelper {
       throw new RuntimeException(s"failed to resolve $err")
     }
 
-    Task.gatherUnordered(
-      resolved.artifacts.map(coursier.Cache.file(_).run)
-    ).unsafePerformSync.flatMap {
-        case -\/(err)                                    => throw new RuntimeException(err.message)
-        case \/-(file) if !file.getName.endsWith(".jar") => None
-        case \/-(file)                                   => Some(file)
-      }
+    Task.gatherUnordered(resolved.artifacts.map { artifact =>
+      def fetch(p: CachePolicy) = coursier.Cache.file(artifact, cachePolicy = p)
+
+      (fetch(CachePolicy.default.head) /: CachePolicy.default.tail)(_ orElse fetch(_)).run
+    }).unsafePerformSync.flatMap {
+      case -\/(err)                                    => throw new RuntimeException(err.message)
+      case \/-(file) if !file.getName.endsWith(".jar") => None
+      case \/-(file)                                   => Some(file)
+    }
   }
 }
