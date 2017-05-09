@@ -297,9 +297,12 @@ object EnsimePlugin extends AutoPlugin {
         val deps = p.depends
         // restrict jars to immediate deps at each module
         p.copy(
-          libraryJars = p.libraryJars -- deps.flatMap(_.libraryJars),
-          librarySources = p.librarySources -- deps.flatMap(_.librarySources),
-          libraryDocs = p.libraryDocs -- deps.flatMap(_.libraryDocs)
+          // WORKAROUND: https://github.com/ensime/ensime-sbt/issues/334
+          // with the coursier plugin (1.0.0-RC2) the list contains
+          // signatures and maybe other files we don't want here
+          libraryJars = (p.libraryJars -- deps.flatMap(_.libraryJars)).filter(jarOrZipFile),
+          librarySources = (p.librarySources -- deps.flatMap(_.librarySources)).filter(jarOrZipFile),
+          libraryDocs = (p.libraryDocs -- deps.flatMap(_.libraryDocs)).filter(jarOrZipFile)
         )
     }
 
@@ -339,6 +342,11 @@ object EnsimePlugin extends AutoPlugin {
     write(out, toSExp(transformedConfig).replaceAll("\r\n", "\n") + "\n")
 
     state
+  }
+
+  private def jarOrZipFile(file: sbt.File): Boolean = {
+    val (_, ext) = file.baseAndExt
+    ext == "zip" || ext == "jar"
   }
 
   private def ensureCreatedOrIgnore(ignore: Boolean, log: Logger)(sources: Set[File]): Set[File] = {
