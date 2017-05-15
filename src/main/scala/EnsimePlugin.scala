@@ -24,7 +24,15 @@ object EnsimeKeys {
     "Start up the ENSIME server and index your project."
   )
 
-  val ensimeServerVersion = taskKey[String](
+  val ensimeConfig = inputKey[Unit](
+    "Generate a .ensime for the project."
+  )
+
+  val ensimeConfigProject = taskKey[Unit](
+    "Generate a project/.ensime for the project definition."
+  )
+
+  val ensimeServerVersion = settingKey[String](
     "The ensime server version"
   )
   val ensimeProjectServerVersion = settingKey[String](
@@ -129,9 +137,6 @@ object EnsimePlugin extends AutoPlugin {
     // WORKAROUND: https://github.com/sbt/sbt/issues/2814
     scalaOrganization in updateSbtClassifiers := (scalaOrganization in Global).value,
 
-    commands += Command.args("ensimeConfig", ("", ""), "Generate a .ensime for the project.", "proj1 proj2")(ensimeConfig),
-    commands += Command.command("ensimeConfigProject", "", "Generate a project/.ensime for the project definition.")(ensimeConfigProject),
-
     ensimeScalaVersion := state.map { implicit s =>
       // infer the scalaVersion by majority vote, because many badly
       // written builds will forget to set the scalaVersion for the
@@ -207,7 +212,13 @@ object EnsimePlugin extends AutoPlugin {
       (scalacOptions in Compile).value ++
       ensimeSuggestedScalacOptions((ensimeScalaVersion in ThisBuild).value)
     ).distinct,
-    ensimeJavacOptions := (javacOptions in Compile).value
+    ensimeJavacOptions := (javacOptions in Compile).value,
+
+    ensimeConfig := ensimeConfigTask.evaluated,
+    ensimeConfigProject := ensimeConfigProjectTask.value,
+
+    aggregate in ensimeConfig := false,
+    aggregate in ensimeConfigProject := false
   )
 
   // exposed for users to use
@@ -245,9 +256,11 @@ object EnsimePlugin extends AutoPlugin {
     ).foreach(sys.error)
   }
 
-  def ensimeConfig: (State, Seq[String]) => State = { (state, args) =>
-    val extracted = Project.extract(state)
-    implicit val st = state
+  def ensimeConfigTask = Def.inputTask {
+    val args = Def.spaceDelimited().parsed
+
+    val extracted = Project.extract(state.value)
+    implicit val st = state.value
     implicit val pr = extracted.currentRef
     implicit val bs = extracted.structure
 
@@ -291,7 +304,7 @@ object EnsimePlugin extends AutoPlugin {
     implicit val rawProjects = projects.flatMap {
       case (ref, proj) =>
         val (updateReport, updateClassifiersReport) = updateReports(ref)
-        val projects = projectData(ensimeScalaV, proj, updateReport, updateClassifiersReport)(ref, bs, state)
+        val projects = projectData(ensimeScalaV, proj, updateReport, updateClassifiersReport)(ref, bs, st)
         projects.map { p => (p.id, p) }
     }.toMap
 
@@ -340,8 +353,6 @@ object EnsimePlugin extends AutoPlugin {
 
     // workaround for Windows
     write(out, toSExp(transformedConfig).replaceAll("\r\n", "\n") + "\n")
-
-    state
   }
 
   // WORKAROUND: https://github.com/ensime/ensime-sbt/issues/334 when
@@ -523,9 +534,10 @@ object EnsimePlugin extends AutoPlugin {
     )
   }
 
-  def ensimeConfigProject: State => State = { implicit state: State =>
-    val extracted = Project.extract(state)
+  def ensimeConfigProjectTask = Def.task {
+    val extracted = Project.extract(state.value)
 
+    implicit val st = state.value
     implicit val pr = extracted.currentRef
     implicit val bs = extracted.structure
 
@@ -590,8 +602,6 @@ object EnsimePlugin extends AutoPlugin {
     val transformedConfig = ensimeConfigTransformerProject.gimme.apply(config)
 
     write(out, toSExp(transformedConfig).replaceAll("\r\n", "\n") + "\n")
-
-    state
   }
 
   // WORKAROUND: https://github.com/typelevel/scala/issues/75
