@@ -137,19 +137,19 @@ object EnsimePlugin extends AutoPlugin {
     // WORKAROUND: https://github.com/sbt/sbt/issues/2814
     scalaOrganization in updateSbtClassifiers := (scalaOrganization in Global).value,
 
-    ensimeScalaVersion := state.map { implicit s =>
+    ensimeScalaVersion := {
       // infer the scalaVersion by majority vote, because many badly
       // written builds will forget to set the scalaVersion for the
       // root project. And we can't ask for (scalaVersion in
       // ThisBuild) because very few projects do it The Right Way.
-      implicit val struct = Project.structure(s)
+      implicit val struct = Project.structure(state.value)
 
       val scalaVersions = struct.allProjectRefs.map { implicit p =>
-        scalaVersion.gimme
+        scalaVersion.value
       }.groupBy(identity).map { case (sv, svs) => sv -> svs.size }.toList
 
       scalaVersions.sortWith { case ((_, c1), (_, c2)) => c1 < c2 }.head._1
-    }.value,
+    },
 
     ensimeServerVersion := {
       CrossVersion.partialVersion(ensimeScalaVersion.value) match {
