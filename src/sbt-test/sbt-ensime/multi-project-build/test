@@ -1,0 +1,2 @@
+> ensimeConfig
+> ensimeExpect .ensime ensimeConfig.expect

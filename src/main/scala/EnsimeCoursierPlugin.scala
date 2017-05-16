@@ -4,22 +4,25 @@ package org.ensime
 
 import scala.util.Properties.{versionNumberString => sbtScalaVersion}
 
+import CoursierHelper._
 import EnsimeCoursierKeys._
 import EnsimeKeys._
 import sbt._
-import sbt.IO._
 import sbt.Keys._
-import scalaz._
-import scalaz.concurrent.Task
 
 object EnsimeCoursierKeys {
-  val ensimeServerVersion = settingKey[String](
-    "The ensime server version"
+  // can't include Coursier keys in our public API because it is shaded
+  val ensimeRepositoryUrls = settingKey[Seq[String]](
+    "The maven repositories to download the scala compiler, ensime-server and ensime-plugins jars"
   )
 
-  val ensimeResolvers = settingKey[Seq[coursier.Repository]](
-    "The resolvers to download the scala compiler and ensime-server jars"
-  )
+  def addEnsimeScalaPlugin(module: ModuleID, args: String = ""): Seq[Setting[_]] = {
+    ensimeScalacOptions += {
+      val jar = resolveSingleJar(module, ensimeScalaVersion.value, ensimeRepositoryUrls.value)
+      s"-Xplugin:${jar.getCanonicalFile}${args}"
+    }
+  }
+
 }
 
 /**
@@ -30,68 +33,24 @@ object EnsimeCoursierKeys {
  * to avoid a dependency on coursier and provide hard coded jar paths.
  */
 object EnsimeCoursierPlugin extends AutoPlugin {
-
   override def requires = EnsimePlugin
   override def trigger = allRequirements
   val autoImport = EnsimeCoursierKeys
 
+  import EnsimeKeys._
+
   override lazy val buildSettings = Seq(
-    ensimeServerVersion := "1.0.0",
-    ensimeResolvers := Seq(
+    ensimeRepositoryUrls := Seq(
       // intentionally not using the ivy cache because it's very unreliable
-      coursier.MavenRepository("https://repo1.maven.org/maven2/"),
+      "https://repo1.maven.org/maven2/",
       // including snapshots by default makes it easier to use dev ensime
-      coursier.MavenRepository("https://oss.sonatype.org/content/repositories/snapshots/")
+      "https://oss.sonatype.org/content/repositories/snapshots/"
     ),
 
-    ensimeScalaJars := resolveScalaJars(scalaOrganization.value, ensimeScalaVersion.value)(ensimeResolvers.value),
-    ensimeScalaProjectJars := resolveScalaJars("org.scala-lang", sbtScalaVersion)(ensimeResolvers.value),
-    ensimeServerJars := resolveEnsimeJars(scalaOrganization.value, ensimeScalaVersion.value, ensimeServerVersion.value)(ensimeResolvers.value),
-    ensimeServerProjectJars := resolveEnsimeJars("org.scala-lang", sbtScalaVersion, ensimeServerVersion.value)(ensimeResolvers.value)
+    ensimeScalaJars := resolveScalaJars(scalaOrganization.value, ensimeScalaVersion.value, ensimeRepositoryUrls.value),
+    ensimeScalaProjectJars := resolveScalaJars("org.scala-lang", sbtScalaVersion, ensimeRepositoryUrls.value),
+    ensimeServerJars := resolveEnsimeJars(scalaOrganization.value, ensimeScalaVersion.value, ensimeServerVersion.value, ensimeRepositoryUrls.value),
+    ensimeServerProjectJars := resolveEnsimeJars("org.scala-lang", sbtScalaVersion, ensimeProjectServerVersion.value, ensimeRepositoryUrls.value)
   )
-
-  def resolve(modules: ModuleID*)(implicit repos: Seq[coursier.Repository]): Seq[File] = {
-    val resolution = coursier.Resolution(
-      modules.map { module =>
-      coursier.Dependency(
-        coursier.Module(
-          module.organization,
-          module.name
-        ),
-        module.revision,
-        configuration = module.configurations.getOrElse(""),
-        transitive = module.isTransitive
-      )
-    }.toSet
-    )
-
-    val fetch = coursier.Fetch.from(repos, coursier.Cache.fetch())
-    val resolved = resolution.process.run(fetch).run
-    resolved.errors.foreach { err =>
-      throw new RuntimeException(s"failed to resolve $err")
-    }
-
-    Task.gatherUnordered(
-      resolved.artifacts.map(coursier.Cache.file(_).run)
-    ).run.map {
-        case -\/(err)  => throw new RuntimeException(err.message)
-        case \/-(file) => file
-      }
-  }
-
-  def resolveScalaJars(org: String, version: String)(implicit repos: Seq[coursier.Repository]): Seq[File] = resolve(
-    org % "scalap" % version intransitive,
-    org % "scala-compiler" % version intransitive,
-    org % "scala-reflect" % version intransitive,
-    org % "scala-library" % version intransitive
-  )
-
-  def resolveEnsimeJars(org: String, scala: String, ensime: String)(implicit repos: Seq[coursier.Repository]): Seq[File] = {
-    val Some((major, minor)) = CrossVersion.partialVersion(scala)
-    resolve(
-      "org.ensime" % s"server_$major.$minor" % ensime,
-      org % "scalap" % scala intransitive
-    )
-  }
 
 }

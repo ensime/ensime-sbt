@@ -8,6 +8,7 @@ import java.lang.management.ManagementFactory
 import scala.collection.JavaConverters._
 import scala.util._
 import scala.util.control.NoStackTrace
+import scala.util.matching._
 
 import SExpFormatter._
 import sbt._
@@ -19,7 +20,17 @@ import sbt.complete.Parsers._
  * Conventional way to define importable keys for an AutoPlugin.
  */
 object EnsimeKeys {
-  // for ensimeConfig
+  val ensimeServerIndex = taskKey[Unit](
+    "Start up the ENSIME server and index your project."
+  )
+
+  val ensimeServerVersion = settingKey[String](
+    "The ensime server version"
+  )
+  val ensimeProjectServerVersion = settingKey[String](
+    "The ensime server version for the build project"
+  )
+
   val ensimeName = settingKey[String](
     "Name of the ENSIME project"
   )
@@ -75,7 +86,6 @@ object EnsimeKeys {
     "The artefacts to resolve for :scala-compiler-jars in ensimeConfig."
   )
 
-  // for ensimeConfigProject
   val ensimeProjectScalacOptions = taskKey[Seq[String]](
     "Arguments for the project definition presentation compiler (not possible to extract)."
   )
@@ -98,6 +108,12 @@ object EnsimeKeys {
     "A function that is applied to a generated ENSIME project config. Equivalent of 'configTransformer' task, " +
       "on the build level."
   )
+
+  val ensimeCachePrefix = settingKey[Option[File]](
+    "Instead of putting the cache directory in the base directory, put it under this directory. " +
+      "Useful if you want to put on a faster (local or RAM). " +
+      "Will break clients that expect the cache to be in the project root."
+  )
 }
 
 object EnsimePlugin extends AutoPlugin {
@@ -110,10 +126,13 @@ object EnsimePlugin extends AutoPlugin {
   import autoImport._
 
   override lazy val buildSettings = Seq(
+    // WORKAROUND: https://github.com/sbt/sbt/issues/2814
+    scalaOrganization in updateSbtClassifiers := (scalaOrganization in Global).value,
+
     commands += Command.args("ensimeConfig", ("", ""), "Generate a .ensime for the project.", "proj1 proj2")(ensimeConfig),
     commands += Command.command("ensimeConfigProject", "", "Generate a project/.ensime for the project definition.")(ensimeConfigProject),
 
-    ensimeScalaVersion <<= state.map { implicit s =>
+    ensimeScalaVersion := state.map { implicit s =>
       // infer the scalaVersion by majority vote, because many badly
       // written builds will forget to set the scalaVersion for the
       // root project. And we can't ask for (scalaVersion in
@@ -125,17 +144,23 @@ object EnsimePlugin extends AutoPlugin {
       }.groupBy(identity).map { case (sv, svs) => sv -> svs.size }.toList
 
       scalaVersions.sortWith { case ((_, c1), (_, c2)) => c1 < c2 }.head._1
-    },
+    }.value,
+
+    ensimeServerVersion := "2.0.0-SNAPSHOT", // 1.0 clients don't support this style of launch, so why not...
+    ensimeProjectServerVersion := "2.0.0-M1", // 2.0 dropped scala 2.10 support
 
     ensimeIgnoreSourcesInBase := false,
     ensimeIgnoreMissingDirectories := false,
     ensimeIgnoreScalaMismatch := false,
 
-    ensimeJavaFlags := JavaFlags,
+    ensimeCachePrefix := None,
+
+    // WORKAROUND: https://github.com/scala/scala/pull/5592
+    ensimeJavaFlags := baseJavaFlags(ensimeServerVersion.value) :+ "-Dscala.classpath.closeZip=true",
     ensimeJavaHome := javaHome.value.getOrElse(JdkDir),
     // unable to infer the user's scalac options: https://github.com/ensime/ensime-sbt/issues/98
     ensimeProjectScalacOptions := ensimeSuggestedScalacOptions(Properties.versionNumberString),
-    ensimeMegaUpdate <<= Keys.state.flatMap { implicit s =>
+    ensimeMegaUpdate := Keys.state.flatMap { implicit s =>
 
       def checkCoursier(): Unit = {
         val structure = Project.extract(s).structure
@@ -160,10 +185,13 @@ object EnsimePlugin extends AutoPlugin {
           (p, (updateReport(p), updateClassifiersReport(p)))
         }.toMap
       }
-    }
+    }.value
   )
 
   override lazy val projectSettings = Seq(
+    aggregate in ensimeServerIndex := false,
+    ensimeServerIndex := ensimeServerIndexTask.value,
+
     ensimeUnmanagedSourceArchives := Nil,
     ensimeUnmanagedJavadocArchives := Nil,
     ensimeConfigTransformer := identity,
@@ -192,6 +220,27 @@ object EnsimePlugin extends AutoPlugin {
         case _                       => Nil
       }
     }
+
+  def ensimeServerIndexTask: Def.Initialize[Task[Unit]] = Def.task {
+    val javaH = ensimeJavaHome.value
+    val java = javaH / "bin/java"
+    val scalaCompilerJars = ensimeScalaJars.value.toSet
+    val jars = ensimeServerJars.value.toSet ++ scalaCompilerJars + javaH / "lib/tools.jar"
+    val jvmFlags = ensimeJavaFlags.value ++ Seq("-Densime.config=.ensime", "-Densime.exitAfterIndex=true")
+    val cache = cacheDir(ensimeCachePrefix.value, file("."))
+
+    cache.mkdirs()
+
+    val options = ForkOptions(Some(javaH), runJVMOptions = jvmFlags)
+    toError(
+      new ForkRun(options).run(
+        "org.ensime.server.Server",
+        orderFiles(jars),
+        Nil,
+        streams.value.log
+      )
+    )
+  }
 
   def ensimeConfig: (State, Seq[String]) => State = { (state, args) =>
     val extracted = Project.extract(state)
@@ -230,7 +279,8 @@ object EnsimePlugin extends AutoPlugin {
 
     val javaH = (ensimeJavaHome).gimme
     val scalaCompilerJars = ensimeScalaJars.run.toSet
-    val serverJars = ensimeServerJars.run.toSet -- scalaCompilerJars + javaH / "tools.jar"
+    val serverJars = ensimeServerJars.run.toSet -- scalaCompilerJars + javaH / "lib/tools.jar"
+    val serverVersion = ensimeServerVersion.gimme
 
     // for some reason this gives the wrong number in projectData
     val ensimeScalaV = (ensimeScalaVersion in ThisBuild).run
@@ -247,15 +297,17 @@ object EnsimePlugin extends AutoPlugin {
         val deps = p.depends
         // restrict jars to immediate deps at each module
         p.copy(
-          libraryJars = p.libraryJars -- deps.flatMap(_.libraryJars),
-          librarySources = p.librarySources -- deps.flatMap(_.librarySources),
-          libraryDocs = p.libraryDocs -- deps.flatMap(_.libraryDocs)
+          // WORKAROUND: https://github.com/ensime/ensime-sbt/issues/334
+          // with the coursier plugin (1.0.0-RC2) the list contains
+          // signatures and maybe other files we don't want here
+          libraryJars = (p.libraryJars -- deps.flatMap(_.libraryJars)).filter(jarOrZipFile),
+          librarySources = (p.librarySources -- deps.flatMap(_.librarySources)).filter(jarOrZipFile),
+          libraryDocs = (p.libraryDocs -- deps.flatMap(_.libraryDocs)).filter(jarOrZipFile)
         )
     }
 
     val root = file(Properties.userDir)
     val out = file(".ensime")
-    val cacheDir = file(".ensime_cache")
     val name = (ensimeName).gimmeOpt.getOrElse {
       if (subProjects.size == 1) subProjects.head.id.project
       else root.getAbsoluteFile.getName
@@ -278,8 +330,8 @@ object EnsimePlugin extends AutoPlugin {
     val modules = subProjects.groupBy(_.id.project).mapValues(ensimeProjectsToModule)
 
     val config = EnsimeConfig(
-      root, cacheDir,
-      scalaCompilerJars, serverJars,
+      root, cacheDir(ensimeCachePrefix.gimme, root),
+      scalaCompilerJars, serverJars, serverVersion,
       name, scalaVersion, compilerArgs,
       modules, javaH, javaFlags, javaCompilerArgs, javaSrc, subProjects
     )
@@ -290,6 +342,11 @@ object EnsimePlugin extends AutoPlugin {
     write(out, toSExp(transformedConfig).replaceAll("\r\n", "\n") + "\n")
 
     state
+  }
+
+  private def jarOrZipFile(file: sbt.File): Boolean = {
+    val (_, ext) = file.baseAndExt
+    ext == "zip" || ext == "jar"
   }
 
   private def ensureCreatedOrIgnore(ignore: Boolean, log: Logger)(sources: Set[File]): Set[File] = {
@@ -361,9 +418,13 @@ object EnsimePlugin extends AutoPlugin {
       artifact = artifactFilter(classifier = Artifact.DocClassifier)
     ).toSet ++ (ensimeUnmanagedJavadocArchives in config in projectRef).gimme
 
-    // needs to take configurations into account
-    // https://github.com/ensime/ensime-sbt/issues/247
-    val deps = project.dependencies.map(_.project.project).map { n => EnsimeProjectId(n, "compile") }
+    val IvyConfig = "([A-Za-z]+)->([A-Za-z]+)".r
+
+    val deps = project.dependencies.map { d =>
+      val name = d.project.project
+      val config = d.configuration.collect { case IvyConfig(_, to) => to }.getOrElse("compile")
+      (name, config)
+    }.map(t => EnsimeProjectId(t._1, t._2))
 
     def configDataFor(config: Configuration): EnsimeProject = {
       val sbv = scalaBinaryVersion.gimme
@@ -410,7 +471,7 @@ object EnsimePlugin extends AutoPlugin {
       )
       if (!ensimeIgnoreScalaMismatch.gimme)
         throw new IllegalStateException(
-          """To ignore this error (i.e. you have multiple scala versions), customise `ensimeIgnoreScalaMismatch`"""
+          s"""To ignore this error (i.e. you have multiple scala versions), add `ensimeIgnoreScalaMismatch in ThisBuild := true` or `ensimeIgnoreScalaMismatch in LocalProject("${project.id}") := true` to your ensime.sbt"""
         ) with NoStackTrace
     }
 
@@ -486,7 +547,6 @@ object EnsimePlugin extends AutoPlugin {
 
     val root = file(Properties.userDir) / "project"
     val out = root / ".ensime"
-    val cacheDir = root / ".ensime_cache"
     val name = ensimeName.gimmeOpt.getOrElse {
       file(Properties.userDir).getName
     } + "-project"
@@ -505,11 +565,12 @@ object EnsimePlugin extends AutoPlugin {
     val module = ensimeProjectsToModule(Set(proj))
 
     val scalaCompilerJars = ensimeScalaProjectJars.run.toSet
-    val serverJars = ensimeServerProjectJars.run.toSet -- scalaCompilerJars + javaH / "tools.jar"
+    val serverJars = ensimeServerProjectJars.run.toSet -- scalaCompilerJars + javaH / "lib/tools.jar"
+    val serverVersion = ensimeProjectServerVersion.gimme
 
     val config = EnsimeConfig(
-      root, cacheDir,
-      scalaCompilerJars, serverJars,
+      root, cacheDir(ensimeCachePrefix.gimme, root),
+      scalaCompilerJars, serverJars, serverVersion,
       name, scalaV, compilerArgs,
       Map(module.name -> module), javaH, javaFlags, Nil, javaSrc,
       Seq(proj)
@@ -541,16 +602,58 @@ object EnsimePlugin extends AutoPlugin {
       )
     )
 
-  lazy val JavaFlags = {
+  def baseJavaFlags(serverVersion: String) = {
+    val raw = ManagementFactory.getRuntimeMXBean.getInputArguments.asScala.toList
+
     // WORKAROUND https://github.com/ensime/ensime-sbt/issues/91
-    val raw = ManagementFactory.getRuntimeMXBean.getInputArguments.asScala.toList.map {
-      case "-Xss1M" => "-Xss2m"
-      case flag     => flag
+    // WORKAROUND https://github.com/ensime/ensime-server/issues/1756
+    val StackSize = "-Xss[^ ]+".r
+    val MinHeap = "-Xms[^ ]+".r
+    val MaxHeap = "-Xmx[^ ]+".r
+    val MaxPerm = "-XX:MaxPermSize=[^ ]+".r
+    val corrected = raw.filter {
+      case StackSize() => false
+      case MinHeap()   => false
+      case MaxHeap()   => false
+      case MaxPerm()   => false
+      case other       => true
     }
-    raw.find { flag => flag.startsWith("-Xss") } match {
-      case Some(has) => raw
-      case None      => "-Xss2m" :: raw
+    val memory = Seq(
+      "-Xss2m",
+      "-Xms512m",
+      "-Xmx4g"
+    )
+
+    val server = serverVersion.substring(0, 3)
+    val java = sys.props("java.version").substring(0, 3)
+    val versioned = (java, server) match {
+      case (_, "1.0") | ("1.6" | "1.7", _) => Seq(
+        "-XX:MaxPermSize=256m"
+      )
+      case _ => List(
+        "-XX:MaxMetaspaceSize=256m",
+        // these improve ensime-server performance
+        "-XX:StringTableSize=1000003",
+        "-XX:+UnlockExperimentalVMOptions",
+        "-XX:SymbolTableSize=1000003"
+      )
     }
+
+    corrected ++ memory ++ versioned
+  }
+
+  private def cacheDir(prefix: Option[File], base: File): File = prefix match {
+    case None      => base / ".ensime_cache"
+    case Some(pre) => pre / s"${base.getCanonicalPath}/.ensime_cache"
+  }
+
+  // normalise and ensure monkeys go first
+  // (bit of a hack to do it here, maybe best when creating)
+  private[ensime] def orderFiles(ss: Iterable[File]): List[File] = {
+    val (monkeys, humans) = ss.toList.distinct.sortBy { f =>
+      f.getName + f.getPath
+    }.partition(_.getName.contains("monkey"))
+    monkeys ::: humans
   }
 
 }
@@ -560,6 +663,7 @@ case class EnsimeConfig(
   cacheDir: File,
   scalaCompilerJars: Set[File],
   ensimeServerJars: Set[File],
+  ensimeServerVersion: String,
   name: String,
   scalaVersion: String,
   scalacOptions: List[String], // 1.0
@@ -653,14 +757,7 @@ object SExpFormatter {
 
   def fsToSExp(ss: Iterable[File]): String =
     if (ss.isEmpty) "nil"
-    else {
-      // normalise and ensure monkeys go first
-      // (bit of a hack to do it here, maybe best when creating)
-      val (monkeys, humans) = ss.toList.distinct.sortBy { f =>
-        f.getName + f.getPath
-      }.partition(_.getName.contains("monkey"))
-      monkeys ::: humans
-    }.map(toSExp).mkString("(", " ", ")")
+    else EnsimePlugin.orderFiles(ss).map(toSExp).mkString("(", " ", ")")
 
   def ssToSExp(ss: Iterable[String]): String =
     if (ss.isEmpty) "nil"
@@ -688,9 +785,11 @@ object SExpFormatter {
  :cache-dir ${toSExp(c.cacheDir)}
  :scala-compiler-jars ${fsToSExp(c.scalaCompilerJars)}
  :ensime-server-jars ${fsToSExp(c.ensimeServerJars)}
+ :ensime-server-version ${toSExp(c.ensimeServerVersion)}
  :name "${c.name}"
  :java-home ${toSExp(c.javaHome)}
  :java-flags ${ssToSExp(c.javaFlags)}
+ :java-sources ${fsToSExp(c.javaSrc)}
  :java-compiler-args ${ssToSExp(c.javacOptions)}
  :reference-source-roots ${fsToSExp(c.javaSrc)}
  :scala-version ${toSExp(c.scalaVersion)}

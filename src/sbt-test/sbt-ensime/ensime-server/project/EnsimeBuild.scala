@@ -13,7 +13,7 @@ import sbtbuildinfo.BuildInfoPlugin, BuildInfoPlugin.autoImport._
 
 object EnsimeBuild extends Build {
   lazy override val settings = super.settings ++ Seq(
-    scalaVersion := "2.11.8",
+    scalaVersion := "2.11.11",
     organization := "org.ensime",
     version := "1.0.0-SNAPSHOT"
   )
