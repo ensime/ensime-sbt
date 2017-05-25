@@ -10,7 +10,8 @@ object printArgs extends App {
 
   def writeArgsToFile(filename: String): Unit = {
     val runtimeMxBean = ManagementFactory.getRuntimeMXBean
-    val jvmArgPrefixes = Seq("-Dtesting", "-Xm", "-agentlib")
+
+    val jvmArgPrefixes = Seq("-Dtesting", "-Xm", "-agentlib", "-framework")
     val jvmArgs = runtimeMxBean.getInputArguments.toList.filter(
       arg => jvmArgPrefixes.exists(prefix => arg.startsWith(prefix))).sorted
 
@@ -25,8 +26,10 @@ object printArgs extends App {
       output.write(jvmArgs.mkString(" "))
       output.write("\n")
       output.write(envArgs.map(t => t._1 + "=" + t._2).mkString(" "))
-      output.write("\n")
-      output.write(args.mkString(" "))
+      if (args != null) {
+        output.write("\n")
+        output.write(args.mkString(" "))
+      }
     } finally output.close()
   }
 

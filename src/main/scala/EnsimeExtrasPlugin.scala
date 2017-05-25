@@ -257,7 +257,7 @@ object EnsimeExtrasPlugin extends AutoPlugin {
     baseDir: File,
     cp: Classpath,
     trl: TestResultLogger,
-    scoped: _root_.sbt.Def.ScopedKey[_]
+    scoped: Def.ScopedKey[_]
   ) = {
 
     val (selected, frameworkOptions) = settings
