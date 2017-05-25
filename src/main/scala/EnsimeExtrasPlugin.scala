@@ -6,6 +6,7 @@ import EnsimeKeys._
 import sbt.Defaults.{loadForParser => _, toError => _, _}
 import sbt._
 import sbt.Keys._
+import sbt.Tests.Execution
 import sbt.complete.{DefaultParsers, Parser}
 
 import scalariform.formatter.ScalaFormatter
@@ -64,6 +65,14 @@ object EnsimeExtrasPlugin extends AutoPlugin {
   override def trigger = allRequirements
   val autoImport = EnsimeExtrasKeys
 
+  private val emptyExtraArgs = settingKey[Seq[String]](
+    "Stub key for tasks that accepts extra args"
+  )
+
+  private val emptyExtraEnv = settingKey[Map[String, String]](
+    "Stub key for tasks that accepts extra env args"
+  )
+
   override lazy val buildSettings = Seq(
     commands += Command.command("debugging", "", "Add debugging flags to all forked JVM processes.")(toggleDebugging(true)),
     commands += Command.command("debuggingOff", "", "Remove debugging flags from all forked JVM processes.")(toggleDebugging(false))
@@ -72,11 +81,17 @@ object EnsimeExtrasPlugin extends AutoPlugin {
   override lazy val projectSettings = Seq(
     ensimeDebuggingFlag := "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=",
     ensimeDebuggingPort := 5005,
+    emptyExtraArgs := Seq.empty[String],
+    emptyExtraEnv := Map.empty[String, String],
     ensimeDebuggingArgs := Seq(s"${ensimeDebuggingFlag.value}${ensimeDebuggingPort.value}"),
     ensimeRunMain in Compile := parseAndRunMainWithStaticSettings(Compile).evaluated,
     ensimeRunDebug in Compile := parseAndRunMainWithDynamicSettings(
       Compile,
-      extraArgsO = Some(ensimeDebuggingArgs)
+      extraArgs = ensimeDebuggingArgs
+    ).evaluated,
+    ensimeTestOnlyDebug in Test := testOnlyWithSettings(
+      Test,
+      extraArgs = ensimeDebuggingArgs
     ).evaluated,
     ensimeLaunchConfigurations := Nil,
     ensimeLaunch in Compile := launchTask(Compile).evaluated,
@@ -168,61 +183,24 @@ object EnsimeExtrasPlugin extends AutoPlugin {
 
   def parseAndRunMainWithDynamicSettings(
     config: Configuration,
-    extraEnvO: Option[SettingKey[Map[String, String]]] = None,
-    extraArgsO: Option[SettingKey[Seq[String]]] = None
+    extraEnv: SettingKey[Map[String, String]] = emptyExtraEnv,
+    extraArgs: SettingKey[Seq[String]] = emptyExtraArgs
   ): Def.Initialize[InputTask[Unit]] =
     InputTask((s: State) => ensimeRunMainTaskParser) {
       (argTask: TaskKey[JavaArgs]) =>
-        (extraArgsO, extraEnvO) match {
-          case (Some(extraArgs), Some(extraEnv)) => (
-            argTask,
-            (fullClasspath in config),
-            (javaOptions in config),
-            (envVars in config),
-            (baseDirectory in config),
-            (streams in config),
-            extraArgs,
-            extraEnv
-          ).map(
-              (args, classpath, javaOps, eVars, baseDir, s, extArgs, extEnv) =>
-                runMain(args, classpath, javaOps, eVars, baseDir, s, extArgs, extEnv)
-            )
-          case (Some(extraArgs), None) => (
-            argTask,
-            (fullClasspath in config),
-            (javaOptions in config),
-            (envVars in config),
-            (baseDirectory in config),
-            (streams in config),
-            extraArgs
-          ).map(
-              (args, classpath, javaOps, eVars, baseDir, s, extArgs) =>
-                runMain(args, classpath, javaOps, eVars, baseDir, s, extraArgs = extArgs)
-            )
-          case (None, Some(extraEnv)) => (
-            argTask,
-            (fullClasspath in config),
-            (javaOptions in config),
-            (envVars in config),
-            (baseDirectory in config),
-            (streams in config),
-            extraEnv
-          ).map(
-              (args, classpath, javaOps, eVars, baseDir, s, extEnv) =>
-                runMain(args, classpath, javaOps, eVars, baseDir, s, extraEnv = extEnv)
-            )
-          case (None, None) => (
-            argTask,
-            (fullClasspath in config),
-            (javaOptions in config),
-            (envVars in config),
-            (baseDirectory in config),
-            (streams in config)
-          ).map(
-              (args, classpath, javaOps, eVars, baseDir, s) =>
-                runMain(args, classpath, javaOps, eVars, baseDir, s)
-            )
-        }
+        (
+          argTask,
+          (fullClasspath in config),
+          (javaOptions in config),
+          (envVars in config),
+          (baseDirectory in config),
+          (streams in config),
+          extraArgs,
+          extraEnv
+        ).map(
+            (args, classpath, javaOps, eVars, baseDir, s, extArgs, extEnv) =>
+              runMain(args, classpath, javaOps, eVars, baseDir, s, extArgs, extEnv)
+          )
     }
 
   def launchTask(
@@ -263,49 +241,75 @@ object EnsimeExtrasPlugin extends AutoPlugin {
           }
     }
 
+  def testOnlyWithSettingsTask(
+    settings: (String, Seq[String]),
+    extraArgs: Seq[String],
+    extraEnv: Map[String, String],
+    config: Configuration,
+    tests: Seq[TestDefinition],
+    s: TaskStreams,
+    st: State,
+    exec: Execution,
+    frameworks: Map[TestFramework, Framework],
+    loader: ClassLoader,
+    javaOps: Seq[String],
+    eVars: Map[String, String],
+    baseDir: File,
+    cp: Classpath,
+    trl: TestResultLogger,
+    scoped: _root_.sbt.Def.ScopedKey[_]
+  ) = {
+
+    val (selected, frameworkOptions) = settings
+    implicit val display = Project.showContextKey(st)
+    val modifiedOpts = Tests.Argument(frameworkOptions: _*) +: exec.options
+    val newConfig = exec.copy(options = modifiedOpts)
+
+    val runners = createTestRunners(frameworks, loader, newConfig)
+    val test = tests.find(_.name == selected)
+    if (test.isDefined) {
+      val forkOpts = ForkOptions(
+        runJVMOptions = javaOps ++ extraArgs,
+        envVars = eVars ++ extraEnv,
+        workingDirectory = Some(baseDir)
+      )
+      val output = SbtHelper.consturctForkTests(
+        runners, List(test.get), newConfig, cp.files, forkOpts, s.log, Tags.ForkedTestGroup
+      )
+
+      val taskName = display(scoped)
+      val processed = output.map(out => trl.run(s.log, out, taskName))
+      Def.value(processed)
+    } else {
+      s.log.warn(s"There's no test with name ${selected}")
+      Def.value(constant(()))
+    }
+  }
+
   private def testOnlyWithSettings(
     config: Configuration,
-    extraArgs: Seq[String] = Seq.empty,
-    extraEnv: Map[String, String] = Map.empty
-   ): Def.Initialize[InputTask[Unit]] =
-    InputTask((s: State) => ensimeTestOnlyParser) {
-      (argTask: TaskKey[(String, Seq[String])]) => (
-        argTask,
-        testExecution,
-        //loadedTestFrameworks,
-        definedTests,
-        (fullClasspath in config),
-        javaOptions,
-        envVars,
-        baseDirectory,
-        state,
-        resolvedScoped,
-        testResultLogger,
-        streams
-        ).map {
-          case ((selected, frameworkOptions), exec/*, frameworks*/, tests, cp, javaOps, eVars, baseDir, state, scoped, trl, s) =>
-            implicit val display = Project.showContextKey(state)
-            val modifiedOpts = Tests.Argument(frameworkOptions: _*) +: exec.options
-            val newConfig = exec.copy(options = modifiedOpts)
-
-            val runners = createTestRunners(frameworks, loader, newConfig)
-            val test = tests.find(_.name == selected)
-            if (test.isDefined) {
-              val forkOpts = ForkOptions(
-                runJVMOptions = javaOps ++ extraArgs,
-                envVars = eVars ++ extraEnv,
-                workingDirectory = Some(baseDir)
-              )
-              ForkTests.getClass.getDeclaredMethods.find(_.getName == "apply").get
-              val output = ForkTests(runners, List(test.get), newConfig, cp.files, forkOpts, s.log, Tags.ForkedTestGroup)
-
-              val taskName = display(scoped)
-              val processed = output.map(out => trl.run(s.log, out, taskName))
-              Def.value(processed)
-            } else {
-              s.log.warn(s"There's no test with name \"$selected\"")
-            }
-        }
+    extraArgs: SettingKey[Seq[String]] = emptyExtraArgs,
+    extraEnv: SettingKey[Map[String, String]] = emptyExtraEnv
+  ): Def.Initialize[InputTask[Unit]] =
+    Def.inputTaskDyn {
+      testOnlyWithSettingsTask(
+        ensimeTestOnlyParser.parsed,
+        extraArgs.value,
+        extraEnv.value,
+        config,
+        (definedTests in config).value,
+        (streams in config).value,
+        (state in config).value,
+        (testExecution in testQuick in config).value,
+        (loadedTestFrameworks in config).value,
+        (testLoader in config).value,
+        (javaOptions in config).value,
+        (envVars in config).value,
+        (baseDirectory in config).value,
+        (fullClasspath in config).value,
+        (testResultLogger in config).value,
+        (resolvedScoped in config).value
+      )
     }
 
   private val noChanges = new xsbti.compile.DependencyChanges {

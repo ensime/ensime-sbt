@@ -10,7 +10,9 @@ import org.ensime.EnsimeExtrasKeys._
 object runMainBuild extends Build {
 
   override lazy val settings = super.settings ++ Seq(
-    scalaVersion := "2.10.6"
+    scalaVersion := "2.10.6",
+    libraryDependencies += "com.lihaoyi" %% "utest" % "0.4.7" % "test",
+    testFrameworks += new TestFramework("utest.runner.Framework")
   )
 
   val root = Project("ensime-run-main", file("."))

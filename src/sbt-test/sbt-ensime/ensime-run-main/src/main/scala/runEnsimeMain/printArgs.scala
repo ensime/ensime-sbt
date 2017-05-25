@@ -7,21 +7,30 @@ import java.io._
 
 
 object printArgs extends App {
-  val runtimeMxBean = ManagementFactory.getRuntimeMXBean
-  val jvmArgs = runtimeMxBean.getInputArguments.toList
 
-  val envArgs = sys.env.toSeq.filter(_._1 startsWith "testing")
+  def writeArgsToFile(filename: String): Unit = {
+    val runtimeMxBean = ManagementFactory.getRuntimeMXBean
+    val jvmArgPrefixes = Seq("-Dtesting", "-Xm", "-agentlib")
+    val jvmArgs = runtimeMxBean.getInputArguments.toList.filter(
+      arg => jvmArgPrefixes.exists(prefix => arg.startsWith(prefix))).sorted
 
-  val properties = sys.props.toSeq.filter(_._1 startsWith "testing")
+    val envArgs = sys.env.toSeq.filter(_._1 startsWith "testing").sorted
 
-  val output = new PrintWriter(new File(args(0)))
-  try {
-    output.write(properties.map(t => t._1 + "=" + t._2).mkString(" "))
-    output.write("\n")
-    output.write(jvmArgs.mkString(" "))
-    output.write("\n")
-    output.write(envArgs.map(t => t._1 + "=" + t._2).mkString(" "))
-    output.write("\n")
-    output.write(args.mkString(" "))
-  } finally output.close()
+    val properties = sys.props.toSeq.filter(_._1 startsWith "testing").sorted
+
+    val output = new PrintWriter(new File(filename))
+    try {
+      output.write(properties.map(t => t._1 + "=" + t._2).mkString(" "))
+      output.write("\n")
+      output.write(jvmArgs.mkString(" "))
+      output.write("\n")
+      output.write(envArgs.map(t => t._1 + "=" + t._2).mkString(" "))
+      output.write("\n")
+      output.write(args.mkString(" "))
+    } finally output.close()
+  }
+
+  writeArgsToFile(args(0))
 }
+
+
