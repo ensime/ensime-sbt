@@ -462,7 +462,13 @@ object EnsimePlugin extends AutoPlugin {
       }
 
       val id = EnsimeProjectId(project.id, config.name)
-      EnsimeProject(id, deps, sources, Set(target), scalaCompilerArgs, javaCompilerArgs, jars, jarSrcs.toSet, jarDocs.toSet)
+      val allDeps = deps ++ config.extendsConfigs.collect {
+        case parent if parent.isPublic =>
+          val name = if (parent.name == "runtime") "compile" else parent.name
+          EnsimeProjectId(project.id, name)
+      }
+
+      EnsimeProject(id, allDeps, sources, Set(target), scalaCompilerArgs, javaCompilerArgs, jars, jarSrcs.toSet, jarDocs.toSet)
     }
 
     if (scalaVersion.gimme != ensimeScalaV) {
@@ -502,6 +508,7 @@ object EnsimePlugin extends AutoPlugin {
     val deps = for {
       s <- p
       d <- s.depends
+      if d.project != name
     } yield d.project
     val (mains, tests) = p.toSet.partition(_.id.config == "compile")
     val mainSources = mains.flatMap(_.sources)

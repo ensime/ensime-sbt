@@ -34,12 +34,12 @@
  :library-sources ("IVY_DIR/cache/org.scala-lang/scala-library/srcs/scala-library-2.10.6-sources.jar")
  :library-docs ("IVY_DIR/cache/org.scala-lang/scala-library/docs/scala-library-2.10.6-javadoc.jar" "BASE_DIR/target/scala-2.10/simple-build-scala_2.10-0.1-SNAPSHOT-javadoc.jar")) (
  :id (:project "simple-build-scala" :config "test")
- :depends nil
+ :depends ((:project "simple-build-scala" :config "compile"))
  :sources ("BASE_DIR/src/test/java" "BASE_DIR/src/test/scala-2.10" "BASE_DIR/src/test/scala" "BASE_DIR/target/scala-2.10/src_managed/test")
  :targets ("BASE_DIR/target/scala-2.10/test-classes")
  :scalac-options ("-Xlog-reflective-calls" "-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-no-expand")
  :javac-options ("-source" "1.6" "-target" "1.6")
- :library-jars ("BASE_DIR/global/boot/scala-2.10.6/lib/scala-library.jar")
- :library-sources ("IVY_DIR/cache/org.scala-lang/scala-library/srcs/scala-library-2.10.6-sources.jar")
- :library-docs ("IVY_DIR/cache/org.scala-lang/scala-library/docs/scala-library-2.10.6-javadoc.jar")))
+ :library-jars nil
+ :library-sources nil
+ :library-docs nil))
 )

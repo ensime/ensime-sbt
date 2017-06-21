@@ -64,14 +64,14 @@
  :library-sources ("IVY_DIR/cache/org.scala-lang/scala-library/srcs/scala-library-2.11.11-sources.jar")
  :library-docs ("BASE_DIR/a/target/scala-2.11/a_2.11-0.1-SNAPSHOT-javadoc.jar" "IVY_DIR/cache/org.scala-lang/scala-library/docs/scala-library-2.11.11-javadoc.jar")) (
  :id (:project "a" :config "test")
- :depends nil
+ :depends ((:project "a" :config "compile"))
  :sources nil
  :targets ("BASE_DIR/a/target/scala-2.11/test-classes")
  :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ywarn-unused-import" "-Ymacro-expand:discard")
  :javac-options nil
- :library-jars ("IVY_DIR/cache/org.scala-lang/scala-library/jars/scala-library-2.11.11.jar")
- :library-sources ("IVY_DIR/cache/org.scala-lang/scala-library/srcs/scala-library-2.11.11-sources.jar")
- :library-docs ("IVY_DIR/cache/org.scala-lang/scala-library/docs/scala-library-2.11.11-javadoc.jar")) (
+ :library-jars nil
+ :library-sources nil
+ :library-docs nil) (
  :id (:project "b" :config "compile")
  :depends ((:project "a" :config "compile"))
  :sources nil
@@ -82,7 +82,7 @@
  :library-sources nil
  :library-docs ("BASE_DIR/b/target/scala-2.11/b_2.11-0.1-SNAPSHOT-javadoc.jar")) (
  :id (:project "b" :config "test")
- :depends ((:project "a" :config "compile"))
+ :depends ((:project "a" :config "compile") (:project "b" :config "compile"))
  :sources nil
  :targets ("BASE_DIR/b/target/scala-2.11/test-classes")
  :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ywarn-unused-import" "-Ymacro-expand:discard")
@@ -100,7 +100,7 @@
  :library-sources nil
  :library-docs ("BASE_DIR/c/target/scala-2.11/c_2.11-0.1-SNAPSHOT-javadoc.jar")) (
  :id (:project "c" :config "test")
- :depends ((:project "a" :config "compile") (:project "b" :config "test"))
+ :depends ((:project "a" :config "compile") (:project "b" :config "test") (:project "c" :config "compile"))
  :sources nil
  :targets ("BASE_DIR/c/target/scala-2.11/test-classes")
  :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ywarn-unused-import" "-Ymacro-expand:discard")
@@ -118,12 +118,12 @@
  :library-sources ("IVY_DIR/cache/org.scala-lang/scala-library/srcs/scala-library-2.11.11-sources.jar")
  :library-docs ("BASE_DIR/target/scala-2.11/multi-project-build_2.11-0.1-SNAPSHOT-javadoc.jar" "IVY_DIR/cache/org.scala-lang/scala-library/docs/scala-library-2.11.11-javadoc.jar")) (
  :id (:project "multi-project-build" :config "test")
- :depends nil
+ :depends ((:project "multi-project-build" :config "compile"))
  :sources nil
  :targets ("BASE_DIR/target/scala-2.11/test-classes")
  :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ywarn-unused-import" "-Ymacro-expand:discard")
  :javac-options nil
- :library-jars ("IVY_DIR/cache/org.scala-lang/scala-library/jars/scala-library-2.11.11.jar")
- :library-sources ("IVY_DIR/cache/org.scala-lang/scala-library/srcs/scala-library-2.11.11-sources.jar")
- :library-docs ("IVY_DIR/cache/org.scala-lang/scala-library/docs/scala-library-2.11.11-javadoc.jar")))
+ :library-jars nil
+ :library-sources nil
+ :library-docs nil))
 )
