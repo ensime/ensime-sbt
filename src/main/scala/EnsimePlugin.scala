@@ -547,6 +547,7 @@ object EnsimePlugin extends AutoPlugin {
       config <- updateSbtClassifiers.run.configurations
       module <- config.modules
       artefact <- module.artifacts
+      if jarOrZipFile(artefact._2)
     } yield artefact
 
     val srcs = classifiers.collect {
