@@ -24,7 +24,7 @@ object EnsimeKeys {
     "Start up the ENSIME server and index your project."
   )
 
-  val ensimeServerVersion = settingKey[String](
+  val ensimeServerVersion = taskKey[String](
     "The ensime server version"
   )
   val ensimeProjectServerVersion = settingKey[String](
@@ -146,8 +146,13 @@ object EnsimePlugin extends AutoPlugin {
       scalaVersions.sortWith { case ((_, c1), (_, c2)) => c1 < c2 }.head._1
     }.value,
 
-    ensimeServerVersion := "2.0.0-SNAPSHOT", // 1.0 clients don't support this style of launch, so why not...
-    ensimeProjectServerVersion := "2.0.0-M1", // 2.0 dropped scala 2.10 support
+    ensimeServerVersion := {
+      CrossVersion.partialVersion(ensimeScalaVersion.value) match {
+        case Some((2, 10)) => "2.0.0-M2" // 2.0 dropped scala 2.10 support
+        case _             => "2.0.0-SNAPSHOT" // 1.0 clients don't support this style of launch, so why not...
+      }
+    },
+    ensimeProjectServerVersion := "2.0.0-M2",
 
     ensimeIgnoreSourcesInBase := false,
     ensimeIgnoreMissingDirectories := false,
@@ -280,7 +285,7 @@ object EnsimePlugin extends AutoPlugin {
     val javaH = (ensimeJavaHome).gimme
     val scalaCompilerJars = ensimeScalaJars.run.toSet
     val serverJars = ensimeServerJars.run.toSet -- scalaCompilerJars + javaH / "lib/tools.jar"
-    val serverVersion = ensimeServerVersion.gimme
+    val serverVersion = ensimeServerVersion.run
 
     // for some reason this gives the wrong number in projectData
     val ensimeScalaV = (ensimeScalaVersion in ThisBuild).run
