@@ -174,14 +174,17 @@ object EnsimeExtrasPlugin extends AutoPlugin {
     val dirs = sourceDirectories.value
     val cp = dependencyClasspath.value
     val out = classDirectory.value
-    val opts = (scalacOptions in ensimeCompileOnly).value
+    val baseOpts = (scalacOptions in ensimeCompileOnly).value
     val merrs = maxErrors.value
     val in = (compileInputs in compile).value
     val cs = compilers.value
     val s = streams.value
 
-    if (args.isEmpty) throw new IllegalArgumentException("needs a file")
-    args.foreach { arg =>
+    val (extraOpts, files) = args.partition(_.startsWith("-"))
+    val opts = baseOpts ++ extraOpts
+
+    if (files.isEmpty) throw new IllegalArgumentException("needs a file")
+    files.foreach { arg =>
       val input: File = fileInProject(arg, dirs.map(_.getCanonicalFile))
 
       if (!out.exists()) IO.createDirectory(out)
