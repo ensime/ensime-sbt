@@ -11,7 +11,7 @@
  :java-compiler-args nil
  :reference-source-roots ("JDK_HOME/src.zip")
  :scala-version "2.11.11"
- :compiler-args ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ywarn-unused-import" "-Ymacro-expand:discard")
+ :compiler-args ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
  :subprojects ((
  :name "a"
  :source-roots nil
@@ -58,7 +58,7 @@
  :depends nil
  :sources nil
  :targets ("BASE_DIR/a/target/scala-2.11/classes")
- :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ywarn-unused-import" "-Ymacro-expand:discard")
+ :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
  :javac-options nil
  :library-jars ("IVY_DIR/cache/org.scala-lang/scala-library/jars/scala-library-2.11.11.jar")
  :library-sources ("IVY_DIR/cache/org.scala-lang/scala-library/srcs/scala-library-2.11.11-sources.jar")
@@ -67,7 +67,7 @@
  :depends ((:project "a" :config "compile"))
  :sources nil
  :targets ("BASE_DIR/a/target/scala-2.11/test-classes")
- :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ywarn-unused-import" "-Ymacro-expand:discard")
+ :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
  :javac-options nil
  :library-jars nil
  :library-sources nil
@@ -76,7 +76,7 @@
  :depends ((:project "a" :config "compile"))
  :sources nil
  :targets ("BASE_DIR/b/target/scala-2.11/classes")
- :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ywarn-unused-import" "-Ymacro-expand:discard")
+ :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
  :javac-options nil
  :library-jars nil
  :library-sources nil
@@ -85,7 +85,7 @@
  :depends ((:project "a" :config "compile") (:project "b" :config "compile"))
  :sources nil
  :targets ("BASE_DIR/b/target/scala-2.11/test-classes")
- :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ywarn-unused-import" "-Ymacro-expand:discard")
+ :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
  :javac-options nil
  :library-jars nil
  :library-sources nil
@@ -94,7 +94,7 @@
  :depends ((:project "a" :config "compile") (:project "b" :config "test"))
  :sources nil
  :targets ("BASE_DIR/c/target/scala-2.11/classes")
- :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ywarn-unused-import" "-Ymacro-expand:discard")
+ :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
  :javac-options nil
  :library-jars nil
  :library-sources nil
@@ -103,7 +103,7 @@
  :depends ((:project "a" :config "compile") (:project "b" :config "test") (:project "c" :config "compile"))
  :sources nil
  :targets ("BASE_DIR/c/target/scala-2.11/test-classes")
- :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ywarn-unused-import" "-Ymacro-expand:discard")
+ :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
  :javac-options nil
  :library-jars nil
  :library-sources nil
@@ -112,7 +112,7 @@
  :depends nil
  :sources nil
  :targets ("BASE_DIR/target/scala-2.11/classes")
- :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ywarn-unused-import" "-Ymacro-expand:discard")
+ :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
  :javac-options nil
  :library-jars ("IVY_DIR/cache/org.scala-lang/scala-library/jars/scala-library-2.11.11.jar")
  :library-sources ("IVY_DIR/cache/org.scala-lang/scala-library/srcs/scala-library-2.11.11-sources.jar")
@@ -121,7 +121,7 @@
  :depends ((:project "multi-project-build" :config "compile"))
  :sources nil
  :targets ("BASE_DIR/target/scala-2.11/test-classes")
- :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ywarn-unused-import" "-Ymacro-expand:discard")
+ :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
  :javac-options nil
  :library-jars nil
  :library-sources nil
