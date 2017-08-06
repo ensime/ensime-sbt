@@ -115,12 +115,12 @@ object EnsimeExtrasPlugin extends AutoPlugin {
         workingDirectory = Some((baseDirectory in config).value)
       )
       log.debug(s"launching $options ${args.mainClass} $newJvmArgs ${args.classArgs}")
-      toError(new ForkRun(options).run(
+      new ForkRun(options).run(
         args.mainClass,
         Attributed.data((fullClasspath in config).value),
         args.classArgs,
         log
-      ))
+      ).foreach(sys.error)
     }
   }
 
@@ -137,14 +137,12 @@ object EnsimeExtrasPlugin extends AutoPlugin {
           workingDirectory = Some((baseDirectory in config).value)
         )
         streams.value.log.info(s"launching $options -cp CLASSPATH ${args.mainClass} ${args.classArgs ++ additionalParams}")
-        toError(
-          new ForkRun(options).run(
-            args.mainClass,
-            Attributed.data((fullClasspath in config).value),
-            args.classArgs ++ additionalParams,
-            streams.value.log
-          )
-        )
+        new ForkRun(options).run(
+          args.mainClass,
+          Attributed.data((fullClasspath in config).value),
+          args.classArgs ++ additionalParams,
+          streams.value.log
+        ).foreach(sys.error)
       }
   }
 

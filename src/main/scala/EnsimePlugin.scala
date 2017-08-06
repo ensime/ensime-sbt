@@ -237,14 +237,12 @@ object EnsimePlugin extends AutoPlugin {
     cache.mkdirs()
 
     val options = ForkOptions(Some(javaH), runJVMOptions = jvmFlags)
-    toError(
-      new ForkRun(options).run(
-        "org.ensime.server.Server",
-        orderFiles(jars),
-        Nil,
-        streams.value.log
-      )
-    )
+    new ForkRun(options).run(
+      "org.ensime.server.Server",
+      orderFiles(jars),
+      Nil,
+      streams.value.log
+    ).foreach(sys.error)
   }
 
   def ensimeConfig: (State, Seq[String]) => State = { (state, args) =>
@@ -640,7 +638,7 @@ object EnsimePlugin extends AutoPlugin {
     val server = serverVersion.substring(0, 3)
     val java = sys.props("java.version").substring(0, 3)
     val versioned = (java, server) match {
-      case (_, "1.0") | ("1.6" | "1.7", _) => Seq(
+      case ("1.6" | "1.7", _) => Seq(
         "-XX:MaxPermSize=256m"
       )
       case _ => List(

@@ -22,7 +22,7 @@ libraryDependencies ++= Seq(
   // intentionally old version of scalariform: do not force an upgrade upon users
   "org.scalariform" %% "scalariform" % "0.1.4",
   // shade coursier, i.e. don't force binary compatibility on downstream
-  "io.get-coursier" %% "coursier-cache" % "1.0.0-RC5" % "shaded",
+  "io.get-coursier" %% "coursier-cache" % "1.0.0-RC9" % "shaded",
   // coursier still needs non-shaded quasiquotes
   "org.scalamacros" %% "quasiquotes" % "2.1.0"
 )
@@ -36,5 +36,5 @@ scriptedLaunchOpts := Seq(
   "-Dplugin.src=" + sys.props("user.dir"),
   "-Dplugin.version=" + version.value,
   // .jvmopts is ignored, simulate here
-  "-XX:MaxPermSize=256m", "-Xmx2g", "-Xss2m"
+  "-Xmx2g", "-Xss2m"
 )
