@@ -32,7 +32,7 @@ object EnsimeKeys {
     "Generate a project/.ensime for the project definition."
   )
 
-  val ensimeServerVersion = settingKey[String](
+  val ensimeServerVersion = taskKey[String](
     "The ensime server version"
   )
   val ensimeProjectServerVersion = settingKey[String](
