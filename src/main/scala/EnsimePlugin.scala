@@ -148,11 +148,11 @@ object EnsimePlugin extends AutoPlugin {
 
     ensimeServerVersion := {
       CrossVersion.partialVersion(ensimeScalaVersion.value) match {
-        case Some((2, 10)) => "2.0.0-M2" // 2.0 dropped scala 2.10 support
-        case _             => "2.0.0-SNAPSHOT" // 1.0 clients don't support this style of launch, so why not...
+        case Some((2, 10)) => "2.0.0-M4" // 2.0 will maybe drop scala 2.10 support
+        case _             => "2.0.0-M4" // 1.0 clients don't support this style of launch, so why not...
       }
     },
-    ensimeProjectServerVersion := "2.0.0-M2",
+    ensimeProjectServerVersion := "2.0.0-M4",
 
     ensimeIgnoreSourcesInBase := false,
     ensimeIgnoreMissingDirectories := false,
