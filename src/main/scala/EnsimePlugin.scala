@@ -98,10 +98,10 @@ object EnsimeKeys {
     "Arguments for the project definition presentation compiler (not possible to extract)."
   )
 
-  val ensimeUnmanagedSourceArchives = settingKey[Seq[File]](
+  val ensimeUnmanagedSourceArchives = taskKey[Seq[File]](
     "Source jars (and zips) to complement unmanagedClasspath. May be set for the project and its submodules."
   )
-  val ensimeUnmanagedJavadocArchives = settingKey[Seq[File]](
+  val ensimeUnmanagedJavadocArchives = taskKey[Seq[File]](
     "Documentation jars (and zips) to complement unmanagedClasspath. May only be set for submodules."
   )
 
@@ -427,12 +427,12 @@ object EnsimePlugin extends AutoPlugin {
     def jarSrcsFor(config: Configuration) = updateClassifiersReport.select(
       configuration = configFilter(config),
       artifact = artifactFilter(classifier = Artifact.SourceClassifier)
-    ).toSet ++ (ensimeUnmanagedSourceArchives in config in projectRef).gimme
+    ).toSet ++ (ensimeUnmanagedSourceArchives in config in projectRef).run
 
     def jarDocsFor(config: Configuration) = updateClassifiersReport.select(
       configuration = configFilter(config),
       artifact = artifactFilter(classifier = Artifact.DocClassifier)
-    ).toSet ++ (ensimeUnmanagedJavadocArchives in config in projectRef).gimme
+    ).toSet ++ (ensimeUnmanagedJavadocArchives in config in projectRef).run
 
     val IvyConfig = "([A-Za-z]+)->([A-Za-z]+)".r
 
