@@ -489,7 +489,10 @@ object EnsimePlugin extends AutoPlugin {
            |  scalaVersion in ThisBuild := "${scalaVersion.gimme}"
            |in your build.sbt, or override the ENSIME scala version with:
            |  ensimeScalaVersion in ThisBuild := "${scalaVersion.gimme}"
-           |in a ensime.sbt: http://ensime.org/build_tools/sbt/#customise""".stripMargin
+           |in a ensime.sbt: http://ensime.org/build_tools/sbt/#customise or set Scala version
+           |temporary to ${scalaVersion.gimme} before running "ensimeConfig" task, with:
+           |  ;++${scalaVersion.gimme};ensimeConfig
+           |in interactive SBT prompt""".stripMargin
       )
       if (!ensimeIgnoreScalaMismatch.gimme)
         throw new IllegalStateException(
