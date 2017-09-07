@@ -44,7 +44,7 @@ object Sensible {
     ),
     javacOptions in doc ++= Seq("-source", "1.6"),
 
-    javaOptions := Seq("-Xss2m", "-XX:MaxPermSize=256m", "-Xms384m", "-Xmx384m"),
+    javaOptions := Seq("-Xss2m", "-Xms384m", "-Xmx384m"),
     javaOptions += "-Dfile.encoding=UTF8",
     javaOptions ++= Seq("-XX:+UseConcMarkSweepGC", "-XX:+CMSIncrementalMode"),
     javaOptions in run ++= yourkitAgent, // interferes with sockets

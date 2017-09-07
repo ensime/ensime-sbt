@@ -129,7 +129,7 @@ object EnsimeExtrasPlugin extends AutoPlugin {
   val ensimeTestOnlyParser: Parser[(String, Seq[String])] = {
     import DefaultParsers._
 
-    val selectTest = token(Space) ~> token(NotSpace - "--")
+    val selectTest = token(Space) ~> token(NotSpace & not("--", "-- in test"))
     val options = (token(Space) ~> token("--") ~> spaceDelimited("<option>")) ?? Nil
     selectTest ~ options
   }
@@ -140,11 +140,10 @@ object EnsimeExtrasPlugin extends AutoPlugin {
     javaOptions: Seq[String],
     envVars: Map[String, String],
     baseDir: File,
-    s: Keys.TaskStreams,
+    log: Logger,
     extraArgs: Seq[String] = Seq.empty,
     extraEnv: Map[String, String] = Map.empty
   ): Unit = {
-    val cp = Attributed.data(classpath)
     val newJvmArgs = (javaOptions ++ extraArgs ++ javaArgs.jvmArgs).distinct
     val newEnvArgs = envVars ++ extraEnv ++ javaArgs.envArgs
     val options = ForkOptions(
@@ -152,12 +151,12 @@ object EnsimeExtrasPlugin extends AutoPlugin {
       envVars = newEnvArgs,
       workingDirectory = Some(baseDir)
     )
-    s.log.debug(s"launching $options ${javaArgs.mainClass} $newJvmArgs ${javaArgs.classArgs}")
+    log.debug(s"launching $options ${javaArgs.mainClass} $newJvmArgs ${javaArgs.classArgs}")
     toError(new ForkRun(options).run(
       javaArgs.mainClass,
-      cp,
+      Attributed.data(classpath),
       javaArgs.classArgs,
-      s.log
+      log
     ))
   }
 
@@ -165,83 +164,63 @@ object EnsimeExtrasPlugin extends AutoPlugin {
     config: Configuration,
     extraEnv: Map[String, String] = Map.empty,
     extraArgs: Seq[String] = Seq.empty
-  ): Def.Initialize[InputTask[Unit]] =
-    InputTask((s: State) => ensimeRunMainTaskParser) {
-      (argTask: TaskKey[JavaArgs]) =>
-        (
-          argTask,
-          (fullClasspath in config),
-          (javaOptions in config),
-          (envVars in config),
-          (baseDirectory in config),
-          (streams in config)
-        ).map {
-            (args, classpath, javaOps, eVars, baseDir, s) =>
-              runMain(args, classpath, javaOps, eVars, baseDir, s, extraArgs, extraEnv)
-          }
+  ): Def.Initialize[InputTask[Unit]] = {
+    val parser = (s: State) => ensimeRunMainTaskParser
+    Def.inputTask {
+      runMain(
+        parser.parsed,
+        (fullClasspath in config).value,
+        (javaOptions in config).value,
+        (envVars in config).value,
+        (baseDirectory in config).value,
+        (streams in config).value.log
+      )
     }
+  }
 
   def parseAndRunMainWithDynamicSettings(
     config: Configuration,
     extraEnv: SettingKey[Map[String, String]] = emptyExtraEnv,
     extraArgs: SettingKey[Seq[String]] = emptyExtraArgs
-  ): Def.Initialize[InputTask[Unit]] =
-    InputTask((s: State) => ensimeRunMainTaskParser) {
-      (argTask: TaskKey[JavaArgs]) =>
-        (
-          argTask,
-          (fullClasspath in config),
-          (javaOptions in config),
-          (envVars in config),
-          (baseDirectory in config),
-          (streams in config),
-          extraArgs,
-          extraEnv
-        ).map(
-            (args, classpath, javaOps, eVars, baseDir, s, extArgs, extEnv) =>
-              runMain(args, classpath, javaOps, eVars, baseDir, s, extArgs, extEnv)
-          )
+  ): Def.Initialize[InputTask[Unit]] = {
+    val parser = (s: State) => ensimeRunMainTaskParser
+    Def.inputTask {
+      runMain(
+        parser.parsed,
+        (fullClasspath in config).value,
+        (javaOptions in config).value,
+        (envVars in config).value,
+        (baseDirectory in config).value,
+        (streams in config).value.log,
+        extraArgs.value,
+        extraEnv.value
+      )
     }
+  }
 
-  def launchTask(
-    config: Configuration,
-    extraArgs: Seq[String] = Nil
-  ): Def.Initialize[InputTask[Unit]] =
-    InputTask((s: State) => spaceDelimited("args")) {
-      (argTask: TaskKey[Seq[String]]) =>
-        (
-          argTask,
-          (ensimeLaunchConfigurations in config),
-          (javaOptions in config),
-          (envVars in config),
-          (fullClasspath in config),
-          streams
-        ).map {
-            case (taskName :: additionalParams, configs, javaOps, eVars, classpath, s) =>
-              val launcherByName = configs.find(_.name == taskName)
-              launcherByName.fold(
-                s.log.warn(s"No launch configuration '$taskName'")
-              ) { launcher =>
-                  val args = launcher.javaArgs
-                  val options = ForkOptions(
-                    runJVMOptions = javaOps ++ args.jvmArgs ++ extraArgs,
-                    envVars = eVars ++ args.envArgs
-                  )
-                  val cp = Attributed.data(classpath)
-                  s.log.info(s"launching $options -cp CLASSPATH ${args.mainClass} ${args.classArgs ++ additionalParams}")
-                  toError(
-                    new ForkRun(options).run(
-                      args.mainClass,
-                      cp,
-                      args.classArgs ++ additionalParams,
-                      s.log
-                    )
-                  )
-                }
-          }
-    }
+  def launchTask(config: Configuration, extraArgs: Seq[String] = Nil): Def.Initialize[InputTask[Unit]] = Def.inputTask {
+    val (name :: additionalParams) = Def.spaceDelimited().parsed
+    val launcherByName = ensimeLaunchConfigurations.value.find(_.name == name)
+    launcherByName.fold(
+      streams.value.log.warn(s"No launch configuration '$name'")
+    ) { launcher =>
+        val args = launcher.javaArgs
+        val options = ForkOptions(
+          runJVMOptions = (javaOptions in config).value ++ args.jvmArgs ++ extraArgs,
+          envVars = (envVars in config).value ++ args.envArgs,
+          workingDirectory = Some((baseDirectory in config).value)
+        )
+        streams.value.log.info(s"launching $options -cp CLASSPATH ${args.mainClass} ${args.classArgs ++ additionalParams}")
+        new ForkRun(options).run(
+          args.mainClass,
+          Attributed.data((fullClasspath in config).value),
+          args.classArgs ++ additionalParams,
+          streams.value.log
+        ).foreach(sys.error)
+      }
+  }
 
-  def testOnlyWithSettingsTask(
+  private def testOnlyWithSettingsTask(
     settings: (String, Seq[String]),
     extraArgs: Seq[String],
     extraEnv: Map[String, String],
@@ -259,7 +238,6 @@ object EnsimeExtrasPlugin extends AutoPlugin {
     trl: TestResultLogger,
     scoped: Def.ScopedKey[_]
   ) = {
-
     val (selected, frameworkOptions) = settings
     implicit val display = Project.showContextKey(st)
     val modifiedOpts = Tests.Argument(frameworkOptions: _*) +: exec.options
@@ -274,14 +252,15 @@ object EnsimeExtrasPlugin extends AutoPlugin {
         workingDirectory = Some(baseDir)
       )
       val output = SbtHelper.consturctForkTests(
-        runners, List(test.get), newConfig, cp.files, forkOpts, s.log, Tags.ForkedTestGroup
+        runners, List(test.get), newConfig, cp.files, forkOpts, s.log, Tags
+        .ForkedTestGroup
       )
 
       val taskName = display(scoped)
       val processed = output.map(out => trl.run(s.log, out, taskName))
       Def.value(processed)
     } else {
-      s.log.warn(s"There's no test with name ${selected}")
+      s.log.warn(s"There's no test with name $selected")
       Def.value(constant(()))
     }
   }
@@ -338,24 +317,26 @@ object EnsimeExtrasPlugin extends AutoPlugin {
     val dirs = sourceDirectories.value
     val cp = dependencyClasspath.value
     val out = classDirectory.value
-    val opts = (scalacOptions in ensimeCompileOnly).value
+    val baseOpts = (scalacOptions in ensimeCompileOnly).value
     val merrs = maxErrors.value
     val in = (compileInputs in compile).value
     val cs = compilers.value
     val s = streams.value
 
-    if (args.isEmpty) throw new IllegalArgumentException("needs a file")
-    args.foreach { arg =>
-      val input: File = fileInProject(arg, dirs.map(_.getCanonicalFile))
+    val (extraOpts, files) = args.partition(_.startsWith("-"))
+    val opts = baseOpts ++ extraOpts
 
-      if (!out.exists()) IO.createDirectory(out)
-      s.log.info(s"""Compiling $input with ${opts.mkString(" ")}""")
-
-      cs.scalac(
-        Seq(input), noChanges, cp.map(_.data) :+ out, out, opts,
-        noopCallback, merrs, in.incSetup.cache, s.log
-      )
+    val input = files.map { arg =>
+      fileInProject(arg, dirs.map(_.getCanonicalFile))
     }
+
+    if (!out.exists()) IO.createDirectory(out)
+    s.log.info(s"""Compiling $input with ${opts.mkString(" ")}""")
+
+    cs.scalac(
+      input, noChanges, cp.map(_.data) :+ out, out, opts,
+      noopCallback, merrs, in.incSetup.cache, s.log
+    )
   }
 
   // it would be good if debuggingOff was automatically triggered
