@@ -29,4 +29,4 @@ $ must-mirror args10 output_args10
 $ must-mirror test1 output_test
 > ensime-run-main/ensimeTestOnlyDebug runEnsimeMain.printArgsTest -- -frameworkOption1 -frameworkOption2
 $ must-mirror test2 output_test
-# TODO ensimeTestOnlyDebug doesn't see other tests besides printArgsTest
+# ensimeTestOnlyDebug doesn't see other tests besides printArgsTest
