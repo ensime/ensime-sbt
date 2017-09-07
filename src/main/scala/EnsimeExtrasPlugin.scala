@@ -251,9 +251,8 @@ object EnsimeExtrasPlugin extends AutoPlugin {
         envVars = eVars ++ extraEnv,
         workingDirectory = Some(baseDir)
       )
-      val output = SbtHelper.consturctForkTests(
-        runners, List(test.get), newConfig, cp.files, forkOpts, s.log, Tags
-        .ForkedTestGroup
+      val output = SbtHelper.constructForkTests(
+        runners, List(test.get), newConfig, cp.files, forkOpts, s.log, Tags.ForkedTestGroup
       )
 
       val taskName = display(scoped)
