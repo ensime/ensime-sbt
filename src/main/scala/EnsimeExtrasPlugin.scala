@@ -152,12 +152,12 @@ object EnsimeExtrasPlugin extends AutoPlugin {
       workingDirectory = Some(baseDir)
     )
     log.debug(s"launching $options ${javaArgs.mainClass} $newJvmArgs ${javaArgs.classArgs}")
-    toError(new ForkRun(options).run(
+    new ForkRun(options).run(
       javaArgs.mainClass,
       Attributed.data(classpath),
       javaArgs.classArgs,
       log
-    ))
+    ).foreach(sys.error)
   }
 
   def parseAndRunMainWithStaticSettings(
