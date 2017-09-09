@@ -73,11 +73,6 @@ object EnsimeExtrasPlugin extends AutoPlugin {
     "Stub key for tasks that accepts extra env args"
   )
 
-  override lazy val buildSettings = Seq(
-    commands += Command.command("debugging", "", "Add debugging flags to all forked JVM processes.")(toggleDebugging(true)),
-    commands += Command.command("debuggingOff", "", "Remove debugging flags from all forked JVM processes.")(toggleDebugging(false))
-  )
-
   override lazy val projectSettings = Seq(
     ensimeDebuggingFlag := "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=",
     ensimeDebuggingPort := 5005,
@@ -336,33 +331,6 @@ object EnsimeExtrasPlugin extends AutoPlugin {
       input, noChanges, cp.map(_.data) :+ out, out, opts,
       noopCallback, merrs, in.incSetup.cache, s.log
     )
-  }
-
-  // it would be good if debuggingOff was automatically triggered
-  // https://stackoverflow.com/questions/32350617
-  def toggleDebugging(enable: Boolean): State => State = { implicit state: State =>
-    import CommandSupport._
-    val extracted = Project.extract(state)
-
-    implicit val pr = extracted.currentRef
-    implicit val bs = extracted.structure
-
-    if (enable) {
-      val port = ensimeDebuggingPort.gimme
-      log.warn(s"Enabling debugging for all forked processes on port $port")
-      log.info("Only one process can use the port and it will await a connection before proceeding.")
-    }
-
-    val newSettings = extracted.structure.allProjectRefs map { proj =>
-      val orig = (javaOptions in proj).run
-      val debugFlags = ((ensimeDebuggingFlag in proj).gimme + (ensimeDebuggingPort in proj).gimme)
-      val withoutDebug = orig.diff(List(debugFlags))
-      val withDebug = withoutDebug :+ debugFlags
-      val rewritten = if (enable) withDebug else withoutDebug
-
-      (javaOptions in proj) := rewritten
-    }
-    extracted.append(newSettings, state)
   }
 
   // exploiting a single namespace to workaround https://github.com/ensime/ensime-sbt/issues/148
