@@ -2,7 +2,3 @@
 > ensimeConfigProject
 > ensimeExpect project/.ensime ensimeConfigProject.expect
 > checkJavaOptions
-#> debugging
-#> checkJavaOptions -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005
-#> debuggingOff
-#> checkJavaOptions

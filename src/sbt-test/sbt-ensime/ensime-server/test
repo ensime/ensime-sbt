@@ -7,7 +7,3 @@
 > ensimeConfigProject
 > ensimeExpect project/.ensime ensimeConfigProject.expect
 > core/checkJavaOptions -Xss2m -Xms384m -Xmx384m -Dfile.encoding=UTF8 -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode -XX:+PerfDisableSharedMem
-#> debugging
-#> core/checkJavaOptions -Xss2m -Xms384m -Xmx384m -Dfile.encoding=UTF8 -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode -XX:+PerfDisableSharedMem -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005
-#> debuggingOff
-#> core/checkJavaOptions -Xss2m -Xms384m -Xmx384m -Dfile.encoding=UTF8 -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode -XX:+PerfDisableSharedMem
