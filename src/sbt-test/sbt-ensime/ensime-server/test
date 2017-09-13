@@ -1,9 +1,0 @@
-> ensimeConfig
-> ensimeExpect .ensime ensimeConfig.expect
-> ensimeConfig util
-> ensimeExpect .ensime util.ensimeConfig.expect
-> ensimeConfig swanky jerky
-> ensimeExpect .ensime swanky-jerky.ensimeConfig.expect
-> ensimeConfigProject
-> ensimeExpect project/.ensime ensimeConfigProject.expect
-> core/checkJavaOptions -Xss2m -Xms384m -Xmx384m -Dfile.encoding=UTF8 -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode -XX:+PerfDisableSharedMem
