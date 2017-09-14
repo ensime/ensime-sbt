@@ -1,1 +1,1 @@
-../../ensime-server/project/EnsimeSbtTestSupport.scala
+../../inter-tests/project/EnsimeSbtTestSupport.scala
