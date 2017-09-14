@@ -1,1 +1,1 @@
-../../ensime-server/project/testing.sbt
+../../inter-tests/project/testing.sbt
