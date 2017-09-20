@@ -47,7 +47,11 @@ object EnsimeSbtTestSupport extends AutoPlugin {
 
     val jdkHome = javaHome.gimme.getOrElse(file(Properties.jdkHome)).getAbsolutePath
 
-    val List(got, expect) = args.map { filename =>
+    val normalizedFilenames = args.map(filename => filename
+      .replace("{sbtVersion}", sbtVersion.gimme.replace('.', '_'))
+    )
+
+    val List(got, expect) = normalizedFilenames.map { filename =>
       log.info(s"loading $filename")
       // not windows friendly
       IO.readLines(file(filename)).map {
@@ -79,7 +83,7 @@ object EnsimeSbtTestSupport extends AutoPlugin {
 
     val deltas = DiffUtils.diff(expect.asJava, got.asJava).getDeltas.asScala
     if (!deltas.isEmpty) {
-      IO.write(origDir / args(1), got.mkString("\n"))
+      IO.write(origDir / normalizedFilenames(1), got.mkString("\n"))
       throw new MessageOnlyException(s".ensime diff: ${deltas.mkString("\n")}")
     }
 

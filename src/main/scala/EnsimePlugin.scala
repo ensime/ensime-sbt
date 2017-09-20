@@ -626,7 +626,7 @@ object EnsimePlugin extends AutoPlugin {
     sys.props.get("java.home").map(new File(_).getParent),
     sys.props.get("java.home"),
     // osx
-    Try("/usr/libexec/java_home".!!.trim).toOption
+    Try(sys.process.Process("/usr/libexec/java_home").!!.trim).toOption
   ).flatten.filter { n =>
       new File(n + "/lib/tools.jar").exists
     }.headOption.map(new File(_).getCanonicalFile).getOrElse(

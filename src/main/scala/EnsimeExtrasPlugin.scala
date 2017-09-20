@@ -12,10 +12,7 @@ import sbt.Tests.Execution
 import sbt.complete.{DefaultParsers, Parser}
 import sbt.complete.Parsers._
 import sbt.complete.Parser._
-import sbt.internal.inc.ReporterManager
 import sbt.testing.{Framework, Runner}
-import xsbti.api.{ClassLike, DependencyContext}
-import xsbti.{Position, ReporterUtil, Severity, UseScope}
 
 object EnsimeExtrasKeys {
 
@@ -219,53 +216,53 @@ object EnsimeExtrasPlugin extends AutoPlugin {
       }
   }
 
-  private def testOnlyWithSettingsTask(
-    settings: (String, Seq[String]),
-    extraArgs: Seq[String],
-    extraEnv: Map[String, String],
-    config: Configuration,
-    tests: Seq[TestDefinition],
-    s: TaskStreams,
-    st: State,
-    exec: Execution,
-    frameworks: Map[TestFramework, Framework],
-    loader: ClassLoader,
-    javaOps: Seq[String],
-    eVars: Map[String, String],
-    baseDir: File,
-    cp: Classpath,
-    trl: TestResultLogger,
-    scoped: Def.ScopedKey[_]
-  ) = {
-    val (selected, frameworkOptions) = settings
-    implicit val display = Project.showContextKey(st)
-    val modifiedOpts = Tests.Argument(frameworkOptions: _*) +: exec.options
-    val newConfig = exec.copy(options = modifiedOpts)
-
-    val runners = createTestRunners(frameworks, loader, newConfig)
-    val test = tests.find(_.name == selected)
-    if (test.isDefined) {
-      val forkOpts = ForkOptions(
-        None,
-        None,
-        Vector.empty,
-        workingDirectory = Some(baseDir),
-        runJVMOptions = (javaOps ++ extraArgs).toVector,
-        false,
-        envVars = eVars ++ extraEnv
-      )
-      val output = SbtHelper.constructForkTests(
-        runners, List(test.get), newConfig, cp.files, forkOpts, s.log, Tags.ForkedTestGroup
-      )
-
-      val taskName = display.show(scoped)
-      val processed = output.map(out => trl.run(s.log, out, taskName))
-      Def.value(processed)
-    } else {
-      s.log.warn(s"There's no test with name $selected")
-      Def.value(constant(()))
-    }
-  }
+//  private def testOnlyWithSettingsTask(
+//    settings: (String, Seq[String]),
+//    extraArgs: Seq[String],
+//    extraEnv: Map[String, String],
+//    config: Configuration,
+//    tests: Seq[TestDefinition],
+//    s: TaskStreams,
+//    st: State,
+//    exec: Execution,
+//    frameworks: Map[TestFramework, Framework],
+//    loader: ClassLoader,
+//    javaOps: Seq[String],
+//    eVars: Map[String, String],
+//    baseDir: File,
+//    cp: Classpath,
+//    trl: TestResultLogger,
+//    scoped: Def.ScopedKey[_]
+//  ) = {
+//    val (selected, frameworkOptions) = settings
+//    implicit val display = Project.showContextKey(st)
+//    val modifiedOpts = Tests.Argument(frameworkOptions: _*) +: exec.options
+//    val newConfig = exec.copy(options = modifiedOpts)
+//
+//    val runners = createTestRunners(frameworks, loader, newConfig)
+//    val test = tests.find(_.name == selected)
+//    if (test.isDefined) {
+//      val forkOpts = ForkOptions(
+//        None,
+//        None,
+//        Vector.empty,
+//        workingDirectory = Some(baseDir),
+//        runJVMOptions = (javaOps ++ extraArgs).toVector,
+//        false,
+//        envVars = eVars ++ extraEnv
+//      )
+//      val output = SbtHelper.constructForkTests(
+//        runners, List(test.get), newConfig, cp.files, forkOpts, s.log, Tags.ForkedTestGroup
+//      )
+//
+//      val taskName = display.show(scoped)
+//      val processed = output.map(out => trl.run(s.log, out, taskName))
+//      Def.value(processed)
+//    } else {
+//      s.log.warn(s"There's no test with name $selected")
+//      Def.value(constant(()))
+//    }
+//  }
 
 //  private def testOnlyWithSettings(
 //    config: Configuration,
