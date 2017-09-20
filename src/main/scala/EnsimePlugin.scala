@@ -9,12 +9,14 @@ import scala.collection.JavaConverters._
 import scala.util._
 import scala.util.control.NoStackTrace
 import scala.util.matching._
-
 import SExpFormatter._
 import sbt._
 import sbt.IO._
 import sbt.Keys._
 import sbt.complete.Parsers._
+import sbt.internal.BuildStructure
+import sbt.librarymanagement.ConfigurationFilter
+import scala.sys.process._
 
 /**
  * Conventional way to define importable keys for an AutoPlugin.
@@ -247,13 +249,21 @@ object EnsimePlugin extends AutoPlugin {
 
     cache.mkdirs()
 
-    val options = ForkOptions(Some(javaH), runJVMOptions = jvmFlags)
+    val options = ForkOptions(
+      Some(javaH),
+      None,
+      Vector.empty,
+      None,
+      runJVMOptions = jvmFlags.toVector,
+      false,
+      Map.empty[String, String]
+    )
     new ForkRun(options).run(
       "org.ensime.server.Server",
       orderFiles(jars),
       Nil,
       streams.value.log
-    ).foreach(sys.error)
+    )
   }
 
   def ensimeConfigTask = Def.inputTask {
@@ -418,6 +428,7 @@ object EnsimePlugin extends AutoPlugin {
 
     def jarsFor(config: Configuration) = updateReport.select(
       configuration = configFilter(config),
+      moduleFilter(),
       artifact = artifactFilter(extension = Artifact.DefaultExtension)
     ).toSet
 
@@ -426,11 +437,13 @@ object EnsimePlugin extends AutoPlugin {
 
     def jarSrcsFor(config: Configuration) = updateClassifiersReport.select(
       configuration = configFilter(config),
+      moduleFilter(),
       artifact = artifactFilter(classifier = Artifact.SourceClassifier)
     ).toSet ++ (ensimeUnmanagedSourceArchives in config in projectRef).run
 
     def jarDocsFor(config: Configuration) = updateClassifiersReport.select(
       configuration = configFilter(config),
+      moduleFilter(),
       artifact = artifactFilter(classifier = Artifact.DocClassifier)
     ).toSet ++ (ensimeUnmanagedJavadocArchives in config in projectRef).run
 

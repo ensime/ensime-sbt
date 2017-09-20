@@ -5,7 +5,7 @@ import difflib.DiffUtils
 import sbt._
 import Keys._
 import collection.JavaConverters._
-import util.Properties
+import scala.util.Properties
 import org.ensime.CommandSupport
 import org.ensime.EnsimeKeys._
 
@@ -17,8 +17,8 @@ object EnsimeSbtTestSupport extends AutoPlugin {
 
   private lazy val parser = complete.Parsers.spaceDelimited("<arg>")
   override lazy val buildSettings = Seq(
-    ensimeServerVersion := "1.0.0", // our CI needs stable jars
-    ensimeProjectServerVersion := "1.0.0", // our CI needs stable jars
+    ensimeServerVersion := "2.0.0-M4", // our CI needs stable jars
+    ensimeProjectServerVersion := "2.0.0-M4", // our CI needs stable jars
     commands += Command.args("ensimeExpect", "<args>")(ensimeExpect)
   )
 

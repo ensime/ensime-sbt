@@ -1,2 +1,2 @@
-scalaVersion in ThisBuild := "2.11.11"
+scalaVersion in ThisBuild := "2.12.2"
 ensimeJavaFlags := Seq("-XFOO")

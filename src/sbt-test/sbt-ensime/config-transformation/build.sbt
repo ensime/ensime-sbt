@@ -1,6 +1,6 @@
 ivyLoggingLevel := UpdateLogging.Quiet
 
-scalaVersion in ThisBuild := "2.11.11"
+scalaVersion in ThisBuild := "2.12.2"
 
 import org.ensime.{EnsimeConfig, EnsimeModule}
 

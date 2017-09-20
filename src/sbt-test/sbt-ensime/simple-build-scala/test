@@ -1,5 +1,0 @@
-> ensimeConfig
-> ensimeExpect .ensime ensimeConfig.expect
-> ensimeConfigProject
-> ensimeExpect project/.ensime ensimeConfigProject.expect
-> checkJavaOptions

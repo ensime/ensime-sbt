@@ -1,1 +1,0 @@
-../../inter-tests/project/testing.sbt

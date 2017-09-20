@@ -1,6 +1,5 @@
 lazy val core = project.in(file("core")).configs(IntegrationTest)
 
-
 lazy val server = project.in(file("server")).dependsOn(
   core,
   // depend on "it" dependencies in "test" or sbt adds them to the release deps!
@@ -8,4 +7,6 @@ lazy val server = project.in(file("server")).dependsOn(
   core % "test->test",
   core % "it->it"
 ).configs(IntegrationTest)
+
+scalaVersion in ThisBuild := "2.12.2"
 

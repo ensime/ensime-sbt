@@ -2,19 +2,20 @@
 // Licence: Apache-2.0
 package org.ensime
 
+import java.util
+
 import EnsimeKeys._
-import sbt.Defaults.{loadForParser => _, toError => _, _}
+import sbt.Defaults.{loadForParser => _, _}
 import sbt._
 import sbt.Keys._
 import sbt.Tests.Execution
 import sbt.complete.{DefaultParsers, Parser}
-
-import scalariform.formatter.ScalaFormatter
-import scalariform.formatter.preferences._
-import scalariform.parser.ScalaParserException
 import sbt.complete.Parsers._
 import sbt.complete.Parser._
+import sbt.internal.inc.ReporterManager
 import sbt.testing.{Framework, Runner}
+import xsbti.api.{ClassLike, DependencyContext}
+import xsbti.{Position, ReporterUtil, Severity, UseScope}
 
 object EnsimeExtrasKeys {
 
@@ -49,9 +50,6 @@ object EnsimeExtrasKeys {
   val ensimeLaunch = inputKey[Unit](
     "Launch a named application in ensimeLaunchConfigurations"
   )
-  val ensimeScalariformOnly = inputKey[Unit](
-    "Formats a single scala file"
-  )
 
   val ensimeTestOnlyDebug = inputKey[Unit](
     "The equivalent of ensimeRunDebug for testOnly command"
@@ -84,20 +82,18 @@ object EnsimeExtrasPlugin extends AutoPlugin {
       Compile,
       extraArgs = ensimeDebuggingArgs
     ).evaluated,
-    ensimeTestOnlyDebug in Test := testOnlyWithSettings(
-      Test,
-      extraArgs = ensimeDebuggingArgs
-    ).evaluated,
+//    ensimeTestOnlyDebug in Test := testOnlyWithSettings(
+//      Test,
+//      extraArgs = ensimeDebuggingArgs
+//    ).evaluated,
     ensimeLaunchConfigurations := Nil,
     ensimeLaunch in Compile := launchTask(Compile).evaluated,
-    aggregate in ensimeScalariformOnly := false,
-    ensimeScalariformOnly := scalariformOnlyTask.evaluated,
     aggregate in ensimeCompileOnly := false
   ) ++ Seq(Compile, Test).flatMap { config =>
       // WORKAROUND https://github.com/sbt/sbt/issues/2580
       inConfig(config) {
         Seq(
-          ensimeCompileOnly := compileOnlyTask.evaluated,
+          //ensimeCompileOnly := compileOnlyTask.evaluated,
           scalacOptions in ensimeCompileOnly := scalacOptions.value
         )
       }
@@ -142,9 +138,13 @@ object EnsimeExtrasPlugin extends AutoPlugin {
     val newJvmArgs = (javaOptions ++ extraArgs ++ javaArgs.jvmArgs).distinct
     val newEnvArgs = envVars ++ extraEnv ++ javaArgs.envArgs
     val options = ForkOptions(
-      runJVMOptions = newJvmArgs,
-      envVars = newEnvArgs,
-      workingDirectory = Some(baseDir)
+      None,
+      None,
+      Vector.empty,
+      workingDirectory = Some(baseDir),
+      runJVMOptions = newJvmArgs.toVector,
+      false,
+      envVars = newEnvArgs
     )
     log.debug(s"launching $options ${javaArgs.mainClass} $newJvmArgs ${javaArgs.classArgs}")
     new ForkRun(options).run(
@@ -152,7 +152,7 @@ object EnsimeExtrasPlugin extends AutoPlugin {
       Attributed.data(classpath),
       javaArgs.classArgs,
       log
-    ).foreach(sys.error)
+    )
   }
 
   def parseAndRunMainWithStaticSettings(
@@ -201,9 +201,13 @@ object EnsimeExtrasPlugin extends AutoPlugin {
     ) { launcher =>
         val args = launcher.javaArgs
         val options = ForkOptions(
-          runJVMOptions = (javaOptions in config).value ++ args.jvmArgs ++ extraArgs,
-          envVars = (envVars in config).value ++ args.envArgs,
-          workingDirectory = Some((baseDirectory in config).value)
+          None,
+          None,
+          Vector.empty,
+          workingDirectory = Some((baseDirectory in config).value),
+          runJVMOptions = ((javaOptions in config).value ++ args.jvmArgs ++ extraArgs).toVector,
+          false,
+          envVars = (envVars in config).value ++ args.envArgs
         )
         streams.value.log.info(s"launching $options -cp CLASSPATH ${args.mainClass} ${args.classArgs ++ additionalParams}")
         new ForkRun(options).run(
@@ -211,7 +215,7 @@ object EnsimeExtrasPlugin extends AutoPlugin {
           Attributed.data((fullClasspath in config).value),
           args.classArgs ++ additionalParams,
           streams.value.log
-        ).foreach(sys.error)
+        )
       }
   }
 
@@ -242,15 +246,19 @@ object EnsimeExtrasPlugin extends AutoPlugin {
     val test = tests.find(_.name == selected)
     if (test.isDefined) {
       val forkOpts = ForkOptions(
-        runJVMOptions = javaOps ++ extraArgs,
-        envVars = eVars ++ extraEnv,
-        workingDirectory = Some(baseDir)
+        None,
+        None,
+        Vector.empty,
+        workingDirectory = Some(baseDir),
+        runJVMOptions = (javaOps ++ extraArgs).toVector,
+        false,
+        envVars = eVars ++ extraEnv
       )
       val output = SbtHelper.constructForkTests(
         runners, List(test.get), newConfig, cp.files, forkOpts, s.log, Tags.ForkedTestGroup
       )
 
-      val taskName = display(scoped)
+      val taskName = display.show(scoped)
       val processed = output.map(out => trl.run(s.log, out, taskName))
       Def.value(processed)
     } else {
@@ -259,31 +267,32 @@ object EnsimeExtrasPlugin extends AutoPlugin {
     }
   }
 
-  private def testOnlyWithSettings(
-    config: Configuration,
-    extraArgs: SettingKey[Seq[String]] = emptyExtraArgs,
-    extraEnv: SettingKey[Map[String, String]] = emptyExtraEnv
-  ): Def.Initialize[InputTask[Unit]] =
-    Def.inputTaskDyn {
-      testOnlyWithSettingsTask(
-        ensimeTestOnlyParser.parsed,
-        extraArgs.value,
-        extraEnv.value,
-        config,
-        (definedTests in config).value,
-        (streams in config).value,
-        (state in config).value,
-        (testExecution in testQuick in config).value,
-        (loadedTestFrameworks in config).value,
-        (testLoader in config).value,
-        (javaOptions in config).value,
-        (envVars in config).value,
-        (baseDirectory in config).value,
-        (fullClasspath in config).value,
-        (testResultLogger in config).value,
-        (resolvedScoped in config).value
-      )
-    }
+//  private def testOnlyWithSettings(
+//    config: Configuration,
+//    extraArgs: SettingKey[Seq[String]] = emptyExtraArgs,
+//    extraEnv: SettingKey[Map[String, String]] = emptyExtraEnv
+//  ): Def.Initialize[InputTask[Unit]] =
+//    Def.inputTaskDyn {
+//      testOnlyWithSettingsTask(
+//        ensimeTestOnlyParser.parsed,
+//        extraArgs.value,
+//        extraEnv.value,
+//        config,
+//        (definedTests in config).value,
+//        (streams in config).value,
+//        null,
+//        //(state in config).value,
+//        (testExecution in testQuick in config).value,
+//        (loadedTestFrameworks in config).value,
+//        (testLoader in config).value,
+//        (javaOptions in config).value,
+//        (envVars in config).value,
+//        (baseDirectory in config).value,
+//        (fullClasspath in config).value,
+//        (testResultLogger in config).value,
+//        (resolvedScoped in config).value
+//      )
+//    }
 
   private val noChanges = new xsbti.compile.DependencyChanges {
     def isEmpty = true
@@ -291,73 +300,57 @@ object EnsimeExtrasPlugin extends AutoPlugin {
     def modifiedClasses = Array()
   }
 
-  private object noopCallback extends xsbti.AnalysisCallback {
-    val includeSynthToNameHashing: Boolean = true
-    override val nameHashing: Boolean = true
-    def beginSource(source: File): Unit = {}
-    def generatedClass(source: File, module: File, name: String): Unit = {}
-    def api(sourceFile: File, source: xsbti.api.SourceAPI): Unit = {}
-    def sourceDependency(dependsOn: File, source: File, publicInherited: Boolean): Unit = {}
-    def binaryDependency(binary: File, name: String, source: File, publicInherited: Boolean): Unit = {}
-    def endSource(sourcePath: File): Unit = {}
-    def problem(what: String, pos: xsbti.Position, msg: String, severity: xsbti.Severity, reported: Boolean): Unit = {}
-    def usedName(sourceFile: File, names: String): Unit = {}
-    override def binaryDependency(file: File, s: String, file1: File, dependencyContext: xsbti.DependencyContext): Unit = {}
-    override def sourceDependency(file: File, file1: File, dependencyContext: xsbti.DependencyContext): Unit = {}
-  }
-
-  def compileOnlyTask: Def.Initialize[InputTask[Unit]] = Def.inputTask {
-    val args = Def.spaceDelimited().parsed
-    val dirs = sourceDirectories.value
-    val cp = dependencyClasspath.value
-    val out = classDirectory.value
-    val baseOpts = (scalacOptions in ensimeCompileOnly).value
-    val merrs = maxErrors.value
-    val in = (compileInputs in compile).value
-    val cs = compilers.value
-    val s = streams.value
-
-    val (extraOpts, files) = args.partition(_.startsWith("-"))
-    val opts = baseOpts ++ extraOpts
-
-    val input = files.map { arg =>
-      fileInProject(arg, dirs.map(_.getCanonicalFile))
-    }
-
-    if (!out.exists()) IO.createDirectory(out)
-    s.log.info(s"""Compiling $input with ${opts.mkString(" ")}""")
-
-    cs.scalac(
-      input, noChanges, cp.map(_.data) :+ out, out, opts,
-      noopCallback, merrs, in.incSetup.cache, s.log
-    )
-  }
-
-  // exploiting a single namespace to workaround https://github.com/ensime/ensime-sbt/issues/148
-  private val scalariformPreferences = settingKey[IFormattingPreferences](
-    "Scalariform formatting preferences, e.g. indentation"
-  )
-
-  def scalariformOnlyTask: Def.Initialize[InputTask[Unit]] = Def.inputTask {
-    val files = Def.spaceDelimited().parsed
-    // WORKAROUND https://github.com/ensime/ensime-sbt/issues/148
-    val preferences = scalariformPreferences.?.value.getOrElse(FormattingPreferences())
-
-    val version = scalaVersion.value
-    val s = streams.value
-
-    files.foreach { arg =>
-      val input: File = file(arg) // don't demand it to be in a source dir
-      s.log.info(s"Formatting $input")
-      val contents = IO.read(input)
-      val formatted = ScalaFormatter.format(
-        contents,
-        preferences,
-        scalaVersion = version split "-" head
-      )
-      if (formatted != contents) IO.write(input, formatted)
-    }
-  }
+//  private object noopCallback extends xsbti.AnalysisCallback {
+//    override def startSource(source: File): Unit = {}
+//    override def mainClass(sourceFile: File, className: String): Unit = {}
+//    override def apiPhaseCompleted(): Unit = {}
+//    override def enabled(): Boolean = false
+//    override def binaryDependency(onBinaryEntry: File, onBinaryClassName:
+//                                  String, fromClassName: String, fromSourceFile: File,
+//                                  context: DependencyContext): Unit = {}
+//    override def generatedNonLocalClass(source: File, classFile: File,
+//                                        binaryClassName: String,
+//                                        srcClassName: String): Unit = {}
+//    override def problem(what: String, pos: Position, msg: String,
+//                         severity: Severity, reported: Boolean): Unit = {}
+//    override def dependencyPhaseCompleted(): Unit = {}
+//    override def classDependency(onClassName: String, sourceClassName: String,
+//                                 context: DependencyContext): Unit = {}
+//    override def generatedLocalClass(source: File, classFile: File): Unit = {}
+//    override def api(sourceFile: File, classApi: ClassLike): Unit = {}
+//    override def usedName(className: String, name: String,
+//                          useScopes: util.EnumSet[UseScope]): Unit = {}
+//  }
+//
+//  def compileOnlyTask: Def.Initialize[InputTask[Unit]] = Def.inputTask {
+//    val args = Def.spaceDelimited().parsed
+//    val dirs = sourceDirectories.value
+//    val cp = dependencyClasspath.value
+//    val out = classDirectory.value
+//    val baseOpts = (scalacOptions in ensimeCompileOnly).value
+//    val merrs = maxErrors.value
+//    val in = (compileInputs in compile).value
+//    val cs = compilers.value
+//    val s = streams.value
+//    val basicReporterConfig = ReporterUtil.getDefaultReporterConfig
+//    val reporterConfig = basicReporterConfig.withMaximumErrors(merrs)
+//    val reporter = ReporterManager.getReporter(s.log, reporterConfig)
+//
+//    val (extraOpts, files) = args.partition(_.startsWith("-"))
+//    val opts = baseOpts ++ extraOpts
+//
+//    val input = files.map { arg =>
+//      fileInProject(arg, dirs.map(_.getCanonicalFile))
+//    }
+//
+//    if (!out.exists()) IO.createDirectory(out)
+//    s.log.info(s"""Compiling $input with ${opts.mkString(" ")}""")
+//
+//    cs.scalac().compile(
+//      input.toArray, noChanges, opts.toArray, (cp.map(_.data) :+ out).toArray, noopCallback,
+//      reporter, in, s.log, java.util.Optional.empty()
+//    )
+//  }
 
   private def fileInProject(arg: String, sourceDirs: Seq[File]): File = {
     val input = file(arg).getCanonicalFile
