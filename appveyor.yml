@@ -23,9 +23,9 @@ install:
   - cmd: git config core.symlinks true
   - cmd: git reset --hard
 build_script:
-  - sbt clean compile
+  - sbt "^clean" "^compile"
 test_script:
-  - sbt scripted
+  - sbt "^scripted"
 cache:
   - C:\Program Files\Java\jdk1.8.0\src.zip
   - C:\sbt -> appveyor.yml
