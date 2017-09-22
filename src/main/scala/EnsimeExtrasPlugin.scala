@@ -2,17 +2,10 @@
 // Licence: Apache-2.0
 package org.ensime
 
-import java.util
-
-import EnsimeKeys._
-import sbt.Defaults.{loadForParser => _, _}
-import sbt._
+import sbt.Defaults.{loadForParser => _}
 import sbt.Keys._
-import sbt.Tests.Execution
+import sbt._
 import sbt.complete.{DefaultParsers, Parser}
-import sbt.complete.Parsers._
-import sbt.complete.Parser._
-import sbt.testing.{Framework, Runner}
 
 object EnsimeExtrasKeys {
 
@@ -144,12 +137,12 @@ object EnsimeExtrasPlugin extends AutoPlugin {
       envVars = newEnvArgs
     )
     log.debug(s"launching $options ${javaArgs.mainClass} $newJvmArgs ${javaArgs.classArgs}")
-    new ForkRun(options).run(
+    SbtHelper.reportError(new ForkRun(options).run(
       javaArgs.mainClass,
       Attributed.data(classpath),
       javaArgs.classArgs,
       log
-    )
+    ))
   }
 
   def parseAndRunMainWithStaticSettings(
@@ -207,12 +200,12 @@ object EnsimeExtrasPlugin extends AutoPlugin {
           envVars = (envVars in config).value ++ args.envArgs
         )
         streams.value.log.info(s"launching $options -cp CLASSPATH ${args.mainClass} ${args.classArgs ++ additionalParams}")
-        new ForkRun(options).run(
+        SbtHelper.reportError(new ForkRun(options).run(
           args.mainClass,
           Attributed.data((fullClasspath in config).value),
           args.classArgs ++ additionalParams,
           streams.value.log
-        )
+        ))
       }
   }
 

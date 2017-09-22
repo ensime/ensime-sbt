@@ -5,18 +5,16 @@ package org.ensime
 import java.io.FileNotFoundException
 import java.lang.management.ManagementFactory
 
+import org.ensime.SExpFormatter._
+import sbt.IO._
+import sbt.Keys._
+import sbt._
+import sbt.internal.BuildStructure
+import sbt.librarymanagement.ConfigurationFilter
+
 import scala.collection.JavaConverters._
 import scala.util._
 import scala.util.control.NoStackTrace
-import scala.util.matching._
-import SExpFormatter._
-import sbt._
-import sbt.IO._
-import sbt.Keys._
-import sbt.complete.Parsers._
-import sbt.internal.BuildStructure
-import sbt.librarymanagement.ConfigurationFilter
-import scala.sys.process._
 
 /**
  * Conventional way to define importable keys for an AutoPlugin.
@@ -258,12 +256,12 @@ object EnsimePlugin extends AutoPlugin {
       false,
       Map.empty[String, String]
     )
-    new ForkRun(options).run(
+    SbtHelper.reportError(new ForkRun(options).run(
       "org.ensime.server.Server",
       orderFiles(jars),
       Nil,
       streams.value.log
-    )
+    ))
   }
 
   def ensimeConfigTask = Def.inputTask {
@@ -758,7 +756,7 @@ object CommandSupport {
   implicit class RichSettingKey[A](key: SettingKey[A]) {
     def gimme(implicit pr: ProjectRef, bs: BuildStructure, s: State): A =
       gimmeOpt getOrElse { fail(s"Missing setting: ${key.key.label}") }
-    def gimmeOpt(implicit pr: ProjectRef, bs: BuildStructure, s: State): Option[A] =
+    def gimmeOpt(implicit pr: ProjectRef, bs: BuildStructure): Option[A] =
       key in pr get bs.data
   }
 

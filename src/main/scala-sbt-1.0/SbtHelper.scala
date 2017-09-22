@@ -5,8 +5,12 @@ import sbt.ConcurrentRestrictions.Tag
 import Tests.{Output => TestOutput, _}
 import sbt.testing.Runner
 
+import scala.util.Try
+
 object SbtHelper {
   def constructForkTests(runners: Map[TestFramework, Runner], tests: List[TestDefinition], config: Execution, classpath: Seq[File], fork: ForkOptions, log: Logger, tag: Tag): Task[TestOutput] = {
     ForkTests(runners, tests.toVector, config, classpath, fork, log, tag)
   }
+
+  def reportError(error: Try[Unit]): Unit = error.foreach(_ => sys.error("run failed"))
 }

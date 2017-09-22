@@ -2,8 +2,6 @@ pipeline:
   build:
     image: ensime/ensime:v2.x-cache
     pull: true
-    environment:
-      - SCALA_VERSION=2.12.2
     commands:
       - host `curl -s http://httpbin.org/ip | jq -r '.origin'` || true ;
       - git log | head -n 20 ; git fetch -q --tags
@@ -11,7 +9,7 @@ pipeline:
           echo "Please remove TODO or FIXME. Create an issue at GitHub instead." ;
           exit 1 ;
         fi
-      - sbt ++$SCALA_VERSION "^compile" "^doc" "^scripted";
+      - sbt "^compile" "^doc" "^scripted";
       - if [ -z "$DRONE_PULL_REQUEST" ] ; then
-          sbt ++$SCALA_VERSION publish ;
+          sbt publish ;
         fi

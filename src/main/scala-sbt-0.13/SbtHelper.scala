@@ -9,4 +9,6 @@ object SbtHelper {
   def constructForkTests(runners: Map[TestFramework, Runner], tests: List[TestDefinition], config: Execution, classpath: Seq[File], fork: ForkOptions, log: Logger, tag: Tag): Task[TestOutput] = {
     ForkTests(runners, tests, config, classpath, fork, log, tag)
   }
+
+  def reportError(error: Option[String]): Unit = error.foreach(sys.error)
 }
