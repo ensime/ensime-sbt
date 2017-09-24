@@ -6,25 +6,9 @@ sbtPlugin := true
 sonatypeGithub := ("ensime", "ensime-sbt")
 licenses := Seq(Apache2)
 
-//enablePlugins(ShadingPlugin)
-//shadingNamespace := "ensime.shaded"
-//publish := publish.in(Shading).value
-//publishLocal := publishLocal.in(Shading).value
-//inConfig(Shading)(com.typesafe.sbt.pgp.PgpSettings.projectSettings)
-//ShadingPlugin.projectSettings // breaks without this!
-//PgpKeys.publishSigned := PgpKeys.publishSigned.in(Shading).value
-//PgpKeys.publishLocalSigned := PgpKeys.publishLocalSigned.in(Shading).value
-//shadeNamespaces ++= Set("coursier", "scalaz")
-
 scalacOptions += "-language:postfixOps"
 
-libraryDependencies ++= Seq(
-  // shade coursier, i.e. don't force binary compatibility on downstream
-  "io.get-coursier" %% "coursier-cache" % "1.0.0-RC11" //% "shaded"
-)
-
-//// sbt-shading needs custom slf4j jars
-//excludeDependencies := Nil
+libraryDependencies += "io.get-coursier" %% "coursier-cache" % "1.0.0-RC12"
 
 scriptedSettings
 scriptedBufferLog := false
