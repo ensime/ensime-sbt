@@ -27,7 +27,6 @@ object EnsimeKeys {
   val ensimeConfig = inputKey[Unit](
     "Generate a .ensime for the project."
   )
-
   val ensimeConfigProject = taskKey[Unit](
     "Generate a project/.ensime for the project definition."
   )
@@ -37,6 +36,10 @@ object EnsimeKeys {
   )
   val ensimeProjectServerVersion = settingKey[String](
     "The ensime server version for the build project"
+  )
+
+  val ensimeConfigLegacy = settingKey[Boolean](
+    "Should legacy fields be contained in .ensime"
   )
 
   val ensimeName = settingKey[String](
@@ -136,6 +139,8 @@ object EnsimePlugin extends AutoPlugin {
   override lazy val buildSettings = Seq(
     // WORKAROUND: https://github.com/sbt/sbt/issues/2814
     scalaOrganization in updateSbtClassifiers := (scalaOrganization in Global).value,
+
+    ensimeConfigLegacy := true,
 
     ensimeScalaVersion := {
       // infer the scalaVersion by majority vote, because many badly
@@ -360,9 +365,10 @@ object EnsimePlugin extends AutoPlugin {
     )
 
     val transformedConfig = ensimeConfigTransformer.value.apply(config)
+    val legacy = ensimeConfigLegacy.value
 
     // workaround for Windows
-    write(out, toSExp(transformedConfig).replaceAll("\r\n", "\n") + "\n")
+    write(out, toSExp(transformedConfig, legacy).replaceAll("\r\n", "\n") + "\n")
   }
 
   // WORKAROUND: https://github.com/ensime/ensime-sbt/issues/334 when
@@ -611,8 +617,9 @@ object EnsimePlugin extends AutoPlugin {
     )
 
     val transformedConfig = ensimeConfigTransformerProject.value.apply(config)
+    val legacy = ensimeConfigLegacy.value
 
-    write(out, toSExp(transformedConfig).replaceAll("\r\n", "\n") + "\n")
+    write(out, toSExp(transformedConfig, legacy).replaceAll("\r\n", "\n") + "\n")
   }
 
   // WORKAROUND: https://github.com/typelevel/scala/issues/75
@@ -812,7 +819,7 @@ object SExpFormatter {
   def toSExp(b: Boolean): String = if (b) "t" else "nil"
 
   // a lot of legacy key names and conventions
-  def toSExp(c: EnsimeConfig): String = s"""(
+  def toSExp(c: EnsimeConfig, includeLegacy: Boolean): String = s"""(
  :root-dir ${toSExp(c.root)}
  :cache-dir ${toSExp(c.cacheDir)}
  :scala-compiler-jars ${fsToSExp(c.scalaCompilerJars)}
@@ -822,11 +829,11 @@ object SExpFormatter {
  :java-home ${toSExp(c.javaHome)}
  :java-flags ${ssToSExp(c.javaFlags)}
  :java-sources ${fsToSExp(c.javaSrc)}
- :java-compiler-args ${ssToSExp(c.javacOptions)}
- :reference-source-roots ${fsToSExp(c.javaSrc)}
+ :java-compiler-args ${if (!includeLegacy) "nil" else ssToSExp(c.javacOptions)}
+ :reference-source-roots ${if (!includeLegacy) "nil" else fsToSExp(c.javaSrc)}
  :scala-version ${toSExp(c.scalaVersion)}
  :compiler-args ${ssToSExp(c.scalacOptions)}
- :subprojects ${msToSExp(c.modules.values)}
+ :subprojects ${if (!includeLegacy) "nil" else msToSExp(c.modules.values)}
  :projects ${psToSExp(c.projects)}
 )"""
 

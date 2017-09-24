@@ -9,20 +9,10 @@
  :java-flags ("-Xss2m" "-Xms512m" "-Xmx4g" "-XX:MaxMetaspaceSize=256m" "-XX:StringTableSize=1000003" "-XX:+UnlockExperimentalVMOptions" "-XX:SymbolTableSize=1000003" "-Dscala.classpath.closeZip=true")
  :java-sources ("JDK_HOME/src.zip")
  :java-compiler-args nil
- :reference-source-roots ("JDK_HOME/src.zip")
+ :reference-source-roots nil
  :scala-version "2.12.2"
  :compiler-args ("-Xlog-reflective-calls" "-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
- :subprojects ((
- :name "simple-build-sbt"
- :source-roots nil
- :targets ("BASE_DIR/target/scala-2.12/classes")
- :test-targets ("BASE_DIR/target/scala-2.12/test-classes")
- :depends-on-modules nil
- :compile-deps ("IVY_DIR/cache/org.scala-lang/scala-library/jars/scala-library-2.12.2.jar")
- :runtime-deps nil
- :test-deps nil
- :doc-jars ("IVY_DIR/cache/org.scala-lang/scala-library/docs/scala-library-2.12.2-javadoc.jar" "BASE_DIR/target/scala-2.12/simple-build-sbt_2.12-0.1-SNAPSHOT-javadoc.jar")
- :reference-source-roots ("IVY_DIR/cache/org.scala-lang/scala-library/srcs/scala-library-2.12.2-sources.jar")))
+ :subprojects nil
  :projects ((
  :id (:project "simple-build-sbt" :config "compile")
  :depends nil
