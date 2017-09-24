@@ -11,4 +11,6 @@ object SbtHelper {
   }
 
   def reportError(error: Option[String]): Unit = error.foreach(sys.error)
+
+  def showShow[A](s: Show[A], a: A): String = s.apply(a)
 }

@@ -12,5 +12,10 @@ object SbtHelper {
     ForkTests(runners, tests.toVector, config, classpath, fork, log, tag)
   }
 
-  def reportError(error: Try[Unit]): Unit = error.foreach(_ => sys.error("run failed"))
+  def reportError(error: Try[Unit]): Unit = error.fold(
+    e => sys.error(e.getLocalizedMessage),
+    x => x
+  )
+
+  def showShow[A](s: Show[A], a: A): String = s.show(a)
 }

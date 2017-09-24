@@ -34,6 +34,14 @@ scriptedLaunchOpts := Seq(
   // .jvmopts is ignored, simulate here
   "-Xmx2g", "-Xss2m"
 )
+sbtTestDirectory := {
+  val currentSbtVersion = (sbtVersion in pluginCrossBuild).value
+  CrossVersion.partialVersion(currentSbtVersion) match {
+    case Some((0, 13)) => sourceDirectory.value / "sbt-test-0.13"
+    case Some((1, _))  => sourceDirectory.value / "sbt-test-1.0"
+    case _             => sys.error(s"Unsupported sbt version: $currentSbtVersion")
+  }
+}
 
 
 // from https://github.com/coursier/coursier/issues/650

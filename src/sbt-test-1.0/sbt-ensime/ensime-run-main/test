@@ -1,0 +1,28 @@
+> ensime-run-main/compile
+> ensime-run-main/ensimeRunMain testing_key1=value1 testing_key2=value2 -Dtesting_key3=value3 -Dtesting_key3=value3 -Xms2G -Xmx2G runEnsimeMain.printArgs output_args1 -arg1 -arg2
+$ must-mirror args1 output_args1
+> ensime-run-main/ensimeRunMain runEnsimeMain.printArgs output_args2
+$ must-mirror args2 output_args2
+> ensime-run-main/ensimeRunMain -Dtesting_key3=value3 -Xms2G -Xmx2G runEnsimeMain.printArgs output_args3
+$ must-mirror args3 output_args3
+> ensime-run-main/ensimeRunMain testing_key1=value1 testing_key2=value2 runEnsimeMain.printArgs output_args4
+$ must-mirror args4 output_args4
+> ensime-run-main/ensimeRunMain testing_default_key2=something -Dtesting_default_key1=something runEnsimeMain.printArgs output_args5
+$ must-mirror args5 output_args5
+> ensime-run-main/ensimeRunMain testing_key1=value1 testing_key2=value2 testing_default_key2=something -Dtesting_default_key1=something -Dtesting_key3=value3 -Xms2G -Xmx2G runEnsimeMain.printArgs output_args6 -arg
+$ must-mirror args6 output_args6
+
+> ensime-run-main/ensimeRunDebug testing_key1=value1 testing_key2=value2 -Dtesting_key3=value3 -Dtesting_key3=value3 -Xms2G -Xmx2G runEnsimeMain.printArgs output_args7 -arg1 -arg2
+$ must-mirror args7 output_args7
+
+> ensime-run-main/ensimeLaunch test
+$ must-mirror args8 output_args8
+> ensime-run-main/ensimeLaunch largeMemory
+$ must-mirror args9 output_args9
+> ensime-run-main/ensimeLaunch hello
+$ must-mirror hello output_hello
+$ delete output_args8 output_args9 output_hello
+> ensime-run-main/ensimeLaunch extra --param1=foo
+$ must-mirror args10 output_args10
+
+# without ensimeTestOnlyDebug for now
