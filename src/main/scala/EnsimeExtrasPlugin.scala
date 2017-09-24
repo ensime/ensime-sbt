@@ -7,7 +7,7 @@ import sbt.Keys._
 import sbt._
 import sbt.complete.{DefaultParsers, Parser}
 
-object EnsimeExtrasKeys {
+object EnsimeExtrasKeys extends CompatExtrasKeys {
 
   case class JavaArgs(mainClass: String, envArgs: Map[String, String], jvmArgs: Seq[String], classArgs: Seq[String])
   case class LaunchConfig(name: String, javaArgs: JavaArgs)
@@ -17,10 +17,6 @@ object EnsimeExtrasKeys {
   )
   val ensimeDebuggingPort = settingKey[Int](
     "Port for remote debugging of forked tasks."
-  )
-
-  val ensimeDebuggingArgs = settingKey[Seq[String]](
-    "Java args for for debugging"
   )
 
   val ensimeRunMain = inputKey[Unit](
@@ -180,21 +176,4 @@ object EnsimeExtrasPlugin extends AutoPlugin with CompatExtras {
       }
   }
 
-  private[ensime] val noChanges = new xsbti.compile.DependencyChanges {
-    def isEmpty = true
-    def modifiedBinaries = Array()
-    def modifiedClasses = Array()
-  }
-
-  private[ensime] def fileInProject(arg: String, sourceDirs: Seq[File]): File = {
-    val input = file(arg).getCanonicalFile
-    val here = sourceDirs.exists { dir => input.getPath.startsWith(dir.getPath) }
-    if (!here || !input.exists())
-      throw new IllegalArgumentException(s"$arg not associated to $sourceDirs")
-
-    if (!input.getName.endsWith(".scala"))
-      throw new IllegalArgumentException(s"only .scala files are supported: $arg")
-
-    input
-  }
 }
