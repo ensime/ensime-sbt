@@ -29,8 +29,8 @@ libraryDependencies ++= Seq(
 scriptedSettings
 scriptedBufferLog := false
 scriptedLaunchOpts := Seq(
-  "-Dplugin.src=" + sys.props("user.dir"),
   "-Dplugin.version=" + version.value,
+  "-Dplugin.test.directory=" + sbtTestDirectory.value,
   // .jvmopts is ignored, simulate here
   "-Xmx2g", "-Xss2m"
 )
@@ -42,7 +42,6 @@ sbtTestDirectory := {
     case _             => sys.error(s"Unsupported sbt version: $currentSbtVersion")
   }
 }
-
 
 // from https://github.com/coursier/coursier/issues/650
 sbtLauncher := {
@@ -71,9 +70,9 @@ sbtLauncher := {
   jar
 }
 
-scalaVersion := "2.12.2"
-sbtVersion in Global := "1.0.0"
-crossSbtVersions := Seq("1.0.0", "0.13.16")
+scalaVersion in ThisBuild := "2.12.3"
+sbtVersion in Global := "1.0.2"
+crossSbtVersions := Seq("1.0.2", "0.13.16")
 scalaCompilerBridgeSource := {
   val sv = appConfiguration.value.provider.id.version
   ("org.scala-sbt" % "compiler-interface" % sv % "component").sources

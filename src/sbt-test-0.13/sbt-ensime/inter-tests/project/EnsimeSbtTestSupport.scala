@@ -39,8 +39,8 @@ object EnsimeSbtTestSupport extends AutoPlugin {
     implicit val bs = extracted.structure
 
     val projname = org.ensime.EnsimeKeys.ensimeName.gimmeOpt.getOrElse(name.gimme)
-    val pluginDir = sys.props("plugin.src")
-    val origDir = file(pluginDir) / s"src/sbt-test/sbt-ensime/$projname"
+    val propDir = file(sys.props("plugin.test.directory"))
+    val origDir = propDir / "sbt-ensime" / projname
 
     val baseDir = baseDirectory.gimme.getCanonicalPath.replace(raw"\", "/")
     val log = state.log
@@ -48,7 +48,7 @@ object EnsimeSbtTestSupport extends AutoPlugin {
     val jdkHome = javaHome.gimme.getOrElse(file(Properties.jdkHome)).getAbsolutePath
 
     val normalizedFilenames = args.map(filename => filename
-      .replace("{sbtVersion}", sbtVersion.gimme.replace('.', '_'))
+      .replace("{sbtVersion}", sbtVersion.gimme.split("[.]").take(2).mkString("-", ".", ""))
     )
 
     val List(got, expect) = normalizedFilenames.map { filename =>
@@ -70,7 +70,7 @@ object EnsimeSbtTestSupport extends AutoPlugin {
             replaceAll("""/Library/Java/JavaVirtualMachines/[^/]+/Contents/Home""", "JDK_HOME").
             replaceAll("""C:/Program Files/Java/[^/"]++""", "JDK_HOME").
             replace(jdkHome, "JDK_HOME").
-            replaceAll(""""-Dplugin[.]src=[^"]++"""", "").
+            replaceAll(""""-Dplugin[.]test[.]directory=[^"]++"""", "").
             replaceAll(""""-Dplugin[.]version=[^"]++"""", "").
             replaceAll(""""-Xfatal-warnings"""", ""). // ensime-server only has these in CI
             replaceAll("""/[^/]++/jars/sbt-ensime.jar"""", """/HEAD/jars/sbt-ensime.jar"""").
