@@ -17,8 +17,8 @@ object EnsimeSbtTestSupport extends AutoPlugin {
 
   private lazy val parser = complete.Parsers.spaceDelimited("<arg>")
   override lazy val buildSettings = Seq(
-    ensimeServerVersion := "2.0.0-M4", // our CI needs stable jars
-    ensimeProjectServerVersion := "2.0.0-M4", // our CI needs stable jars
+    ensimeServerVersion := "2.0.0", // our CI needs stable jars
+    ensimeProjectServerVersion := "2.0.0", // our CI needs stable jars
     commands += Command.args("ensimeExpect", "<args>")(ensimeExpect)
   )
 

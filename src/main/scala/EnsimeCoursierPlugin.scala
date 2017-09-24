@@ -42,9 +42,7 @@ object EnsimeCoursierPlugin extends AutoPlugin {
   override lazy val buildSettings = Seq(
     ensimeRepositoryUrls := Seq(
       // intentionally not using the ivy cache because it's very unreliable
-      "https://repo1.maven.org/maven2/",
-      // including snapshots by default makes it easier to use dev ensime
-      "https://oss.sonatype.org/content/repositories/snapshots/"
+      "https://repo1.maven.org/maven2/"
     ),
 
     ensimeScalaJars := resolveScalaJars(scalaOrganization.value, ensimeScalaVersion.value, ensimeRepositoryUrls.value),
