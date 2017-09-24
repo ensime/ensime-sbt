@@ -8,7 +8,30 @@ licenses := Seq(Apache2)
 
 scalacOptions += "-language:postfixOps"
 
-libraryDependencies += "io.get-coursier" %% "coursier-cache" % "1.0.0-RC12"
+enablePlugins(ShadingPlugin)
+shadingNamespace := "ensime.shaded"
+publish := publish.in(Shading).value
+publishLocal := publishLocal.in(Shading).value
+inConfig(Shading)(com.typesafe.sbt.pgp.PgpSettings.projectSettings)
+ShadingPlugin.projectSettings // breaks without this!
+PgpKeys.publishSigned := PgpKeys.publishSigned.in(Shading).value
+PgpKeys.publishLocalSigned := PgpKeys.publishLocalSigned.in(Shading).value
+shadeNamespaces ++= Set("coursier", "scalaz")
+
+libraryDependencies ++= Seq(
+  // shade coursier, i.e. don't force binary compatibility on downstream
+  "io.get-coursier" %% "coursier-cache" % "1.0.0-RC12" % "shaded"
+) ++ {
+  // coursier needs to know about unshaded things...
+  val currentSbtVersion = (sbtVersion in pluginCrossBuild).value
+  if (currentSbtVersion.startsWith("0.13"))
+    Seq("org.scalamacros" %% "quasiquotes" % "2.1.0")
+  else
+    Seq(
+      "org.scala-lang" % "scala-library" % scalaVersion.value,
+      "org.scala-lang.modules" %% "scala-xml" % "1.0.6"
+    )
+}
 
 scriptedSettings
 scriptedBufferLog := false
@@ -25,33 +48,6 @@ sbtTestDirectory := {
     case Some((1, _))  => sourceDirectory.value / "sbt-test-1.0"
     case _             => sys.error(s"Unsupported sbt version: $currentSbtVersion")
   }
-}
-
-// from https://github.com/coursier/coursier/issues/650
-sbtLauncher := {
-  val rep = update
-    .value
-    .configuration(ScriptedPlugin.scriptedLaunchConf.name)
-    .getOrElse(sys.error(s"Configuration ${ScriptedPlugin.scriptedLaunchConf.name} not found"))
-
-  val org = "org.scala-sbt"
-  val name = "sbt-launch"
-
-  val (_, jar) = rep
-    .modules
-    .find { modRep =>
-      modRep.module.organization == org && modRep.module.name == name
-    }
-    .getOrElse {
-      sys.error(s"Module $org:$name not found in configuration ${ScriptedPlugin.scriptedLaunchConf.name}")
-    }
-    .artifacts
-    .headOption
-    .getOrElse {
-      sys.error(s"No artifacts found for module $org:$name in configuration ${ScriptedPlugin.scriptedLaunchConf.name}")
-    }
-
-  jar
 }
 
 scalaVersion in ThisBuild := "2.12.3"
