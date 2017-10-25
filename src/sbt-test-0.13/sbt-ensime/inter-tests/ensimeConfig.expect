@@ -90,7 +90,7 @@
  :library-sources nil
  :library-docs nil) (
  :id (:project "server" :config "compile")
- :depends ((:project "core" :config "compile") (:project "core" :config "it") (:project "core" :config "test"))
+ :depends ((:project "core" :config "compile"))
  :sources ("BASE_DIR/server/src/main/java" "BASE_DIR/server/target/scala-2.12/src_managed/main" "BASE_DIR/server/src/main/scala-2.12" "BASE_DIR/server/src/main/scala")
  :targets ("BASE_DIR/server/target/scala-2.12/classes")
  :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
@@ -99,7 +99,7 @@
  :library-sources nil
  :library-docs ("BASE_DIR/server/target/scala-2.12/server_2.12-0.1-SNAPSHOT-javadoc.jar")) (
  :id (:project "server" :config "it")
- :depends ((:project "core" :config "compile") (:project "core" :config "it") (:project "core" :config "test") (:project "server" :config "compile"))
+ :depends ((:project "core" :config "it") (:project "server" :config "compile"))
  :sources ("BASE_DIR/server/src/main/java" "BASE_DIR/server/target/scala-2.12/src_managed/main" "BASE_DIR/server/src/main/scala-2.12" "BASE_DIR/server/src/main/scala")
  :targets ("BASE_DIR/server/target/scala-2.12/classes")
  :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
@@ -108,7 +108,7 @@
  :library-sources nil
  :library-docs nil) (
  :id (:project "server" :config "test")
- :depends ((:project "core" :config "compile") (:project "core" :config "it") (:project "core" :config "test") (:project "server" :config "compile"))
+ :depends ((:project "core" :config "test") (:project "server" :config "compile"))
  :sources ("BASE_DIR/server/src/test/java" "BASE_DIR/server/src/test/scala-2.12" "BASE_DIR/server/src/test/scala" "BASE_DIR/server/target/scala-2.12/src_managed/test")
  :targets ("BASE_DIR/server/target/scala-2.12/test-classes")
  :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
