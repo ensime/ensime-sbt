@@ -43,6 +43,16 @@
  :test-deps nil
  :doc-jars ("BASE_DIR/c/target/scala-2.12/c_2.12-0.1-SNAPSHOT-javadoc.jar")
  :reference-source-roots nil) (
+ :name "d"
+ :source-roots nil
+ :targets ("BASE_DIR/d/target/scala-2.12/classes")
+ :test-targets ("BASE_DIR/d/target/scala-2.12/test-classes")
+ :depends-on-modules ("a" "b")
+ :compile-deps nil
+ :runtime-deps nil
+ :test-deps nil
+ :doc-jars ("BASE_DIR/d/target/scala-2.12/d_2.12-0.1-SNAPSHOT-javadoc.jar")
+ :reference-source-roots nil) (
  :name "multi-project-build"
  :source-roots nil
  :targets ("BASE_DIR/target/scala-2.12/classes")
@@ -103,6 +113,24 @@
  :depends ((:project "b" :config "test") (:project "c" :config "compile"))
  :sources nil
  :targets ("BASE_DIR/c/target/scala-2.12/test-classes")
+ :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
+ :javac-options nil
+ :library-jars nil
+ :library-sources nil
+ :library-docs nil) (
+ :id (:project "d" :config "compile")
+ :depends ((:project "a" :config "compile") (:project "b" :config "compile"))
+ :sources nil
+ :targets ("BASE_DIR/d/target/scala-2.12/classes")
+ :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
+ :javac-options nil
+ :library-jars nil
+ :library-sources nil
+ :library-docs ("BASE_DIR/d/target/scala-2.12/d_2.12-0.1-SNAPSHOT-javadoc.jar")) (
+ :id (:project "d" :config "test")
+ :depends ((:project "b" :config "test") (:project "d" :config "compile"))
+ :sources nil
+ :targets ("BASE_DIR/d/target/scala-2.12/test-classes")
  :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
  :javac-options nil
  :library-jars nil
