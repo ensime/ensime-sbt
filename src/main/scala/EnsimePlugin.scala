@@ -453,14 +453,15 @@ object EnsimePlugin extends AutoPlugin {
 
     val IvyConfig = "([A-Za-z]+)->([A-Za-z]+)".r
 
-    def depsFor(config: Configuration): Seq[EnsimeProjectId] = project.dependencies.map { d =>
-      val name = d.project.project
-      val con = d.configuration match {
-        case Some(a) => a.split(";").collect { case IvyConfig(from, to) => (from, to) }
-        case None => Array(("compile", "compile"))
+    def depsFor(config: Configuration): Seq[EnsimeProjectId] = project.dependencies.flatMap { d =>
+      lazy val name = d.project.project
+      d.configuration match {
+        case Some(a) => a.split(";").collect {
+          case IvyConfig(from, to) if (from == config.name) => EnsimeProjectId(name, to)
+        }
+        case None => if (config.name == "compile") Array(EnsimeProjectId(name, "compile")) else Nil
       }
-      con.filter(_._1 == config.name).map(p => EnsimeProjectId(name, p._2))
-    }.flatten
+    }
 
     def configDataFor(config: Configuration): EnsimeProject = {
       val sbv = scalaBinaryVersion.gimme
