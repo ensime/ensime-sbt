@@ -53,6 +53,26 @@
  :test-deps nil
  :doc-jars ("BASE_DIR/d/target/scala-2.12/d_2.12-0.1-SNAPSHOT-javadoc.jar")
  :reference-source-roots nil) (
+ :name "e"
+ :source-roots nil
+ :targets ("BASE_DIR/e/target/scala-2.12/classes")
+ :test-targets ("BASE_DIR/e/target/scala-2.12/test-classes")
+ :depends-on-modules ("a" "b")
+ :compile-deps nil
+ :runtime-deps nil
+ :test-deps nil
+ :doc-jars ("BASE_DIR/e/target/scala-2.12/e_2.12-0.1-SNAPSHOT-javadoc.jar")
+ :reference-source-roots nil) (
+ :name "f"
+ :source-roots nil
+ :targets ("BASE_DIR/f/target/scala-2.12/classes")
+ :test-targets ("BASE_DIR/f/target/scala-2.12/classes" "BASE_DIR/f/target/scala-2.12/test-classes")
+ :depends-on-modules ("a")
+ :compile-deps ("IVY_DIR/cache/org.scala-lang/scala-library/jars/scala-library-2.12.2.jar")
+ :runtime-deps nil
+ :test-deps nil
+ :doc-jars ("BASE_DIR/f/target/scala-2.12/f_2.12-0.1-SNAPSHOT-javadoc.jar" "IVY_DIR/cache/org.scala-lang/scala-library/docs/scala-library-2.12.2-javadoc.jar")
+ :reference-source-roots ("IVY_DIR/cache/org.scala-lang/scala-library/srcs/scala-library-2.12.2-sources.jar")) (
  :name "multi-project-build"
  :source-roots nil
  :targets ("BASE_DIR/target/scala-2.12/classes")
@@ -131,6 +151,51 @@
  :depends ((:project "b" :config "test") (:project "d" :config "compile"))
  :sources nil
  :targets ("BASE_DIR/d/target/scala-2.12/test-classes")
+ :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
+ :javac-options nil
+ :library-jars nil
+ :library-sources nil
+ :library-docs nil) (
+ :id (:project "e" :config "compile")
+ :depends ((:project "a" :config "compile"))
+ :sources nil
+ :targets ("BASE_DIR/e/target/scala-2.12/classes")
+ :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
+ :javac-options nil
+ :library-jars nil
+ :library-sources nil
+ :library-docs ("BASE_DIR/e/target/scala-2.12/e_2.12-0.1-SNAPSHOT-javadoc.jar")) (
+ :id (:project "e" :config "test")
+ :depends ((:project "b" :config "compile") (:project "e" :config "compile"))
+ :sources nil
+ :targets ("BASE_DIR/e/target/scala-2.12/test-classes")
+ :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
+ :javac-options nil
+ :library-jars nil
+ :library-sources nil
+ :library-docs nil) (
+ :id (:project "f" :config "compile")
+ :depends nil
+ :sources nil
+ :targets ("BASE_DIR/f/target/scala-2.12/classes")
+ :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
+ :javac-options nil
+ :library-jars ("IVY_DIR/cache/org.scala-lang/scala-library/jars/scala-library-2.12.2.jar")
+ :library-sources ("IVY_DIR/cache/org.scala-lang/scala-library/srcs/scala-library-2.12.2-sources.jar")
+ :library-docs ("BASE_DIR/f/target/scala-2.12/f_2.12-0.1-SNAPSHOT-javadoc.jar" "IVY_DIR/cache/org.scala-lang/scala-library/docs/scala-library-2.12.2-javadoc.jar")) (
+ :id (:project "f" :config "it")
+ :depends ((:project "a" :config "compile") (:project "f" :config "compile"))
+ :sources nil
+ :targets ("BASE_DIR/f/target/scala-2.12/classes")
+ :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
+ :javac-options nil
+ :library-jars nil
+ :library-sources nil
+ :library-docs nil) (
+ :id (:project "f" :config "test")
+ :depends ((:project "a" :config "compile") (:project "f" :config "compile"))
+ :sources nil
+ :targets ("BASE_DIR/f/target/scala-2.12/test-classes")
  :scalac-options ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
  :javac-options nil
  :library-jars nil

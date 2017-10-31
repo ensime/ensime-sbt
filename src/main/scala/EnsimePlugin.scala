@@ -456,8 +456,9 @@ object EnsimePlugin extends AutoPlugin {
     def depsFor(config: Configuration): Seq[EnsimeProjectId] = project.dependencies.flatMap { d =>
       lazy val name = d.project.project
       d.configuration match {
-        case Some(a) => a.split(";").collect {
+        case Some(a) => a.split(";|,").collect {
           case IvyConfig(from, to) if (from == config.name) => EnsimeProjectId(name, to)
+          case b if (b == config.name) => EnsimeProjectId(name, "compile")
         }
         case None => if (config.name == "compile") Array(EnsimeProjectId(name, "compile")) else Nil
       }
