@@ -1,10 +1,13 @@
-organization := "org.ensime"
+inThisBuild(
+  Seq(
+    organization := "org.ensime",
+    sonatypeGithost := (Github, "ensime", "ensime-sbt"),
+    licenses := Seq(Apache2)
+  )
+)
+
 name := "sbt-ensime"
-
 sbtPlugin := true
-
-sonatypeGithub := ("ensime", "ensime-sbt")
-licenses := Seq(Apache2)
 
 scalacOptions += "-language:postfixOps"
 
@@ -50,9 +53,9 @@ sbtTestDirectory := {
   }
 }
 
-scalaVersion in ThisBuild := "2.12.3"
-sbtVersion in Global := "1.0.2"
-crossSbtVersions := Seq("1.0.2", "0.13.16")
+scalaVersion in ThisBuild := "2.12.4"
+sbtVersion in Global := "1.0.3"
+crossSbtVersions := Seq("1.0.3", "0.13.16")
 scalaCompilerBridgeSource := {
   val sv = appConfiguration.value.provider.id.version
   ("org.scala-sbt" % "compiler-interface" % sv % "component").sources

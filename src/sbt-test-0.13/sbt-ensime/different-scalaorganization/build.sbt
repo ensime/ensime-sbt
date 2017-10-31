@@ -8,7 +8,7 @@ addEnsimeScalaPlugin("org.spire-math" %% "kind-projector" % "0.9.3")
 
 // and not only a custom scalaOrganization, but a different version of
 // scala for ensime (uses the same org as the build)
-ensimeScalaVersion in ThisBuild := "2.12.3-bin-typelevel-4"
+ensimeScalaVersion in ThisBuild := "2.12.4-bin-typelevel-4"
 ensimeIgnoreScalaMismatch := true
 
 // WORKAROUND https://github.com/ensime/ensime-sbt/issues/239
