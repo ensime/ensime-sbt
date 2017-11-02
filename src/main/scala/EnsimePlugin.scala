@@ -125,6 +125,9 @@ object EnsimeKeys {
       "Useful if you want to put on a faster (local or RAM). " +
       "Will break clients that expect the cache to be in the project root."
   )
+
+  val ensimeSnapshot = taskKey[Unit]("Copy the cache to a snapshot directory for later recovery.")
+  val ensimeRestore = taskKey[Unit]("Replace the cache with the snapshot.")
 }
 
 object EnsimePlugin extends AutoPlugin {
@@ -169,6 +172,8 @@ object EnsimePlugin extends AutoPlugin {
     ensimeIgnoreScalaMismatch := false,
 
     ensimeCachePrefix := None,
+    ensimeSnapshot := ensimeSnapshotTask.value,
+    ensimeRestore := ensimeRestoreTask.value,
 
     // WORKAROUND: https://github.com/scala/scala/pull/5592
     ensimeJavaFlags := baseJavaFlags(ensimeServerVersion.value) :+ "-Dscala.classpath.closeZip=true",
@@ -222,6 +227,28 @@ object EnsimePlugin extends AutoPlugin {
     aggregate in ensimeConfig := false,
     aggregate in ensimeConfigProject := false
   )
+
+  private def cacheAndSnapshot(prefix: Option[File]) = {
+    val cache = cacheDir(prefix, file("."))
+    val snapshot = file(".") / ".ensime_snapshot"
+    (cache, snapshot)
+  }
+
+  def ensimeSnapshotTask: Def.Initialize[Task[Unit]] = Def.task {
+    val (cache, snapshot) = cacheAndSnapshot(ensimeCachePrefix.value)
+    if (!cache.isDirectory)
+      throw new IllegalStateException(s"$cache is not valid")
+    IO.delete(snapshot)
+    IO.copyDirectory(cache, snapshot)
+  }
+
+  def ensimeRestoreTask: Def.Initialize[Task[Unit]] = Def.task {
+    val (cache, snapshot) = cacheAndSnapshot(ensimeCachePrefix.value)
+    if (!snapshot.isDirectory)
+      throw new IllegalStateException(s"$snapshot is not valid")
+    IO.delete(cache)
+    IO.copyDirectory(snapshot, cache)
+  }
 
   // exposed for users to use
   def ensimeSuggestedScalacOptions(scalaVersion: String): Seq[String] = Seq(

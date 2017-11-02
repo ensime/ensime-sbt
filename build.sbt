@@ -9,6 +9,7 @@ inThisBuild(
 name := "sbt-ensime"
 sbtPlugin := true
 
+scalacOptions -= "-Ywarn-unused:implicits,imports,-locals,-params,-patvars,-privates"
 scalacOptions += "-language:postfixOps"
 
 enablePlugins(ShadingPlugin)
