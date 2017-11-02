@@ -475,7 +475,8 @@ object EnsimePlugin extends AutoPlugin {
 
       val target = targetForOpt(config).get
       val scalaCompilerArgs = ((scalacOptions in config).run ++
-        ensimeSuggestedScalacOptions(ensimeScalaV)).toList
+        (ensimeScalacOptions in config).run ++
+        ensimeSuggestedScalacOptions(ensimeScalaV)).toList.distinct
       val javaCompilerArgs = (javacOptions in config).run.toList
       val jars = config match {
         case Compile => jarsFor(Compile) ++ unmanagedJarsFor(Compile) ++ jarsFor(Provided) ++ jarsFor(Optional)

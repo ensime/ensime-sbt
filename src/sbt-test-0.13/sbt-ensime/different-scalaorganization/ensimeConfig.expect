@@ -28,7 +28,7 @@
  :depends nil
  :sources ("BASE_DIR/src/main/java" "BASE_DIR/target/scala-2.12/src_managed/main" "BASE_DIR/src/main/scala-2.12" "BASE_DIR/src/main/scala")
  :targets ("BASE_DIR/target/scala-2.12/classes")
- :scalac-options ("-Xlog-reflective-calls" "-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
+ :scalac-options ("-Xlog-reflective-calls" "-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard" "-Xplugin:COURSIER_DIR/cache/v1/https/repo1.maven.org/maven2/org/spire-math/kind-projector_2.12/0.9.3/kind-projector_2.12-0.9.3.jar")
  :javac-options nil
  :library-jars ("IVY_DIR/cache/org.typelevel/scala-library/jars/scala-library-2.12.2-bin-typelevel-4.jar")
  :library-sources ("IVY_DIR/cache/org.typelevel/scala-library/srcs/scala-library-2.12.2-bin-typelevel-4-sources.jar")
@@ -37,7 +37,7 @@
  :depends ((:project "different-scalaorganization" :config "compile"))
  :sources ("BASE_DIR/src/test/java" "BASE_DIR/src/test/scala-2.12" "BASE_DIR/src/test/scala" "BASE_DIR/target/scala-2.12/src_managed/test")
  :targets ("BASE_DIR/target/scala-2.12/test-classes")
- :scalac-options ("-Xlog-reflective-calls" "-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
+ :scalac-options ("-Xlog-reflective-calls" "-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard" "-Xplugin:COURSIER_DIR/cache/v1/https/repo1.maven.org/maven2/org/spire-math/kind-projector_2.12/0.9.3/kind-projector_2.12-0.9.3.jar")
  :javac-options nil
  :library-jars nil
  :library-sources nil
