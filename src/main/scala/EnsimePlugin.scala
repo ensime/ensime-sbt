@@ -213,10 +213,7 @@ object EnsimePlugin extends AutoPlugin {
     ensimeConfigTransformerProject := identity,
     ensimeUseTarget := None,
 
-    ensimeScalacOptions := (
-      (scalacOptions in Compile).value ++
-      ensimeSuggestedScalacOptions((ensimeScalaVersion in ThisBuild).value)
-    ).distinct,
+    ensimeScalacOptions := Nil,
     ensimeJavacOptions := (javacOptions in Compile).value,
 
     ensimeConfig := ensimeConfigTask.evaluated,
@@ -340,7 +337,9 @@ object EnsimePlugin extends AutoPlugin {
       if (subProjects.size == 1) subProjects.head.id.project
       else root.getAbsoluteFile.getName
     }
-    val compilerArgs = (ensimeScalacOptions).value.toList
+    val compilerArgs = ((scalacOptions in Compile).value ++
+      ensimeSuggestedScalacOptions(ensimeScalaV) ++
+      (ensimeScalacOptions in Compile).value).toList
     val javaCompilerArgs = (ensimeJavacOptions).value.toList
     val javaSrc = {
       file(javaH.getAbsolutePath + "/src.zip") match {
@@ -475,8 +474,8 @@ object EnsimePlugin extends AutoPlugin {
 
       val target = targetForOpt(config).get
       val scalaCompilerArgs = ((scalacOptions in config).run ++
-        (ensimeScalacOptions in config).run ++
-        ensimeSuggestedScalacOptions(ensimeScalaV)).toList.distinct
+        ensimeSuggestedScalacOptions(ensimeScalaV) ++
+        (ensimeScalacOptions in config).run).toList
       val javaCompilerArgs = (javacOptions in config).run.toList
       val jars = config match {
         case Compile => jarsFor(Compile) ++ unmanagedJarsFor(Compile) ++ jarsFor(Provided) ++ jarsFor(Optional)
