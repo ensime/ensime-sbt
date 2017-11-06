@@ -77,6 +77,9 @@ object EnsimeKeys {
   val ensimeScalaVersion = taskKey[String](
     "Version of scala for the ENSIME JVM process."
   )
+  val ensimeJavaTools = settingKey[Seq[File]](
+    "Possible locations of the java tools.jar."
+  )
 
   val ensimeScalaJars = taskKey[Seq[File]](
     "The scala compiler's jars."
@@ -194,6 +197,10 @@ object EnsimePlugin extends AutoPlugin {
       }
     },
     ensimeJavaHome := javaHome.value.getOrElse(JdkDir),
+    ensimeJavaTools := {
+      if (isPreJava9) Seq(ensimeJavaHome.value / "lib/tools.jar")
+      else Seq.empty
+    },
     // unable to infer the user's scalac options: https://github.com/ensime/ensime-sbt/issues/98
     ensimeProjectScalacOptions := ensimeSuggestedScalacOptions(Properties.versionNumberString),
     ensimeMegaUpdate := Keys.state.flatMap { implicit s =>
@@ -283,11 +290,13 @@ object EnsimePlugin extends AutoPlugin {
       case _                       => Nil
     }
 
+  private val isPreJava9 = sys.props("java.specification.version").contains(".")
+
   def ensimeServerIndexTask: Def.Initialize[Task[Unit]] = Def.task {
     val javaH = ensimeJavaHome.value
     val java = javaH / "bin/java"
     val scalaCompilerJars = ensimeScalaJars.value.toSet
-    val jars = ensimeServerJars.value.toSet ++ scalaCompilerJars + javaH / "lib/tools.jar"
+    val jars = ensimeServerJars.value.toSet ++ scalaCompilerJars ++ ensimeJavaTools.value.toSet
     val jvmFlags = ensimeJavaFlags.value ++ Seq("-Densime.config=.ensime", "-Densime.exitAfterIndex=true")
     val cache = cacheDir(ensimeCachePrefix.value, file("."))
 
@@ -351,7 +360,7 @@ object EnsimePlugin extends AutoPlugin {
 
     val javaH = ensimeJavaHome.value
     val scalaCompilerJars = ensimeScalaJars.value.toSet
-    val serverJars = ensimeServerJars.value.toSet -- scalaCompilerJars + javaH / "lib/tools.jar"
+    val serverJars = ensimeServerJars.value.toSet -- scalaCompilerJars ++ ensimeJavaTools.value.toSet
     val serverVersion = ensimeServerVersion.value
 
     // for some reason this gives the wrong number in projectData
@@ -652,7 +661,7 @@ object EnsimePlugin extends AutoPlugin {
     val module = ensimeProjectsToModule(Set(proj))
 
     val scalaCompilerJars = ensimeScalaProjectJars.value.toSet
-    val serverJars = ensimeServerProjectJars.value.toSet -- scalaCompilerJars + javaH / "lib/tools.jar"
+    val serverJars = ensimeServerProjectJars.value.toSet -- scalaCompilerJars ++ ensimeJavaTools.value
     val serverVersion = ensimeProjectServerVersion.value
 
     val config = EnsimeConfig(
@@ -680,10 +689,10 @@ object EnsimePlugin extends AutoPlugin {
     // osx
     Try(sys.process.Process("/usr/libexec/java_home").!!.trim).toOption
   ).flatten.filter { n =>
-      new File(n + "/lib/tools.jar").exists
-    }.headOption.map(new File(_).getCanonicalFile).getOrElse(
-      throw new FileNotFoundException(
-        """Could not automatically find the JDK/lib/tools.jar.
+    new File(n + "/lib/tools.jar").exists || new File(n, "jmods").isDirectory
+  }.headOption.map(new File(_).getCanonicalFile).getOrElse(
+    throw new FileNotFoundException(
+      """Could not automatically find the JDK home.
       |You must explicitly set JDK_HOME or JAVA_HOME.""".stripMargin
       )
     )
@@ -710,8 +719,8 @@ object EnsimePlugin extends AutoPlugin {
       "-Xmx4g"
     )
 
-    val server = serverVersion.substring(0, 3)
-    val java = sys.props("java.version").substring(0, 3)
+    val server = serverVersion.take(3)
+    val java = sys.props("java.version").take(3)
     val versioned = (java, server) match {
       case ("1.6" | "1.7", _) => Seq(
         "-XX:MaxPermSize=256m"
