@@ -128,6 +128,7 @@ object EnsimeKeys {
 
   val ensimeSnapshot = taskKey[Unit]("Copy the cache to a snapshot directory for later recovery.")
   val ensimeRestore = taskKey[Unit]("Replace the cache with the snapshot.")
+  val ensimeClearCache = taskKey[Unit]("Clear the contents of cache.")
 }
 
 object EnsimePlugin extends AutoPlugin {
@@ -174,6 +175,7 @@ object EnsimePlugin extends AutoPlugin {
     ensimeCachePrefix := None,
     ensimeSnapshot := ensimeSnapshotTask.value,
     ensimeRestore := ensimeRestoreTask.value,
+    ensimeClearCache := ensimeClearCacheTask.value,
 
     // WORKAROUND: https://github.com/scala/scala/pull/5592
     ensimeJavaFlags := baseJavaFlags(ensimeServerVersion.value) :+ "-Dscala.classpath.closeZip=true",
@@ -248,6 +250,13 @@ object EnsimePlugin extends AutoPlugin {
       throw new IllegalStateException(s"$snapshot is not valid")
     IO.delete(cache)
     IO.copyDirectory(snapshot, cache)
+  }
+
+  def ensimeClearCacheTask: Def.Initialize[Task[Unit]] = Def.task {
+    val (cache, snapshot) = cacheAndSnapshot(ensimeCachePrefix.value)
+    if (!cache.isDirectory)
+      throw new IllegalStateException(s"$cache is not valid")
+    IO.delete(cache)
   }
 
   // exposed for users to use

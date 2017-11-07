@@ -3,3 +3,7 @@
 > ensimeConfigProject
 > ensimeExpect project/.ensime ensimeConfigProject{sbtVersion}.expect
 > checkJavaOptions
+> ensimeServerIndex
+> ensimeSnapshot
+> ensimeRestore
+> ensimeClearCache
