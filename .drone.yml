@@ -1,6 +1,6 @@
 pipeline:
   build:
-    image: ensime/ensime:v2.x-cache
+    image: fommil/docker-openjdk-sbt:latest
     pull: true
     commands:
       - host `curl -s http://httpbin.org/ip | jq -r '.origin'` || true ;
