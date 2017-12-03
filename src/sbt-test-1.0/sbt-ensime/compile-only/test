@@ -1,0 +1,17 @@
+# basic behaviour
+> a/compile
+$ sleep 1000
+$ touch timestamp
+$ sleep 1000
+> a/ensimeCompileOnly a/src/main/scala/Foo.scala
+$ newer a/target/scala-2.12/classes/Foo.class timestamp
+$ newer timestamp a/target/scala-2.12/classes/Bar.class
+
+# manual extra compile parameter
+> a/ensimeCompileOnly -Xprint:typer a/src/main/scala/Foo.scala
+
+# failure modes
+$ sleep 1000
+-> ensimeCompileOnly a/src/test/scala/Foo.scala
+# aggregation
+-> ensimeCompileOnly a/src/main/scala/Foo.scala

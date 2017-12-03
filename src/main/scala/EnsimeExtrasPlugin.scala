@@ -61,8 +61,17 @@ object EnsimeExtrasPlugin extends AutoPlugin with CompatExtras {
       extraArgs = ensimeDebuggingArgs
     ).evaluated,
     ensimeLaunchConfigurations := Nil,
-    ensimeLaunch in Compile := launchTask(Compile).evaluated
-  ) ++ compatSettings
+    ensimeLaunch in Compile := launchTask(Compile).evaluated,
+    aggregate in ensimeCompileOnly := false
+  ) ++ Seq(Compile, Test).flatMap { config =>
+    // WORKAROUND https://github.com/sbt/sbt/issues/2580
+    inConfig(config) {
+      Seq(
+        ensimeCompileOnly := compileOnlyTask.evaluated,
+        scalacOptions in ensimeCompileOnly := scalacOptions.value
+      )
+    }
+  } ++ compatSettings
 
   val ensimeRunMainTaskParser: Parser[JavaArgs] = {
     import DefaultParsers._
@@ -176,4 +185,21 @@ object EnsimeExtrasPlugin extends AutoPlugin with CompatExtras {
       }
   }
 
+  private[ensime] val noChanges = new xsbti.compile.DependencyChanges {
+    def isEmpty = true
+    def modifiedBinaries = Array()
+    def modifiedClasses = Array()
+  }
+
+  private[ensime] def fileInProject(arg: String, sourceDirs: Seq[File]): File = {
+    val input = file(arg).getCanonicalFile
+    val here = sourceDirs.exists { dir => input.getPath.startsWith(dir.getPath) }
+    if (!here || !input.exists())
+      throw new IllegalArgumentException(s"$arg not associated to $sourceDirs")
+
+    if (!input.getName.endsWith(".scala"))
+      throw new IllegalArgumentException(s"only .scala files are supported: $arg")
+
+    input
+  }
 }
