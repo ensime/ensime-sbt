@@ -13,19 +13,13 @@ trait CompatExtrasKeys {
     "The equivalent of ensimeRunDebug for testOnly command"
   )
 
-  val ensimeCompileOnly = inputKey[Unit](
-    "Compiles a single scala file"
-  )
-
   val ensimeDebuggingArgs = settingKey[Seq[String]](
     "Java args for for debugging"
   )
 }
 
-object CompatExtrasKeysHack extends CompatExtrasKeys
-
 trait CompatExtras {
-  import CompatExtrasKeysHack._
+  import EnsimeExtrasKeys._
 
   def compatSettings: Seq[Setting[_]] = Seq(
     ensimeTestOnlyDebug in Test := testOnlyWithSettings(

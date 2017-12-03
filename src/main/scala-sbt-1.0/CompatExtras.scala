@@ -14,16 +14,10 @@ trait CompatExtrasKeys {
   val ensimeDebuggingArgs = settingKey[Seq[String]](
     "Java args for for debugging"
   )
-
-  val ensimeCompileOnly = inputKey[Unit](
-    "Compiles a single scala file"
-  )
 }
 
-object CompatExtrasKeysHack extends CompatExtrasKeys
-
 trait CompatExtras {
-  import CompatExtrasKeysHack._
+  import EnsimeExtrasKeys._
 
   val compatSettings: Seq[Setting[_]] = Nil
 

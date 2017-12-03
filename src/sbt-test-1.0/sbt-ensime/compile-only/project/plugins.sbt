@@ -1,3 +1,1 @@
-ivyLoggingLevel := UpdateLogging.Quiet
-
-addSbtPlugin("org.ensime" % "sbt-ensime" % System.getProperty("plugin.version"))
+../../../../sbt-test-0.13/sbt-ensime/inter-tests/project/plugins.sbt

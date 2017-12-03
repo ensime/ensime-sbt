@@ -29,8 +29,13 @@ object EnsimeExtrasKeys extends CompatExtrasKeys {
   val ensimeLaunchConfigurations = settingKey[Seq[LaunchConfig]](
     "Named applications with canned env/args/class/params"
   )
+
   val ensimeLaunch = inputKey[Unit](
     "Launch a named application in ensimeLaunchConfigurations"
+  )
+
+  val ensimeCompileOnly = inputKey[Unit](
+    "Compiles a single scala file"
   )
 }
 

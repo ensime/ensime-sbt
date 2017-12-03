@@ -1,3 +1,1 @@
-libraryDependencies ++= Seq(
-  "com.googlecode.java-diff-utils" % "diffutils" % "1.3.0"
-)
+../../../../sbt-test-0.13/sbt-ensime/inter-tests/project/testing.sbt
