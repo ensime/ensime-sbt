@@ -22,10 +22,7 @@ trait CompatExtras {
   val compatSettings: Seq[Setting[_]] = Nil
 
   private object noopCallback extends xsbti.AnalysisCallback {
-    override def startSource(source: File): Unit = {
-      println("source")
-      println(source.toString)
-    }
+    override def startSource(source: File): Unit = {}
     override def mainClass(sourceFile: File, className: String): Unit = {}
     override def apiPhaseCompleted(): Unit = {}
     override def enabled(): Boolean = true
@@ -36,28 +33,14 @@ trait CompatExtras {
                                   context: DependencyContext): Unit = {}
     override def generatedNonLocalClass(source: File, classFile: File,
                                         binaryClassName: String,
-                                        srcClassName: String): Unit = {
-      println("non local class")
-      println(source.toString)
-      println(classFile.toString)
-      println(binaryClassName)
-      println(srcClassName)
-    }
+                                        srcClassName: String): Unit = {}
     override def problem(what: String, pos: Position, msg: String,
-                         severity: Severity, reported: Boolean): Unit = {
-      println("problem")
-      println(what)
-      println(msg)
-    }
+                         severity: Severity, reported: Boolean): Unit = {}
     override def dependencyPhaseCompleted(): Unit = {}
     override def classDependency(onClassName: String,
                                  sourceClassName: String,
                                  context: DependencyContext): Unit = {}
-    override def generatedLocalClass(source: File, classFile: File): Unit = {
-        println("local class")
-        println(source.toString)
-        println(classFile.toString)
-    }
+    override def generatedLocalClass(source: File, classFile: File): Unit = {}
     override def api(sourceFile: File, classApi: ClassLike): Unit = {}
     override def usedName(className: String, name: String,
                           useScopes: util.EnumSet[UseScope]): Unit = {}
