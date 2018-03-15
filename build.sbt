@@ -24,7 +24,7 @@ shadeNamespaces ++= Set("coursier", "scalaz")
 
 libraryDependencies ++= Seq(
   // shade coursier, i.e. don't force binary compatibility on downstream
-  "io.get-coursier" %% "coursier-cache" % "1.0.0-RC12" % "shaded"
+  "io.get-coursier" %% "coursier-cache" % "1.0.2" % "shaded"
 ) ++ {
   // coursier needs to know about unshaded things...
   val currentSbtVersion = (sbtVersion in pluginCrossBuild).value
@@ -37,7 +37,6 @@ libraryDependencies ++= Seq(
     )
 }
 
-scriptedSettings
 scriptedBufferLog := false
 scriptedLaunchOpts := Seq(
   "-Dplugin.version=" + version.value,
@@ -55,12 +54,8 @@ sbtTestDirectory := {
 }
 
 scalaVersion in ThisBuild := "2.12.4"
-sbtVersion in Global := "1.0.3"
-crossSbtVersions := Seq("1.0.3", "0.13.16")
-scalaCompilerBridgeSource := {
-  val sv = appConfiguration.value.provider.id.version
-  ("org.scala-sbt" % "compiler-interface" % sv % "component").sources
-}
+sbtVersion in Global := "1.1.1"
+crossSbtVersions := Seq("1.1.1", "0.13.17")
 
 libraryDependencies += Defaults.sbtPluginExtra(
   "com.dwijnand" % "sbt-compat" % "1.0.0",

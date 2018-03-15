@@ -17,6 +17,7 @@ object EnsimeSbtTestSupport extends AutoPlugin {
 
   private lazy val parser = complete.Parsers.spaceDelimited("<arg>")
   override lazy val buildSettings = Seq(
+    version := "0.1-SNAPSHOT", // reverts the 1.1.x change in default
     ensimeServerVersion := "2.0.0", // our CI needs stable jars
     ensimeProjectServerVersion := "2.0.0", // our CI needs stable jars
     commands += Command.args("ensimeExpect", "<args>")(ensimeExpect)
@@ -48,7 +49,7 @@ object EnsimeSbtTestSupport extends AutoPlugin {
     val jdkHome = javaHome.gimme.getOrElse(file(Properties.jdkHome)).getAbsolutePath
 
     val normalizedFilenames = args.map(filename => filename
-      .replace("{sbtVersion}", sbtVersion.gimme.split("[.]").take(2).mkString("-", ".", ""))
+      .replace("{sbtVersion}", sbtVersion.gimme.split("[.]").take(2).mkString("-", ".", "").replace("1.1", "1.0"))
     )
 
     val List(got, expect) = normalizedFilenames.map { filename =>
