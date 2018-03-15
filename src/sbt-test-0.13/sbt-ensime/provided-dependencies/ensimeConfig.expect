@@ -11,7 +11,7 @@
  :java-compiler-args nil
  :reference-source-roots ("JDK_HOME/src.zip")
  :scala-version "2.12.2"
- :compiler-args ("-Ymacro-expand:discard")
+ :compiler-args ("-Xlog-reflective-calls" "-Ymacro-expand:discard")
  :subprojects ((
  :name "provided-dependencies"
  :source-roots ("BASE_DIR/src/main/java" "BASE_DIR/src/test/java" "BASE_DIR/target/scala-2.12/src_managed/main" "BASE_DIR/src/main/scala-2.12" "BASE_DIR/src/test/scala-2.12" "BASE_DIR/src/main/scala" "BASE_DIR/src/test/scala" "BASE_DIR/target/scala-2.12/src_managed/test")
