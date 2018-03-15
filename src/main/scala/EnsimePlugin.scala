@@ -51,6 +51,9 @@ object EnsimeKeys {
   val ensimeJavacOptions = taskKey[Seq[String]](
     "Arguments for the java presentation compiler, extracted from the compiler flags."
   )
+  val ensimeScalacTransformer = settingKey[Seq[String] => Seq[String]](
+    "Allows processing the scalacOptions to workaround problems with compiler plugins."
+  )
 
   val ensimeIgnoreSourcesInBase = settingKey[Boolean](
     "ENSIME doesn't support sources in base, this tolerates their existence."
@@ -220,8 +223,11 @@ object EnsimePlugin extends AutoPlugin {
     ensimeConfigTransformerProject := identity,
     ensimeUseTarget := None,
 
-    ensimeScalacOptions := Nil,
-    ensimeJavacOptions := (javacOptions in Compile).value,
+    // I can't get dynamic tasks to work, so this is the hack...
+    // macro-paradise and meta-paradise are fundamentally broken in the PC.
+    ensimeScalacTransformer := (opts => opts.filterNot(_.contains("paradise"))),
+    ensimeScalacOptions := ensimeSuggestedScalacOptions(scalaVersion.value),
+    ensimeJavacOptions := Nil,
 
     ensimeConfig := ensimeConfigTask.evaluated,
     ensimeConfigProject := ensimeConfigProjectTask.value,
@@ -259,20 +265,11 @@ object EnsimePlugin extends AutoPlugin {
     IO.delete(cache)
   }
 
-  // exposed for users to use
-  def ensimeSuggestedScalacOptions(scalaVersion: String): Seq[String] = Seq(
-    "-feature",
-    "-deprecation",
-    "-Xlint",
-    "-Ywarn-dead-code",
-    "-Ywarn-numeric-widen",
-    "-Xfuture"
-  ) ++ {
-      CrossVersion.partialVersion(scalaVersion) match {
-        case Some((2, 10))           => Seq("-Ymacro-no-expand")
-        case Some((2, v)) if v >= 11 => Seq("-Ymacro-expand:discard")
-        case _                       => Nil
-      }
+  def ensimeSuggestedScalacOptions(scalaVersion: String): Seq[String] =
+    CrossVersion.partialVersion(scalaVersion) match {
+      case Some((2, 10))           => Seq("-Ymacro-no-expand")
+      case Some((2, v)) if v >= 11 => Seq("-Ymacro-expand:discard")
+      case _                       => Nil
     }
 
   def ensimeServerIndexTask: Def.Initialize[Task[Unit]] = Def.task {
@@ -373,10 +370,9 @@ object EnsimePlugin extends AutoPlugin {
       if (subProjects.size == 1) subProjects.head.id.project
       else root.getAbsoluteFile.getName
     }
-    val compilerArgs = ((scalacOptions in Compile).value ++
-      ensimeSuggestedScalacOptions(ensimeScalaV) ++
-      (ensimeScalacOptions in Compile).value).toList
-    val javaCompilerArgs = (ensimeJavacOptions).value.toList
+    val transformer = ensimeScalacTransformer.value
+    val compilerArgs = transformer((scalacOptions in Compile).value).toList ::: (ensimeScalacOptions in Compile).value.toList
+    val javaCompilerArgs = (javacOptions in Compile).value.toList ::: (ensimeJavacOptions in Compile).value.toList
     val javaSrc = {
       file(javaH.getAbsolutePath + "/src.zip") match {
         case f if f.exists => Set(f)
@@ -509,10 +505,9 @@ object EnsimePlugin extends AutoPlugin {
       }
 
       val target = targetForOpt(config).get
-      val scalaCompilerArgs = ((scalacOptions in config).run ++
-        ensimeSuggestedScalacOptions(ensimeScalaV) ++
-        (ensimeScalacOptions in config).run).toList
-      val javaCompilerArgs = (javacOptions in config).run.toList
+      val transformer = (ensimeScalacTransformer).gimme
+      val scalaCompilerArgs = transformer((scalacOptions in config).run).toList ::: (ensimeScalacOptions in config).run.toList
+      val javaCompilerArgs = (javacOptions in config).run.toList ::: (ensimeJavacOptions in config).run.toList
       val jars = config match {
         case Compile => jarsFor(Compile) ++ unmanagedJarsFor(Compile) ++ jarsFor(Provided) ++ jarsFor(Optional)
         case _       => jarsFor(config) ++ unmanagedJarsFor(config)

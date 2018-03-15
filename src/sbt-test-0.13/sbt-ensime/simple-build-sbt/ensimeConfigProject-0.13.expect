@@ -11,7 +11,7 @@
  :java-compiler-args nil
  :reference-source-roots nil
  :scala-version "2.10.6"
- :compiler-args ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-no-expand")
+ :compiler-args ("-Ymacro-no-expand")
  :subprojects nil
  :projects ((
  :id (:project "simple-build-sbt-project" :config "compile")

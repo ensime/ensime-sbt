@@ -11,14 +11,14 @@
  :java-compiler-args nil
  :reference-source-roots nil
  :scala-version "2.12.2"
- :compiler-args ("-Xlog-reflective-calls" "-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
+ :compiler-args ("-Ymacro-expand:discard")
  :subprojects nil
  :projects ((
  :id (:project "simple-build-sbt" :config "compile")
  :depends nil
  :sources nil
  :targets ("BASE_DIR/target/scala-2.12/classes")
- :scalac-options ("-Xlog-reflective-calls" "-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
+ :scalac-options ("-Xlog-reflective-calls" "-Ymacro-expand:discard")
  :javac-options nil
  :library-jars ("IVY_DIR/cache/org.scala-lang/scala-library/jars/scala-library-2.12.2.jar")
  :library-sources ("IVY_DIR/cache/org.scala-lang/scala-library/srcs/scala-library-2.12.2-sources.jar")
@@ -27,7 +27,7 @@
  :depends ((:project "simple-build-sbt" :config "compile"))
  :sources nil
  :targets ("BASE_DIR/target/scala-2.12/test-classes")
- :scalac-options ("-Xlog-reflective-calls" "-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
+ :scalac-options ("-Xlog-reflective-calls" "-Ymacro-expand:discard")
  :javac-options nil
  :library-jars nil
  :library-sources nil

@@ -11,7 +11,7 @@
  :java-compiler-args nil
  :reference-source-roots ("JDK_HOME/src.zip")
  :scala-version "2.12.4"
- :compiler-args ("-feature" "-deprecation" "-Xlint" "-Ywarn-dead-code" "-Ywarn-numeric-widen" "-Xfuture" "-Ymacro-expand:discard")
+ :compiler-args ("-Ymacro-expand:discard")
  :subprojects ((
  :name "bad-build-scala-project"
  :source-roots ("BASE_DIR/project")
