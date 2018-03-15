@@ -63,6 +63,8 @@ object EnsimeSbtTestSupport extends AutoPlugin {
             replace(baseDir.replace("/private", ""), "BASE_DIR"). // workaround for https://github.com/ensime/ensime-sbt/issues/151
             replace(Properties.userHome + "/.ivy2", "IVY_DIR").
             replace("C:/Users/appveyor/.ivy2", "IVY_DIR").
+            replace("/Users/travis/Library/Caches/Coursier", "COURSIER_DIR/cache").
+            replace("C:/Users/appveyor/AppData/Local/Coursier", "COURSIER_DIR").
             replace(Properties.userHome + "/.coursier", "COURSIER_DIR").
             replace("C:/Users/appveyor/.coursier", "COURSIER_DIR").
             replace("https/repository.jboss.org", "https/repo1.maven.org/maven2"). // maven central hashcode mismatches
