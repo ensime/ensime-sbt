@@ -23,6 +23,9 @@ object EnsimeKeys {
   val ensimeServerIndex = taskKey[Unit](
     "Start up the ENSIME server and index your project."
   )
+  val ensimeServerFindUsages = settingKey[Boolean](
+    "Enables 'find usages' at significant performance penalty."
+  )
 
   val ensimeConfig = inputKey[Unit](
     "Generate a .ensime for the project."
@@ -149,6 +152,8 @@ object EnsimePlugin extends AutoPlugin {
 
     ensimeConfigLegacy := true,
 
+    ensimeServerFindUsages := false,
+
     ensimeScalaVersion := {
       // infer the scalaVersion by majority vote, because many badly
       // written builds will forget to set the scalaVersion for the
@@ -181,7 +186,13 @@ object EnsimePlugin extends AutoPlugin {
     ensimeClearCache := ensimeClearCacheTask.value,
 
     // WORKAROUND: https://github.com/scala/scala/pull/5592
-    ensimeJavaFlags := baseJavaFlags(ensimeServerVersion.value) :+ "-Dscala.classpath.closeZip=true",
+    ensimeJavaFlags := {
+      Seq("-Dscala.classpath.closeZip=true") ++
+      baseJavaFlags(ensimeServerVersion.value) ++ {
+        if (ensimeServerFindUsages.value) Seq()
+        else Seq("-Densime.index.no.reverse.lookups=true")
+      }
+    },
     ensimeJavaHome := javaHome.value.getOrElse(JdkDir),
     // unable to infer the user's scalac options: https://github.com/ensime/ensime-sbt/issues/98
     ensimeProjectScalacOptions := ensimeSuggestedScalacOptions(Properties.versionNumberString),
