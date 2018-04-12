@@ -56,9 +56,10 @@ sbtTestDirectory := {
 scalaVersion in ThisBuild := "2.12.4"
 sbtVersion in Global := "1.1.1"
 crossSbtVersions := Seq("1.1.1", "0.13.17")
+// crossSbtVersions := Seq(sbtVersion.value, "0.13.17")
 
 libraryDependencies += Defaults.sbtPluginExtra(
-  "com.dwijnand" % "sbt-compat" % "1.0.0",
+  "com.dwijnand" % "sbt-compat" % "1.2.6",
   (sbtBinaryVersion in pluginCrossBuild).value,
   (scalaBinaryVersion in update).value
 )
