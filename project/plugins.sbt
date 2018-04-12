@@ -4,6 +4,6 @@ ivyLoggingLevel := UpdateLogging.Quiet
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
-addSbtPlugin("com.fommil" % "sbt-sensible" % "2.3.1")
-addSbtPlugin("io.get-coursier" % "sbt-shading" % "1.0.2")
+addSbtPlugin("com.fommil" % "sbt-sensible" % "2.4.2")
+addSbtPlugin("io.get-coursier" % "sbt-shading" % "1.0.3")
 
