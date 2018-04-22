@@ -120,14 +120,6 @@ object EnsimeKeys {
   val ensimeMegaUpdate = taskKey[Map[ProjectRef, (UpdateReport, UpdateReport)]](
     "Runs the aggregated UpdateReport for `update' and `updateClassifiers' respectively."
   )
-  val ensimeConfigTransformer = settingKey[EnsimeConfig => EnsimeConfig](
-    "A function that is applied to a generated ENSIME configuration. This transformer function " +
-      "can be used to add or filter any resulting config and can serve as a hook for other plugins."
-  )
-  val ensimeConfigTransformerProject = settingKey[EnsimeConfig => EnsimeConfig](
-    "A function that is applied to a generated ENSIME project config. Equivalent of 'configTransformer' task, " +
-      "on the build level."
-  )
 
   val ensimeCachePrefix = settingKey[Option[File]](
     "Instead of putting the cache directory in the base directory, put it under this directory. " +
@@ -237,8 +229,6 @@ object EnsimePlugin extends AutoPlugin {
 
     ensimeUnmanagedSourceArchives := Nil,
     ensimeUnmanagedJavadocArchives := Nil,
-    ensimeConfigTransformer := identity,
-    ensimeConfigTransformerProject := identity,
     ensimeUseTarget := None,
 
     // I can't get dynamic tasks to work, so this is the hack...
@@ -246,8 +236,8 @@ object EnsimePlugin extends AutoPlugin {
     ensimeScalacOptions := ensimeSuggestedScalacOptions(scalaVersion.value),
     ensimeJavacOptions := Nil,
 
-    ensimeConfig := ensimeConfigTask.evaluated,
-    ensimeConfigProject := ensimeConfigProjectTask.value,
+    ensimeConfig := ensimeConfigWriteTask.evaluated,
+    ensimeConfigProject := ensimeConfigProjectWriteTask.value,
 
     aggregate in ensimeConfig := false,
     aggregate in ensimeConfigProject := false
@@ -318,7 +308,8 @@ object EnsimePlugin extends AutoPlugin {
     ))
   }
 
-  def ensimeConfigTask = Def.inputTask {
+  // public so other language servers can reuse
+  def ensimeConfigTask: Def.Initialize[InputTask[EnsimeConfig]] = Def.inputTask {
     val args = Def.spaceDelimited().parsed
 
     val extracted = Project.extract(state.value)
@@ -384,7 +375,6 @@ object EnsimePlugin extends AutoPlugin {
     }
 
     val root = file(Properties.userDir)
-    val out = file(".ensime")
     val name = (ensimeName).?.value.getOrElse {
       if (subProjects.size == 1) subProjects.head.id.project
       else root.getAbsoluteFile.getName
@@ -407,18 +397,12 @@ object EnsimePlugin extends AutoPlugin {
 
     val modules = subProjects.groupBy(_.id.project).mapValues(ensimeProjectsToModule)
 
-    val config = EnsimeConfig(
+    EnsimeConfig(
       root, cacheDir(ensimeCachePrefix.value, root),
       scalaCompilerJars, serverJars, serverVersion,
       name, scalaVersion, compilerArgs,
       modules, javaH, javaFlags, javaCompilerArgs, javaSrc, subProjects
     )
-
-    val transformedConfig = ensimeConfigTransformer.value.apply(config)
-    val legacy = ensimeConfigLegacy.value
-
-    // workaround for Windows
-    write(out, toSExp(transformedConfig, legacy).replaceAll("\r\n", "\n") + "\n")
   }
 
   // WORKAROUND: https://github.com/ensime/ensime-sbt/issues/334 when
@@ -608,7 +592,7 @@ object EnsimePlugin extends AutoPlugin {
     )
   }
 
-  def ensimeConfigProjectTask = Def.task {
+  def ensimeConfigProjectTask: Def.Initialize[Task[EnsimeConfig]] = Def.task {
     val extracted = Project.extract(state.value)
 
     implicit val bs = extracted.structure
@@ -663,18 +647,35 @@ object EnsimePlugin extends AutoPlugin {
     val serverJars = ensimeServerProjectJars.value.toSet -- scalaCompilerJars ++ ensimeJavaTools.value
     val serverVersion = ensimeProjectServerVersion.value
 
-    val config = EnsimeConfig(
+    EnsimeConfig(
       root, cacheDir(ensimeCachePrefix.value, root),
       scalaCompilerJars, serverJars, serverVersion,
       name, scalaV, compilerArgs,
       Map(module.name -> module), javaH, javaFlags, Nil, javaSrc,
       Seq(proj)
     )
+  }
 
-    val transformedConfig = ensimeConfigTransformerProject.value.apply(config)
-    val legacy = ensimeConfigLegacy.value
+  private[this] def writeConfig(config: EnsimeConfig, legacy: Boolean, out: File): Unit = {
+    // workaround for Windows
+    val sexp = toSExp(config, legacy).replaceAll("\r\n", "\n") + "\n"
+    write(out, sexp)
+  }
 
-    write(out, toSExp(transformedConfig, legacy).replaceAll("\r\n", "\n") + "\n")
+  def ensimeConfigWriteTask = Def.inputTask {
+    writeConfig(
+      ensimeConfigTask.evaluated,
+      ensimeConfigLegacy.value,
+      file(".ensime")
+    )
+  }
+
+  def ensimeConfigProjectWriteTask = Def.task {
+    writeConfig(
+      ensimeConfigProjectTask.value,
+      ensimeConfigLegacy.value,
+      file("project/.ensime")
+    )
   }
 
   // WORKAROUND: https://github.com/typelevel/scala/issues/75
