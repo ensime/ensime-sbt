@@ -86,7 +86,9 @@ object EnsimeSbtTestSupport extends AutoPlugin {
 
     val deltas = DiffUtils.diff(expect.asJava, got.asJava).getDeltas.asScala
     if (!deltas.isEmpty) {
-      IO.write(origDir / normalizedFilenames(1), got.mkString("\n"))
+      val writeFname = origDir / (normalizedFilenames(1) + "_seen")
+      IO.write(writeFname, got.mkString("\n"))
+      log.info(s"wrote actual config to $writeFname")
       throw new MessageOnlyException(s".ensime diff: ${deltas.mkString("\n")}")
     }
 

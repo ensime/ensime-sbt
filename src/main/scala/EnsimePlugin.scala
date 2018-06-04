@@ -30,6 +30,11 @@ object EnsimeKeys {
   val ensimeConfig = inputKey[Unit](
     "Generate a .ensime for the project."
   )
+
+  val ensimeConfigTask = inputKey[EnsimeConfig](
+    "Generate the configuration that will be saved into the .ensime for the project"
+  )
+
   val ensimeConfigProject = taskKey[Unit](
     "Generate a project/.ensime for the project definition."
   )
@@ -236,6 +241,7 @@ object EnsimePlugin extends AutoPlugin {
     ensimeScalacOptions := ensimeSuggestedScalacOptions(scalaVersion.value),
     ensimeJavacOptions := Nil,
 
+    ensimeConfigTask := ensimeConfigTaskImpl.evaluated,
     ensimeConfig := ensimeConfigWriteTask.evaluated,
     ensimeConfigProject := ensimeConfigProjectWriteTask.value,
 
@@ -309,7 +315,7 @@ object EnsimePlugin extends AutoPlugin {
   }
 
   // public so other language servers can reuse
-  def ensimeConfigTask: Def.Initialize[InputTask[EnsimeConfig]] = Def.inputTask {
+  def ensimeConfigTaskImpl: Def.Initialize[InputTask[EnsimeConfig]] = Def.inputTask {
     val args = Def.spaceDelimited().parsed
 
     val extracted = Project.extract(state.value)
