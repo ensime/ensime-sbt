@@ -1,1 +1,1 @@
-Documentation is available at [ensime.org](http://ensime.org/build_tools/sbt)
+Documentation is available at [ensime.github.io](http://ensime.github.io/build_tools/sbt/)
