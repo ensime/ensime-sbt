@@ -491,7 +491,7 @@ object EnsimePlugin extends AutoPlugin {
       artifact = artifactFilter(classifier = Artifact.DocClassifier)
     ).toSet ++ (ensimeUnmanagedJavadocArchives in config in projectRef).run
 
-    val IvyConfig = "([A-Za-z]+)->([A-Za-z]+)".r
+    val IvyConfig = """\s*([A-Za-z]+)\s*->\s*([A-Za-z]+)\s*""".r
 
     def depsFor(config: Configuration): Seq[EnsimeProjectId] = project.dependencies.flatMap { d =>
       lazy val name = d.project.project
